@@ -3,7 +3,9 @@ import QtQuick
 
 ShellRoot {
     AppLauncher {}
-    StatusBar {}
+    StatusBar { notifUnreadCount: notifs.unreadCount }
     ClipboardHistory {}
     OSD {}
+    NotificationPopup { id: notifs }
+    NotificationCenter { notifSource: notifs }
 }

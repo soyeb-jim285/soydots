@@ -5,4 +5,5 @@ Battery 1.0 Battery.qml
 MediaPlayer 1.0 MediaPlayer.qml
 NetworkStatus 1.0 NetworkStatus.qml
 Bluetooth 1.0 Bluetooth.qml
+NotificationBell 1.0 NotificationBell.qml
 SysTray 1.0 SysTray.qml

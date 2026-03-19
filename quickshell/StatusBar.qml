@@ -14,6 +14,7 @@ Scope {
 
     property string activePopup: ""
     property bool clockOpen: activePopup === "clock"
+    property int notifUnreadCount: 0
 
     // Calendar state
     property int currentMonth: new Date().getMonth()
@@ -92,6 +93,19 @@ Scope {
         implicitHeight: 500
         exclusiveZone: Theme.barHeight
         color: "transparent"
+
+        mask: Region {
+            // Bar area — full width
+            x: 0; y: 0
+            width: mainWindow.width
+            height: Theme.barHeight
+
+            // Calendar panel area
+            Region {
+                item: panelHover
+                intersection: Intersection.Combine
+            }
+        }
 
         property real panelAnimHeight: root.clockOpen ? calendarContent.implicitHeight + 28 : 0
         Behavior on panelAnimHeight {
@@ -345,6 +359,7 @@ Scope {
                 Battery { barWindow: mainWindow; activePopup: root.activePopup; onTogglePopup: root.togglePopup("battery") }
                 Bluetooth {}
                 NetworkStatus {}
+                NotificationBell { unreadCount: root.notifUnreadCount }
                 SysTray {}
             }
         }

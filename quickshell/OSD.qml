@@ -23,8 +23,15 @@ Scope {
     property bool currentMuted: sink?.audio?.muted ?? false
     property bool volumeReady: false
 
+    Timer {
+        id: readyDelay
+        interval: 2000
+        running: true
+        onTriggered: root.volumeReady = true
+    }
+
     onCurrentVolumeChanged: {
-        if (!volumeReady) { volumeReady = true; return; }
+        if (!volumeReady) return;
         osdType = "volume";
         osdValue = currentVolume;
         osdBool = currentMuted;

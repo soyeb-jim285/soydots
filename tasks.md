@@ -41,11 +41,17 @@
   - Battery (right, UPower, hidden on desktop, popup with stats)
   - Bluetooth (right, bluetoothctl, click to toggle power, connected device indicator)
   - Network status (right, nmcli-based)
+  - Notification bell (right, unread badge, click to open notification center)
   - System tray (right)
 - quickshell OSD overlay — Catppuccin themed, blurred background, auto-hide:
   - Volume (triggered by Pipewire changes)
   - Brightness (triggered by brightness keys via IPC)
   - Caps Lock / Num Lock (triggered by key press via IPC)
+- quickshell notification system — Catppuccin themed, blurred:
+  - Toast popups (top-right, slide-in/out animations, progress bar, auto-dismiss, urgency icons/colors)
+  - Notification center panel (right side, full history, clear all, IPC toggle)
+  - Bell icon in status bar with unread count badge
+- hyprland layer rules for blur on quickshell-osd and quickshell-notif
 
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
