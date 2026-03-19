@@ -39,6 +39,7 @@
 - quickshell app launcher — Catppuccin Mocha themed, fuzzy search, keyboard navigation, IPC toggle
 - quickshell clipboard history — Catppuccin Mocha themed, search, image preview, IPC toggle (Meta+V)
 - quickshell animation picker — full-screen overlay with shadcn-style arc spinner speed variants (Slow/Gentle/Medium/Brisk/Fast/Rapid), elastic sweep animation around centered link icon (Meta+Shift+B)
+- quickshell BT scan animation — Material-style two-bar chase indeterminate loader in Bluetooth panel (two bars sweep left-to-right, 3s cycle, InOutCubic), auto-stops after 60s
 - quickshell status bar — Catppuccin Mocha themed with:
   - Workspaces (left, animated pill indicators, clickable)
   - Clock + date (center, hover to open calendar panel with inverted corners, slide animation)

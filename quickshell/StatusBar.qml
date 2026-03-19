@@ -78,6 +78,20 @@ Scope {
     property bool btScanning: btAdapter?.discovering ?? false
     property bool btJustClosed: false
 
+    // Auto-stop BT scanning after 60 seconds
+    Timer {
+        id: btScanTimeout
+        interval: 60000
+        onTriggered: {
+            if (root.btAdapter && root.btScanning)
+                root.btAdapter.discovering = false;
+        }
+    }
+    onBtScanningChanged: {
+        if (btScanning) btScanTimeout.restart();
+        else btScanTimeout.stop();
+    }
+
     function togglePopup(name: string) {
         if (root.activePopup === name) {
             root.activePopup = "";
@@ -787,8 +801,8 @@ Scope {
 
                     // Empty/scanning state
                     Text {
-                        visible: root.btPowered && btContent.btDeviceCount === 0
-                        text: root.btScanning ? "Scanning..." : "No devices found"
+                        visible: root.btPowered && btContent.btDeviceCount === 0 && !root.btScanning
+                        text: "No devices found"
                         color: Theme.subtext0; font.pixelSize: 12; font.family: Theme.fontFamily
                         Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 8; Layout.bottomMargin: 8
                     }
@@ -935,44 +949,35 @@ Scope {
                         }
                     }
 
-                    // Scan button
-                    Rectangle {
-                        visible: root.btPowered
-                        Layout.fillWidth: true; height: 32; radius: 6
-                        color: btScanBtnMouse.containsMouse ? Theme.surface1 : Theme.surface0
-                        Behavior on color { ColorAnimation { duration: 100 } }
+                }
 
-                        RowLayout {
-                            anchors.centerIn: parent; spacing: 6
-                            Text {
-                                id: btScanIcon
-                                text: "\uf2f1"
-                                color: root.btScanning ? Theme.blue : Theme.subtext0
-                                font.pixelSize: 12; font.family: Theme.iconFont
-                                Behavior on color { ColorAnimation { duration: 200 } }
-                            }
-                            RotationAnimator {
-                                target: btScanIcon
-                                from: 0; to: 360; duration: 1000
-                                loops: Animation.Infinite; running: root.btScanning
-                            }
-                            Text {
-                                text: root.btScanning ? "Scanning..." : "Scan for devices"
-                                color: Theme.subtext0; font.pixelSize: 11; font.family: Theme.fontFamily
-                            }
+                // Scan line anchored to panel bottom
+                Rectangle {
+                    id: btScanLine
+                    visible: root.btPowered && root.btScanning
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
+                    anchors.left: btContent.left
+                    anchors.right: btContent.right
+                    height: 3; radius: 1.5
+                    color: Qt.rgba(137/255, 180/255, 250/255, 0.15)
+                    clip: true
+                    property real bar1Pos: -0.6
+                    property real bar2Pos: -0.6
+                    SequentialAnimation {
+                        loops: Animation.Infinite; running: root.btScanning
+                        ParallelAnimation {
+                            NumberAnimation { target: btScanLine; property: "bar1Pos"; from: -0.6; to: 1.0; duration: 1980; easing.type: Easing.InOutCubic }
+                            NumberAnimation { target: btScanLine; property: "bar2Pos"; from: -0.6; to: -0.6; duration: 1980 }
                         }
-
-                        MouseArea {
-                            id: btScanBtnMouse; anchors.fill: parent
-                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (root.btAdapter)
-                                    root.btAdapter.discovering = !root.btScanning;
-                            }
+                        ParallelAnimation {
+                            NumberAnimation { target: btScanLine; property: "bar2Pos"; from: -0.6; to: 1.0; duration: 1020; easing.type: Easing.InOutCubic }
+                            NumberAnimation { target: btScanLine; property: "bar1Pos"; from: 1.0; to: 1.0; duration: 1020 }
                         }
+                        ScriptAction { script: { btScanLine.bar1Pos = -0.6; btScanLine.bar2Pos = -0.6; } }
                     }
-
-                    Item { height: 4; Layout.fillWidth: true }
+                    Rectangle { x: btScanLine.bar1Pos * btScanLine.width; width: 0.6 * btScanLine.width; height: 3; radius: 1.5; color: Theme.blue }
+                    Rectangle { x: btScanLine.bar2Pos * btScanLine.width; width: 0.6 * btScanLine.width; height: 3; radius: 1.5; color: Theme.blue }
                 }
             }
         }
