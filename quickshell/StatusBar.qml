@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Bluetooth
 import Quickshell.Io
 import QtQuick
 import QtQuick.Layouts
@@ -15,6 +16,7 @@ Scope {
     property string activePopup: ""
     property bool clockOpen: activePopup === "clock"
     property bool wifiOpen: activePopup === "wifi"
+    property bool btOpen: activePopup === "bluetooth"
     property int notifUnreadCount: 0
     property string lastPopup: ""
 
@@ -70,6 +72,12 @@ Scope {
     property string wifiConnectingSSID: ""
     property bool wifiJustClosed: false
 
+    // Bluetooth state (using Quickshell.Bluetooth native API)
+    property var btAdapter: Bluetooth.defaultAdapter
+    property bool btPowered: btAdapter?.enabled ?? false
+    property bool btScanning: btAdapter?.discovering ?? false
+    property bool btJustClosed: false
+
     function togglePopup(name: string) {
         if (root.activePopup === name) {
             root.activePopup = "";
@@ -80,9 +88,17 @@ Scope {
                 root.wifiJustClosed = true;
                 justClosedTimer.restart();
             }
+            if (name === "bluetooth") {
+                root.btJustClosed = true;
+                btJustClosedTimer.restart();
+                // Stop scanning when panel closes
+                if (root.btAdapter && root.btAdapter.discovering)
+                    root.btAdapter.discovering = false;
+            }
         } else {
             root.activePopup = name;
             root.wifiJustClosed = false;
+            root.btJustClosed = false;
             if (name === "clock") {
                 viewMonth = currentMonth;
                 viewYear = currentYear;
@@ -92,6 +108,11 @@ Scope {
                 wifiScanProc.running = true;
                 root.wifiError = "";
                 root.wifiPasswordSSID = "";
+            }
+            if (name === "bluetooth") {
+                // Start scanning when panel opens
+                if (root.btAdapter && root.btPowered && !root.btScanning)
+                    root.btAdapter.discovering = true;
             }
         }
     }
@@ -109,6 +130,11 @@ Scope {
         id: justClosedTimer
         interval: 300
         onTriggered: root.wifiJustClosed = false
+    }
+    Timer {
+        id: btJustClosedTimer
+        interval: 300
+        onTriggered: root.btJustClosed = false
     }
 
     onWifiPasswordSSIDChanged: {
@@ -250,6 +276,15 @@ Scope {
         }
     }
 
+
+    Process {
+        id: wifiDisconnectProc
+        command: ["bash", "-c", "nmcli device disconnect $(nmcli -t -f DEVICE,TYPE device status | grep wifi | head -1 | cut -d: -f1)"]
+        stdout: StdioCollector {
+            onStreamFinished: wifiScanProc.running = true
+        }
+    }
+
     // ===== SINGLE WINDOW for bar + panels =====
     PanelWindow {
         id: mainWindow
@@ -277,27 +312,29 @@ Scope {
                             Math.min(left, width - wifiPanelWidth - Theme.barMargin - 2 * Theme.barRadius));
         }
 
+        // Bluetooth panel positioning
+        property real btPanelWidth: 280
+        property real btIconWindowX: barContent.x + rightSection.x + btWidget.x + btWidget.width / 2
+        property real btPanelLeft: {
+            let left = btIconWindowX - btPanelWidth / 2;
+            return Math.max(Theme.barMargin + 2 * Theme.barRadius,
+                            Math.min(left, width - btPanelWidth - Theme.barMargin - 2 * Theme.barRadius));
+        }
+
         mask: Region {
             // Bar area — full width
             x: 0; y: 0
             width: mainWindow.width
             height: Theme.barHeight
 
-            // Calendar panel area
-            Region {
-                item: panelHover
-                intersection: Intersection.Combine
-            }
-
-            // WiFi panel area
-            Region {
-                item: wifiPanelHover
-                intersection: Intersection.Combine
-            }
+            Region { item: panelHover; intersection: Intersection.Combine }
+            Region { item: wifiPanelHover; intersection: Intersection.Combine }
+            Region { item: btPanelHover; intersection: Intersection.Combine }
         }
 
         property real panelAnimHeight: root.clockOpen ? calendarContent.implicitHeight + 28
             : root.wifiOpen ? wifiContent.implicitHeight + 28
+            : root.btOpen ? btContent.implicitHeight + 28
             : 0
         Behavior on panelAnimHeight {
             NumberAnimation { duration: 350; easing.type: Easing.OutCubic }
@@ -450,22 +487,18 @@ Scope {
                     width: parent.width - 24
                     spacing: 6
 
-                    // Header
                     RowLayout {
                         Layout.fillWidth: true
-
                         Text {
                             text: "Wi-Fi"
                             color: Theme.text
                             font.pixelSize: 14; font.family: Theme.fontFamily; font.bold: true
                             Layout.fillWidth: true
                         }
-
                         Rectangle {
                             width: 28; height: 28; radius: 14
                             color: rescanMouse.containsMouse ? Theme.surface1 : "transparent"
                             Behavior on color { ColorAnimation { duration: 100 } }
-
                             Text {
                                 id: rescanIcon
                                 anchors.centerIn: parent
@@ -474,224 +507,471 @@ Scope {
                                 font.pixelSize: 12; font.family: Theme.iconFont
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
-
                             RotationAnimator {
                                 target: rescanIcon
-                                from: 0; to: 360
-                                duration: 1000
-                                loops: Animation.Infinite
-                                running: root.wifiScanning
+                                from: 0; to: 360; duration: 1000
+                                loops: Animation.Infinite; running: root.wifiScanning
                             }
-
                             MouseArea {
-                                id: rescanMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    wifiRescanProc.running = true;
-                                    rescanDelay.restart();
+                                id: rescanMouse; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: { wifiRescanProc.running = true; rescanDelay.restart(); }
+                            }
+                        }
+                    }
+
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.surface1 }
+
+                    Text {
+                        visible: root.wifiNetworks.length === 0
+                        text: root.wifiScanning ? "Scanning..." : "No networks found"
+                        color: Theme.subtext0; font.pixelSize: 12; font.family: Theme.fontFamily
+                        Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 8; Layout.bottomMargin: 8
+                    }
+
+                    Flickable {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.min(contentHeight, 250)
+                        contentHeight: networkCol.implicitHeight
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+                        visible: root.wifiNetworks.length > 0
+
+                        ColumnLayout {
+                            id: networkCol; width: parent.width; spacing: 4
+                            Repeater {
+                                model: root.wifiNetworks
+                                Rectangle {
+                                    required property var modelData
+                                    required property int index
+                                    Layout.fillWidth: true; height: 44; radius: 10
+                                    property bool isConnecting: root.wifiConnectingSSID === modelData.ssid
+                                    color: netItemMouse.containsMouse ? Theme.surface0 : modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.08) : "transparent"
+                                    border.color: modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.3) : "transparent"
+                                    border.width: modelData.active ? 1 : 0
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+
+                                    RowLayout {
+                                        anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 10
+
+                                        // Signal strength icon (static, no spin)
+                                        Rectangle {
+                                            width: 28; height: 28; radius: 14
+                                            color: modelData.active ? Theme.blue : Theme.surface0
+                                            Behavior on color { ColorAnimation { duration: 200 } }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "\uf1eb"
+                                                color: modelData.active ? Theme.crust : modelData.signal > 66 ? Theme.text : modelData.signal > 33 ? Theme.yellow : Theme.red
+                                                font.pixelSize: 12; font.family: Theme.iconFont
+                                                opacity: modelData.active ? 1 : Math.max(0.4, modelData.signal / 100)
+                                            }
+                                        }
+
+                                        // Name + status
+                                        Column {
+                                            Layout.fillWidth: true; spacing: 1
+                                            Text {
+                                                text: modelData.ssid
+                                                color: modelData.active ? Theme.blue : Theme.text
+                                                font.pixelSize: 12; font.family: Theme.fontFamily
+                                                font.bold: modelData.active
+                                                elide: Text.ElideRight; width: parent.width
+                                            }
+                                            Text {
+                                                text: isConnecting ? "Connecting..." : modelData.active ? "Connected \u2022 " + modelData.signal + "%" : modelData.security !== "" && modelData.security !== "--" ? "Secured" : "Open"
+                                                color: isConnecting ? Theme.blue : modelData.active ? Theme.green : Theme.overlay0
+                                                font.pixelSize: 9; font.family: Theme.fontFamily
+                                            }
+                                        }
+
+                                        // Connect/disconnect action button
+                                        Rectangle {
+                                            id: wifiActionBtn
+                                            width: 28; height: 28; radius: 14
+                                            color: wifiActionMouse.containsMouse ? (modelData.active ? Theme.red : Theme.blue) : Theme.surface0
+                                            Behavior on color { ColorAnimation { duration: 100 } }
+                                            visible: !isConnecting
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.active ? "\uf127" : "\uf0c1"
+                                                color: wifiActionMouse.containsMouse ? Theme.crust : Theme.subtext0
+                                                font.pixelSize: 10; font.family: Theme.iconFont
+                                            }
+
+                                            MouseArea {
+                                                id: wifiActionMouse; anchors.fill: parent
+                                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    if (modelData.active) {
+                                                        wifiDisconnectProc.running = true;
+                                                    } else {
+                                                        wifiConnectProc.ssid = modelData.ssid;
+                                                        wifiConnectProc.running = true;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Connecting spinner
+                                        Item {
+                                            id: wifiSpinner
+                                            width: 28; height: 28
+                                            visible: isConnecting
+                                            property real sweep: 30
+                                            property real tailProgress: 0
+                                            property real cycleBase: 0
+
+                                            Item {
+                                                anchors.centerIn: parent
+                                                width: 28; height: 28
+                                                RotationAnimator on rotation { from: 0; to: 360; duration: 750; loops: Animation.Infinite; running: isConnecting }
+
+                                                Shape {
+                                                    anchors.fill: parent
+                                                    ShapePath {
+                                                        strokeColor: Theme.blue; strokeWidth: 2
+                                                        fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                                                        PathAngleArc {
+                                                            centerX: 14; centerY: 14; radiusX: 12; radiusY: 12
+                                                            startAngle: wifiSpinner.cycleBase + wifiSpinner.tailProgress * 270 - 90
+                                                            sweepAngle: wifiSpinner.sweep
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            SequentialAnimation {
+                                                loops: Animation.Infinite; running: isConnecting
+                                                ParallelAnimation {
+                                                    NumberAnimation { target: wifiSpinner; property: "sweep"; from: 30; to: 300; duration: 525; easing.type: Easing.InOutCubic }
+                                                    NumberAnimation { target: wifiSpinner; property: "tailProgress"; from: 0; to: 0; duration: 525 }
+                                                }
+                                                ParallelAnimation {
+                                                    NumberAnimation { target: wifiSpinner; property: "sweep"; from: 300; to: 30; duration: 975; easing.type: Easing.InOutCubic }
+                                                    NumberAnimation { target: wifiSpinner; property: "tailProgress"; from: 0; to: 1; duration: 975; easing.type: Easing.InOutCubic }
+                                                }
+                                                ScriptAction { script: { wifiSpinner.cycleBase += 270; wifiSpinner.tailProgress = 0; } }
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "\uf0c1"
+                                                color: Theme.blue
+                                                font.pixelSize: 10; font.family: Theme.iconFont
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: netItemMouse; anchors.fill: parent; hoverEnabled: true; z: -1
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // Separator
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: 1
-                        color: Theme.surface1
+                    ColumnLayout {
+                        visible: root.wifiPasswordSSID !== ""
+                        Layout.fillWidth: true; spacing: 4
+                        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.surface1 }
+                        Text { text: "Password for " + root.wifiPasswordSSID; color: Theme.subtext0; font.pixelSize: 11; font.family: Theme.fontFamily }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 4
+                            Rectangle {
+                                Layout.fillWidth: true; height: 30; radius: 6
+                                color: Theme.surface0; border.color: wifiPassInput.activeFocus ? Theme.blue : Theme.surface1; border.width: 1
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+                                TextInput {
+                                    id: wifiPassInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
+                                    verticalAlignment: TextInput.AlignVCenter; color: Theme.text
+                                    font.pixelSize: 12; font.family: Theme.fontFamily; echoMode: TextInput.Password; clip: true
+                                    onAccepted: root.submitWifiPassword()
+                                }
+                            }
+                            Rectangle {
+                                width: 30; height: 30; radius: 6
+                                color: connectBtnMouse.containsMouse ? Theme.blue : Theme.surface0
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Text { anchors.centerIn: parent; text: "\uf054"; color: Theme.text; font.pixelSize: 12; font.family: Theme.iconFont }
+                                MouseArea { id: connectBtnMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.submitWifiPassword() }
+                            }
+                        }
                     }
+
+                    Text { visible: root.wifiError !== ""; text: root.wifiError; color: Theme.red; font.pixelSize: 10; font.family: Theme.fontFamily; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    Item { height: 4; Layout.fillWidth: true }
+                }
+            }
+        }
+
+        // ===== BLUETOOTH PANEL HOVER ZONE =====
+        MouseArea {
+            id: btPanelHover
+            x: mainWindow.btPanelLeft - Theme.barRadius
+            y: Theme.barHeight
+            z: 10
+            width: mainWindow.btPanelWidth + Theme.barRadius * 2
+            height: root.btOpen ? mainWindow.panelAnimHeight : 0
+            hoverEnabled: true
+
+            onContainsMouseChanged: {
+                if (containsMouse) closeTimer.stop();
+                else if (root.btOpen) closeTimer.restart();
+            }
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 0
+                width: mainWindow.btPanelWidth
+                height: Math.max(0, mainWindow.panelAnimHeight)
+                clip: true
+                visible: root.btOpen || (root.activePopup === "" && root.lastPopup === "bluetooth")
+
+                ColumnLayout {
+                    id: btContent
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 24
+                    spacing: 6
+
+                    // Header: title + power toggle
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: "Bluetooth"
+                            color: Theme.text
+                            font.pixelSize: 14; font.family: Theme.fontFamily; font.bold: true
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            width: 40; height: 22; radius: 11
+                            color: root.btPowered ? Theme.blue : Theme.surface1
+                            Behavior on color { ColorAnimation { duration: 150 } }
+
+                            Rectangle {
+                                width: 18; height: 18; radius: 9
+                                anchors.verticalCenter: parent.verticalCenter
+                                x: root.btPowered ? parent.width - width - 2 : 2
+                                color: Theme.text
+                                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.btAdapter)
+                                        root.btAdapter.enabled = !root.btPowered;
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.surface1 }
+
+                    // Off state
+                    Text {
+                        visible: !root.btPowered
+                        text: "Bluetooth is off"
+                        color: Theme.subtext0; font.pixelSize: 12; font.family: Theme.fontFamily
+                        Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 8; Layout.bottomMargin: 8
+                    }
+
+                    // Device count for display logic
+                    property int btDeviceCount: Bluetooth.devices.values.length
 
                     // Empty/scanning state
                     Text {
-                        visible: root.wifiNetworks.length === 0
-                        text: root.wifiScanning ? "Scanning..." : "No networks found"
-                        color: Theme.subtext0
-                        font.pixelSize: 12; font.family: Theme.fontFamily
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 8
-                        Layout.bottomMargin: 8
+                        visible: root.btPowered && btContent.btDeviceCount === 0
+                        text: root.btScanning ? "Scanning..." : "No devices found"
+                        color: Theme.subtext0; font.pixelSize: 12; font.family: Theme.fontFamily
+                        Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 8; Layout.bottomMargin: 8
                     }
 
-                    // Network list
+                    // Device list (reactive from Bluetooth.devices model)
                     Flickable {
                         Layout.fillWidth: true
                         Layout.preferredHeight: Math.min(contentHeight, 250)
-                        contentHeight: networkCol.implicitHeight
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
-                        visible: root.wifiNetworks.length > 0
+                        contentHeight: btDevCol.implicitHeight
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+                        visible: root.btPowered && btContent.btDeviceCount > 0
 
                         ColumnLayout {
-                            id: networkCol
-                            width: parent.width
-                            spacing: 2
+                            id: btDevCol; width: parent.width; spacing: 4
 
                             Repeater {
-                                model: root.wifiNetworks
+                                model: Bluetooth.devices
 
                                 Rectangle {
                                     required property var modelData
                                     required property int index
                                     Layout.fillWidth: true
-                                    height: 36; radius: 6
-                                    color: netItemMouse.containsMouse ? Theme.surface0 : "transparent"
-                                    Behavior on color { ColorAnimation { duration: 80 } }
+                                    height: showDevice ? 48 : 0; radius: 10
+                                    visible: showDevice
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+
+                                    property bool showDevice: modelData.name !== "" && modelData.name !== modelData.address
+                                    property bool isConnecting: modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
+                                    color: btDevMouse.containsMouse ? Theme.surface0 : modelData.connected ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.08) : "transparent"
+                                    border.color: modelData.connected ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.3) : "transparent"
+                                    border.width: modelData.connected ? 1 : 0
 
                                     RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 8
-                                        anchors.rightMargin: 8
-                                        spacing: 6
+                                        anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 10
 
-                                        // Signal icon
-                                        Text {
-                                            text: "\uf1eb"
-                                            color: modelData.active ? Theme.green
-                                                : modelData.signal > 66 ? Theme.text
-                                                : modelData.signal > 33 ? Theme.yellow
-                                                : Theme.red
-                                            font.pixelSize: 14; font.family: Theme.iconFont
-                                            opacity: Math.max(0.3, modelData.signal / 100)
+                                        // BT icon (static, no spin)
+                                        Rectangle {
+                                            width: 32; height: 32; radius: 16
+                                            color: modelData.connected ? Theme.blue : Theme.surface0
+                                            Behavior on color { ColorAnimation { duration: 200 } }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "\uf293"
+                                                color: modelData.connected ? Theme.crust : Theme.overlay0
+                                                font.pixelSize: 14; font.family: Theme.iconFont
+                                            }
                                         }
 
-                                        // SSID
-                                        Text {
-                                            text: modelData.ssid
-                                            color: modelData.active ? Theme.green : Theme.text
-                                            font.pixelSize: 12; font.family: Theme.fontFamily
-                                            font.bold: modelData.active
-                                            elide: Text.ElideRight
-                                            Layout.fillWidth: true
+                                        // Name + status
+                                        Column {
+                                            Layout.fillWidth: true; spacing: 1
+                                            Text {
+                                                text: modelData.name || "Unknown"
+                                                color: modelData.connected ? Theme.blue : Theme.text
+                                                font.pixelSize: 12; font.family: Theme.fontFamily
+                                                font.bold: modelData.connected
+                                                elide: Text.ElideRight; width: parent.width
+                                            }
+                                            Text {
+                                                text: isConnecting ? "Connecting..." : modelData.connected ? (modelData.batteryAvailable ? "Connected \u2022 " + Math.round(modelData.battery * 100) + "%" : "Connected") : modelData.bonded ? "Paired" : "Available"
+                                                color: isConnecting ? Theme.blue : modelData.connected ? Theme.green : Theme.overlay0
+                                                font.pixelSize: 9; font.family: Theme.fontFamily
+                                            }
                                         }
 
-                                        // Connecting indicator
-                                        Text {
-                                            visible: root.wifiConnectingSSID === modelData.ssid
-                                            text: "..."
-                                            color: Theme.blue
-                                            font.pixelSize: 12; font.family: Theme.fontFamily
+                                        // Action button (visible when not connecting)
+                                        Rectangle {
+                                            width: 28; height: 28; radius: 14
+                                            color: btActionMouse.containsMouse ? (modelData.connected ? Theme.red : Theme.blue) : Theme.surface0
+                                            Behavior on color { ColorAnimation { duration: 100 } }
+                                            visible: !isConnecting
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.connected ? "\uf127" : "\uf0c1"
+                                                color: btActionMouse.containsMouse ? Theme.crust : Theme.subtext0
+                                                font.pixelSize: 10; font.family: Theme.iconFont
+                                            }
+
+                                            MouseArea {
+                                                id: btActionMouse; anchors.fill: parent
+                                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                onClicked: modelData.connected = !modelData.connected
+                                            }
                                         }
 
-                                        // Lock icon
-                                        Text {
-                                            visible: modelData.security !== "" && modelData.security !== "--"
-                                            text: "\uf023"
-                                            color: Theme.overlay0
-                                            font.pixelSize: 10; font.family: Theme.iconFont
-                                        }
+                                        // Connecting spinner
+                                        Item {
+                                            id: btSpinner
+                                            width: 28; height: 28
+                                            visible: isConnecting
+                                            property real sweep: 30
+                                            property real tailProgress: 0
+                                            property real cycleBase: 0
 
-                                        // Signal %
-                                        Text {
-                                            text: modelData.signal + "%"
-                                            color: Theme.overlay0
-                                            font.pixelSize: 10; font.family: Theme.fontFamily
-                                        }
+                                            Item {
+                                                anchors.centerIn: parent
+                                                width: 28; height: 28
+                                                RotationAnimator on rotation { from: 0; to: 360; duration: 750; loops: Animation.Infinite; running: isConnecting }
 
-                                        // Connected check
-                                        Text {
-                                            visible: modelData.active
-                                            text: "\uf00c"
-                                            color: Theme.green
-                                            font.pixelSize: 12; font.family: Theme.iconFont
+                                                Shape {
+                                                    anchors.fill: parent
+                                                    ShapePath {
+                                                        strokeColor: Theme.blue; strokeWidth: 2
+                                                        fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                                                        PathAngleArc {
+                                                            centerX: 14; centerY: 14; radiusX: 12; radiusY: 12
+                                                            startAngle: btSpinner.cycleBase + btSpinner.tailProgress * 270 - 90
+                                                            sweepAngle: btSpinner.sweep
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            SequentialAnimation {
+                                                loops: Animation.Infinite; running: isConnecting
+                                                ParallelAnimation {
+                                                    NumberAnimation { target: btSpinner; property: "sweep"; from: 30; to: 300; duration: 525; easing.type: Easing.InOutCubic }
+                                                    NumberAnimation { target: btSpinner; property: "tailProgress"; from: 0; to: 0; duration: 525 }
+                                                }
+                                                ParallelAnimation {
+                                                    NumberAnimation { target: btSpinner; property: "sweep"; from: 300; to: 30; duration: 975; easing.type: Easing.InOutCubic }
+                                                    NumberAnimation { target: btSpinner; property: "tailProgress"; from: 0; to: 1; duration: 975; easing.type: Easing.InOutCubic }
+                                                }
+                                                ScriptAction { script: { btSpinner.cycleBase += 270; btSpinner.tailProgress = 0; } }
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "\uf0c1"
+                                                color: Theme.blue
+                                                font.pixelSize: 10; font.family: Theme.iconFont
+                                            }
                                         }
                                     }
 
                                     MouseArea {
-                                        id: netItemMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (modelData.active) return;
-                                            wifiConnectProc.ssid = modelData.ssid;
-                                            wifiConnectProc.running = true;
-                                        }
+                                        id: btDevMouse; anchors.fill: parent
+                                        hoverEnabled: true; z: -1
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Password section
-                    ColumnLayout {
-                        visible: root.wifiPasswordSSID !== ""
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 1
-                            color: Theme.surface1
-                        }
-
-                        Text {
-                            text: "Password for " + root.wifiPasswordSSID
-                            color: Theme.subtext0
-                            font.pixelSize: 11; font.family: Theme.fontFamily
-                        }
+                    // Scan button
+                    Rectangle {
+                        visible: root.btPowered
+                        Layout.fillWidth: true; height: 32; radius: 6
+                        color: btScanBtnMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                        Behavior on color { ColorAnimation { duration: 100 } }
 
                         RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 4
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 30; radius: 6
-                                color: Theme.surface0
-                                border.color: wifiPassInput.activeFocus ? Theme.blue : Theme.surface1
-                                border.width: 1
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-
-                                TextInput {
-                                    id: wifiPassInput
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 8
-                                    anchors.rightMargin: 8
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    color: Theme.text
-                                    font.pixelSize: 12; font.family: Theme.fontFamily
-                                    echoMode: TextInput.Password
-                                    clip: true
-                                    onAccepted: root.submitWifiPassword()
-                                }
+                            anchors.centerIn: parent; spacing: 6
+                            Text {
+                                id: btScanIcon
+                                text: "\uf2f1"
+                                color: root.btScanning ? Theme.blue : Theme.subtext0
+                                font.pixelSize: 12; font.family: Theme.iconFont
+                                Behavior on color { ColorAnimation { duration: 200 } }
                             }
+                            RotationAnimator {
+                                target: btScanIcon
+                                from: 0; to: 360; duration: 1000
+                                loops: Animation.Infinite; running: root.btScanning
+                            }
+                            Text {
+                                text: root.btScanning ? "Scanning..." : "Scan for devices"
+                                color: Theme.subtext0; font.pixelSize: 11; font.family: Theme.fontFamily
+                            }
+                        }
 
-                            Rectangle {
-                                width: 30; height: 30; radius: 6
-                                color: connectBtnMouse.containsMouse ? Theme.blue : Theme.surface0
-                                Behavior on color { ColorAnimation { duration: 100 } }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "\uf054"
-                                    color: Theme.text
-                                    font.pixelSize: 12; font.family: Theme.iconFont
-                                }
-
-                                MouseArea {
-                                    id: connectBtnMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.submitWifiPassword()
-                                }
+                        MouseArea {
+                            id: btScanBtnMouse; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.btAdapter)
+                                    root.btAdapter.discovering = !root.btScanning;
                             }
                         }
                     }
 
-                    // Error
-                    Text {
-                        visible: root.wifiError !== ""
-                        text: root.wifiError
-                        color: Theme.red
-                        font.pixelSize: 10; font.family: Theme.fontFamily
-                        Layout.fillWidth: true
-                        wrapMode: Text.Wrap
-                    }
-
-                    // Bottom padding
                     Item { height: 4; Layout.fillWidth: true }
                 }
             }
@@ -713,6 +993,22 @@ Scope {
             }
         }
 
+        // Hover-to-open for Bluetooth icon
+        Connections {
+            target: btWidget
+            function onHoveredChanged() {
+                if (btWidget.hovered) {
+                    if (root.activePopup !== "bluetooth" && !root.btJustClosed) {
+                        root.togglePopup("bluetooth");
+                    } else if (root.btOpen) {
+                        closeTimer.stop();
+                    }
+                } else if (root.btOpen && !btPanelHover.containsMouse) {
+                    closeTimer.restart();
+                }
+            }
+        }
+
         Timer {
             id: closeTimer
             interval: 200
@@ -720,6 +1016,8 @@ Scope {
                 if (root.clockOpen && !panelHover.containsMouse)
                     root.activePopup = "";
                 else if (root.wifiOpen && !wifiPanelHover.containsMouse && !networkWidget.hovered)
+                    root.activePopup = "";
+                else if (root.btOpen && !btPanelHover.containsMouse && !btWidget.hovered)
                     root.activePopup = "";
             }
         }
@@ -734,8 +1032,9 @@ Scope {
             property real m: Theme.barMargin
             property real barB: Theme.barHeight
             property bool showWifiShape: root.wifiOpen || (root.activePopup === "" && root.lastPopup === "wifi" && mainWindow.panelAnimHeight > 1)
-            property real pw: showWifiShape ? mainWindow.wifiPanelWidth : 280
-            property real pL: showWifiShape ? mainWindow.wifiPanelLeft : (width - pw) / 2
+            property bool showBtShape: root.btOpen || (root.activePopup === "" && root.lastPopup === "bluetooth" && mainWindow.panelAnimHeight > 1)
+            property real pw: showWifiShape ? mainWindow.wifiPanelWidth : showBtShape ? mainWindow.btPanelWidth : 280
+            property real pL: showWifiShape ? mainWindow.wifiPanelLeft : showBtShape ? mainWindow.btPanelLeft : (width - pw) / 2
             property real pR: pL + pw
             property real pB: barB + mainWindow.panelAnimHeight
             property real w: width
@@ -768,37 +1067,21 @@ Scope {
                 startX: bgShape.m + bgShape.r
                 startY: bgShape.m
 
-                // Top edge
                 PathLine { x: bgShape.w - bgShape.m - bgShape.r; y: bgShape.m }
-                // Top-right corner
                 PathArc { x: bgShape.w - bgShape.m; y: bgShape.m + bgShape.r; radiusX: bgShape.r; radiusY: bgShape.r }
-                // Right side down
                 PathLine { x: bgShape.w - bgShape.m; y: bgShape.barB - bgShape.r }
-                // Bottom-right corner of bar
                 PathArc { x: bgShape.w - bgShape.m - bgShape.r; y: bgShape.barB; radiusX: bgShape.r; radiusY: bgShape.r }
-                // Bottom edge to right inverted corner start
                 PathLine { x: bgShape.pR + bgShape.r; y: bgShape.barB }
-                // Right inverted corner: 90° concave arc
                 PathArc { x: bgShape.pR; y: bgShape.barB + bgShape.r; radiusX: bgShape.r; radiusY: bgShape.r; direction: PathArc.Counterclockwise }
-                // Panel right side down
                 PathLine { x: bgShape.pR; y: bgShape.pB - bgShape.r }
-                // Panel bottom-right corner
                 PathArc { x: bgShape.pR - bgShape.r; y: bgShape.pB; radiusX: bgShape.r; radiusY: bgShape.r }
-                // Panel bottom edge
                 PathLine { x: bgShape.pL + bgShape.r; y: bgShape.pB }
-                // Panel bottom-left corner
                 PathArc { x: bgShape.pL; y: bgShape.pB - bgShape.r; radiusX: bgShape.r; radiusY: bgShape.r }
-                // Panel left side up
                 PathLine { x: bgShape.pL; y: bgShape.barB + bgShape.r }
-                // Left inverted corner: 90° concave arc
                 PathArc { x: bgShape.pL - bgShape.r; y: bgShape.barB; radiusX: bgShape.r; radiusY: bgShape.r; direction: PathArc.Counterclockwise }
-                // Bottom edge to left
                 PathLine { x: bgShape.m + bgShape.r; y: bgShape.barB }
-                // Bottom-left corner of bar
                 PathArc { x: bgShape.m; y: bgShape.barB - bgShape.r; radiusX: bgShape.r; radiusY: bgShape.r }
-                // Left side up
                 PathLine { x: bgShape.m; y: bgShape.m + bgShape.r }
-                // Top-left corner
                 PathArc { x: bgShape.m + bgShape.r; y: bgShape.m; radiusX: bgShape.r; radiusY: bgShape.r }
             }
         }
@@ -845,7 +1128,11 @@ Scope {
                 MediaPlayer {}
                 Volume { barWindow: mainWindow }
                 Battery { barWindow: mainWindow; activePopup: root.activePopup; onTogglePopup: root.togglePopup("battery") }
-                Bluetooth {}
+                Bluetooth {
+                    id: btWidget
+                    activePopup: root.activePopup
+                    onTogglePopup: root.togglePopup("bluetooth")
+                }
                 NetworkStatus {
                     id: networkWidget
                     activePopup: root.activePopup

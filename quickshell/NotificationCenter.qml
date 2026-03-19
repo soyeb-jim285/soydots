@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import QtQuick
@@ -105,6 +106,34 @@ Scope {
             onStreamFinished: {
                 let parts = this.text.trim().split(",");
                 if (parts.length >= 4) root.brightness = parseInt(parts[3]) / 100;
+            }
+        }
+    }
+
+    // Focus app window by searching hyprland clients
+    Process {
+        id: focusAppProc
+        property string appName: ""
+        command: ["hyprctl", "-j", "clients"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let name = focusAppProc.appName.toLowerCase();
+                try {
+                    let clients = JSON.parse(this.text);
+                    // Try matching class, initialClass, or title (case-insensitive)
+                    let match = null;
+                    for (let c of clients) {
+                        let cls = (c["class"] || "").toLowerCase();
+                        let initCls = (c.initialClass || "").toLowerCase();
+                        let title = (c.title || "").toLowerCase();
+                        if (cls === name || initCls === name) { match = c; break; }
+                        if (cls.includes(name) || initCls.includes(name)) { match = c; break; }
+                        if (title.includes(name)) { if (!match) match = c; }
+                    }
+                    if (match) {
+                        Hyprland.dispatch("focuswindow address:" + match.address);
+                    }
+                } catch(e) {}
             }
         }
     }
@@ -755,6 +784,19 @@ Scope {
                                 MouseArea {
                                     id: histMouse; anchors.fill: parent
                                     hoverEnabled: true; z: -1
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        // Invoke default action if available
+                                        let md = histItem.modelData;
+                                        if (md.notif && md.actions && md.actions.length > 0)
+                                            md.actions[0].invoke();
+                                        // Focus the app's window (searches clients by class/title)
+                                        if (md.appName !== "") {
+                                            focusAppProc.appName = md.appName;
+                                            focusAppProc.running = true;
+                                        }
+                                        root.toggle();
+                                    }
                                 }
                             }
                         }

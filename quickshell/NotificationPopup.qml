@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Services.Notifications
 import QtQuick
 import QtQuick.Layouts
@@ -109,6 +111,40 @@ Scope {
 
     // Store notification objects by toast ID for action invocation
     property var toastNotifs: ({})
+
+    // Focus app window by searching hyprland clients
+    Process {
+        id: focusAppProc
+        property string appName: ""
+        command: ["hyprctl", "-j", "clients"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let name = focusAppProc.appName.toLowerCase();
+                try {
+                    let clients = JSON.parse(this.text);
+                    let match = null;
+                    for (let c of clients) {
+                        let cls = (c["class"] || "").toLowerCase();
+                        let initCls = (c.initialClass || "").toLowerCase();
+                        let title = (c.title || "").toLowerCase();
+                        if (cls === name || initCls === name) { match = c; break; }
+                        if (cls.includes(name) || initCls.includes(name)) { match = c; break; }
+                        if (title.includes(name)) { if (!match) match = c; }
+                    }
+                    if (match) {
+                        Hyprland.dispatch("focuswindow address:" + match.address);
+                    }
+                } catch(e) {}
+            }
+        }
+    }
+
+    function focusApp(appName: string) {
+        if (appName !== "") {
+            focusAppProc.appName = appName;
+            focusAppProc.running = true;
+        }
+    }
 
     property int toastIdCounter: 0
     property int itemHeight: 48
@@ -354,12 +390,13 @@ Scope {
 
                     MouseArea {
                         anchors.fill: parent; z: -1
-                        cursorShape: toast.hasActions ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (toast.hasActions)
                                 root.invokeDefaultAction(toast.toastId);
                             else
                                 root.removeToastById(toast.toastId);
+                            root.focusApp(toast.appName);
                         }
                     }
                 }

@@ -5,3 +5,4 @@ ClipboardHistory 1.0 ClipboardHistory.qml
 OSD 1.0 OSD.qml
 NotificationPopup 1.0 NotificationPopup.qml
 NotificationCenter 1.0 NotificationCenter.qml
+AnimationPicker 1.0 AnimationPicker.qml

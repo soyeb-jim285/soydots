@@ -8,4 +8,5 @@ ShellRoot {
     OSD {}
     NotificationPopup { id: notifs; dndEnabled: notifCenter.dndEnabled }
     NotificationCenter { id: notifCenter; notifSource: notifs }
+    AnimationPicker {}
 }
