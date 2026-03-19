@@ -46,7 +46,7 @@ Scope {
             };
 
             // Add toast popup
-            root.addToast(entry);
+            root.addToast(entry, notification);
 
             // Add to history
             let hist = root.history.slice();
@@ -105,13 +105,21 @@ Scope {
 
     ListModel { id: toastModel }
 
+    // Store notification objects by toast ID for action invocation
+    property var toastNotifs: ({})
+
     property int toastIdCounter: 0
     property int itemHeight: 48
     property int itemSpacing: 6
 
-    function addToast(entry: var) {
+    function addToast(entry: var, notification: var) {
         let id = toastIdCounter++;
-        // Insert at 0 = newest on top. ListModel doesn't recreate existing delegates.
+        let hasActions = notification && notification.actions && notification.actions.length > 0;
+        // Store notification reference for action invocation
+        let n = toastNotifs;
+        n[id] = notification;
+        toastNotifs = n;
+
         toastModel.insert(0, {
             toastId: id,
             summary: entry.summary || "",
@@ -119,10 +127,19 @@ Scope {
             appName: entry.appName || "",
             urgency: entry.urgency,
             timeout: entry.timeout,
-            elapsed: 0
+            elapsed: 0,
+            hasActions: hasActions
         });
         if (toastModel.count > 3)
             toastModel.remove(toastModel.count - 1);
+    }
+
+    function invokeDefaultAction(id: int) {
+        let notif = toastNotifs[id];
+        if (notif && notif.actions && notif.actions.length > 0) {
+            notif.actions[0].invoke();
+        }
+        removeToastById(id);
     }
 
     // Track dying toast IDs for exit animation
@@ -229,6 +246,7 @@ Scope {
                     required property int urgency
                     required property int timeout
                     required property int elapsed
+                    required property bool hasActions
 
                     width: toastContainer.width
                     height: root.itemHeight
@@ -333,7 +351,13 @@ Scope {
 
                     MouseArea {
                         anchors.fill: parent; z: -1
-                        onClicked: root.removeToastById(toast.toastId)
+                        cursorShape: toast.hasActions ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            if (toast.hasActions)
+                                root.invokeDefaultAction(toast.toastId);
+                            else
+                                root.removeToastById(toast.toastId);
+                        }
                     }
                 }
             }
