@@ -20,6 +20,9 @@
 - fuzzel (app launcher/picker)
 - bluez, bluez-utils (Bluetooth stack and utilities)
 - brightnessctl (backlight brightness control)
+- hyprsunset (night light / warm color filter)
+- hyprlock (Hyprland lock screen)
+- hypridle (idle daemon, screen sleep management)
 
 ## Configured
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
@@ -51,6 +54,8 @@
   - Toast popups (top-right, slide-in/out animations, progress bar, auto-dismiss, urgency icons/colors)
   - Notification center panel (right side, full history, clear all, IPC toggle)
   - Bell icon in status bar with unread count badge
+  - Quick settings panel: Wi-Fi, Bluetooth, DND, Night Light, Screenshot, Lock
+  - Volume and brightness sliders in notification center
 - hyprland layer rules for blur on quickshell-osd and quickshell-notif
 
 ## Dotfiles Structure

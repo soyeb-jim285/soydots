@@ -6,6 +6,6 @@ ShellRoot {
     StatusBar { notifUnreadCount: notifs.unreadCount }
     ClipboardHistory {}
     OSD {}
-    NotificationPopup { id: notifs }
-    NotificationCenter { notifSource: notifs }
+    NotificationPopup { id: notifs; dndEnabled: notifCenter.dndEnabled }
+    NotificationCenter { id: notifCenter; notifSource: notifs }
 }

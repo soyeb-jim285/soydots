@@ -11,6 +11,7 @@ Scope {
 
     property var history: []
     property int unreadCount: 0
+    property bool dndEnabled: false
 
 
     function urgencyIcon(urgency: int): string {
@@ -45,8 +46,9 @@ Scope {
                 timeout: timeout
             };
 
-            // Add toast popup
-            root.addToast(entry, notification);
+            // Add toast popup (suppressed in DND mode)
+            if (!root.dndEnabled)
+                root.addToast(entry, notification);
 
             // Add to history
             let hist = root.history.slice();
