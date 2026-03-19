@@ -17,13 +17,16 @@
 - hyprshot (Hyprland screenshot tool with freeze/region/window support)
 - swappy (screenshot annotation)
 - cliphist (clipboard history manager)
-- fuzzel (app launcher/picker, used for clipboard history UI)
+- fuzzel (app launcher/picker)
+- bluez, bluez-utils (Bluetooth stack and utilities)
+- brightnessctl (backlight brightness control)
 
 ## Configured
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
 - hyprland keybindings:
   - Meta+Return: terminal, Meta+Q: close, Meta+W: browser, Meta+R: app launcher
-  - Meta+Shift+S: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
+  - Meta+F5/F6: brightness down/up
+  - Meta+Shift+P: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
   - Meta+Shift+A: region screenshot to file, Meta+Shift+W: window screenshot to clipboard
   - Meta+V: clipboard history, Meta+Alt+V: toggle floating
 - hyprland autostart: cliphist (text + image watchers)
@@ -34,10 +37,15 @@
   - Workspaces (left, animated pill indicators, clickable)
   - Clock + date (center, hover to open calendar panel with inverted corners, slide animation)
   - Media player (right, MPRIS, conditional visibility)
-  - Volume (right, Pipewire, scroll to adjust, popup slider)
+  - Volume (right, Pipewire, scroll to adjust, click to mute)
   - Battery (right, UPower, hidden on desktop, popup with stats)
+  - Bluetooth (right, bluetoothctl, click to toggle power, connected device indicator)
   - Network status (right, nmcli-based)
   - System tray (right)
+- quickshell OSD overlay — Catppuccin themed, blurred background, auto-hide:
+  - Volume (triggered by Pipewire changes)
+  - Brightness (triggered by brightness keys via IPC)
+  - Caps Lock / Num Lock (triggered by key press via IPC)
 
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:

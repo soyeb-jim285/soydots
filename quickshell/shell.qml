@@ -5,4 +5,5 @@ ShellRoot {
     AppLauncher {}
     StatusBar {}
     ClipboardHistory {}
+    OSD {}
 }

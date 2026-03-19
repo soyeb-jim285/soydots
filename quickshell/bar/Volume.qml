@@ -4,16 +4,13 @@ import Quickshell
 import Quickshell.Services.Pipewire
 import QtQuick
 import ".."
-import "../popups"
 
 Item {
     id: root
-    width: volIcon.implicitWidth + volText.implicitWidth + 4 + Theme.widgetPadding
+    width: volIcon.implicitWidth + Theme.widgetPadding
     height: parent?.height ?? Theme.barHeight
 
     required property var barWindow
-    required property string activePopup
-    signal togglePopup()
 
     property var sink: Pipewire.defaultAudioSink
 
@@ -25,7 +22,7 @@ Item {
     property bool muted: sink?.audio?.muted ?? false
 
     property string icon: {
-        if (muted) return "\uf6a9";
+        if (muted) return "󰖁";
         if (volume > 0.66) return "\uf028";
         if (volume > 0.33) return "\uf027";
         return "\uf026";
@@ -50,30 +47,15 @@ Item {
         Behavior on color { ColorAnimation { duration: Theme.animDuration } }
     }
 
-    Text {
-        id: volText
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.left: volIcon.right
-        anchors.leftMargin: 4
-        text: Math.round(root.volume * 100) + "%"
-        color: Theme.text
-        font.pixelSize: Theme.fontSizeSmall
-        font.family: Theme.fontFamily
-    }
-
     MouseArea {
         id: volMouse
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        acceptedButtons: Qt.LeftButton
 
         onClicked: (event) => {
-            if (event.button === Qt.MiddleButton) {
-                if (root.sink?.audio) root.sink.audio.muted = !root.sink.audio.muted;
-            } else {
-                root.togglePopup();
-            }
+            if (root.sink?.audio) root.sink.audio.muted = !root.sink.audio.muted;
         }
 
         onWheel: (event) => {
@@ -82,14 +64,5 @@ Item {
                 root.sink.audio.volume = Math.max(0, Math.min(1.0, root.volume + delta));
             }
         }
-    }
-
-    VolumePopup {
-        id: volumePopup
-        anchor.window: root.barWindow
-        anchor.rect.x: root.x + root.width / 2 - implicitWidth / 2
-        anchor.rect.y: Theme.barHeight + 4
-        visible: root.activePopup === "volume"
-        sink: root.sink
     }
 }

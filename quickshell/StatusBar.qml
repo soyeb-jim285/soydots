@@ -341,8 +341,9 @@ Scope {
                 height: parent.height
                 spacing: Theme.widgetSpacing
                 MediaPlayer {}
-                Volume { barWindow: mainWindow; activePopup: root.activePopup; onTogglePopup: root.togglePopup("volume") }
+                Volume { barWindow: mainWindow }
                 Battery { barWindow: mainWindow; activePopup: root.activePopup; onTogglePopup: root.togglePopup("battery") }
+                Bluetooth {}
                 NetworkStatus {}
                 SysTray {}
             }
