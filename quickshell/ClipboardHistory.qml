@@ -80,6 +80,7 @@ Scope {
 
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            WlrLayershell.namespace: "quickshell-clipboard"
 
             anchors {
                 top: true
@@ -90,20 +91,20 @@ Scope {
 
             color: "transparent"
 
-            // Background overlay
+            // Background overlay — color alpha so blur ignore_alpha works
             Rectangle {
                 anchors.fill: parent
-                color: "#000000"
-                opacity: 0
+                property real fadeIn: 0
+                color: Qt.rgba(0, 0, 0, fadeIn * 0.25)
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: root.toggle()
                 }
 
-                NumberAnimation on opacity {
-                    from: 0; to: 0.4
-                    duration: 200
+                NumberAnimation on fadeIn {
+                    from: 0; to: 1
+                    duration: Config.animClipboardFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -113,25 +114,25 @@ Scope {
             Rectangle {
                 id: container
                 anchors.centerIn: parent
-                width: 500
-                height: 450
-                color: Theme.mantle
-                radius: 16
+                width: Config.clipboardWidth
+                height: Config.clipboardHeight
+                color: Theme.clipboardBg
+                radius: Config.clipboardRadius
                 border.color: Theme.surface1
                 border.width: 1
 
-                scale: 0.85
+                scale: Config.animClipboardScaleFrom
                 opacity: 0
                 NumberAnimation on scale {
-                    from: 0.85; to: 1.0
-                    duration: 250
+                    from: Config.animClipboardScaleFrom; to: 1.0
+                    duration: Config.animClipboardScaleDuration
                     easing.type: Easing.OutBack
-                    easing.overshoot: 1.2
+                    easing.overshoot: Config.animClipboardOvershoot
                     running: true
                 }
                 NumberAnimation on opacity {
                     from: 0; to: 1.0
-                    duration: 200
+                    duration: Config.animClipboardFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -164,8 +165,8 @@ Scope {
                     Rectangle {
                         id: searchBox
                         Layout.fillWidth: true
-                        height: 42
-                        radius: 12
+                        height: Config.clipboardSearchHeight
+                        radius: Config.clipboardSearchRadius
                         color: Theme.surface0
 
                         TextInput {
@@ -216,7 +217,7 @@ Scope {
                             required property int index
 
                             width: clipList.width
-                            height: clipItem.modelData.isImage ? 80 : 38
+                            height: clipItem.modelData.isImage ? Config.clipboardImageItemHeight : Config.clipboardItemHeight
                             radius: 8
                             color: (clipList.currentIndex === index)
                                 ? Theme.surface1

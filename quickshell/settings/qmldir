@@ -1,0 +1,14 @@
+SliderSetting 1.0 SliderSetting.qml
+ToggleSetting 1.0 ToggleSetting.qml
+TextSetting 1.0 TextSetting.qml
+SettingsSidebar 1.0 SettingsSidebar.qml
+AppearancePage 1.0 AppearancePage.qml
+BarPage 1.0 BarPage.qml
+NotificationsPage 1.0 NotificationsPage.qml
+LauncherPage 1.0 LauncherPage.qml
+ClipboardPage 1.0 ClipboardPage.qml
+OsdPage 1.0 OsdPage.qml
+AnimationsPage 1.0 AnimationsPage.qml
+NetworkPage 1.0 NetworkPage.qml
+CalendarPage 1.0 CalendarPage.qml
+BatteryPage 1.0 BatteryPage.qml

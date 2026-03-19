@@ -21,15 +21,15 @@ Item {
         triggeredOnStart: true
         onTriggered: {
             let now = new Date();
-            root.timeText = Qt.formatDateTime(now, "h:mm AP");
-            root.dateText = Qt.formatDateTime(now, "ddd, MMM d");
+            root.timeText = Qt.formatDateTime(now, Config.clockTimeFormat);
+            root.dateText = Qt.formatDateTime(now, Config.clockDateFormat);
         }
     }
 
     Row {
         id: clockRow
         anchors.centerIn: parent
-        spacing: 8
+        spacing: Config.clockSpacing
 
         Text {
             text: root.timeText
@@ -41,7 +41,7 @@ Item {
 
         Rectangle {
             width: 1
-            height: 14
+            height: Config.clockSeparatorHeight
             color: Theme.surface2
         }
 

@@ -33,7 +33,7 @@
   - Meta+F5/F6: brightness down/up
   - Meta+Shift+P: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
   - Meta+Shift+A: region screenshot to file, Meta+Shift+W: window screenshot to clipboard
-  - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker
+  - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker, Meta+Comma: settings
 - hyprland autostart: cliphist (text + image watchers)
 - hyprland autostart: quickshell
 - quickshell app launcher — Catppuccin Mocha themed, fuzzy search, keyboard navigation, IPC toggle
@@ -60,7 +60,20 @@
   - Bell icon in status bar with unread count badge
   - Quick settings panel: Wi-Fi, Bluetooth, DND, Night Light, Screenshot, Lock
   - Volume and brightness sliders in notification center
-- hyprland layer rules for blur on quickshell-osd and quickshell-notif
+- quickshell settings system — fully configurable via TOML config file and GUI:
+  - Config.qml singleton with built-in TOML parser/writer, FileView persistence, ~120 configurable properties
+  - Settings window (Super+Comma or IPC): sidebar navigation + 10 category pages
+  - Categories: Appearance (theme presets, colors, fonts), Bar (dimensions, workspaces, clock, systray, volume), Notifications (popups, center, quick settings), Launcher (dimensions, hidden apps, terminal), Clipboard (dimensions), OSD (position, size, timing), Animations (per-component timings, scale, overshoot), Network (WiFi/BT panels, polling), Calendar (grid, popups), Battery (thresholds, night light)
+  - Controls: color swatches with hex editor, sliders, text inputs, toggle switches, editable lists
+  - Theme presets: Catppuccin Mocha, Macchiato, Frappe, Latte (one-click switch)
+  - Live preview: changes apply immediately via reactive property bindings
+  - Persistence: settings.toml (gitignored, user-specific), defaults.toml (committed, reference)
+  - Reset: per-section and global reset to defaults
+  - All hardcoded values across 21 QML files extracted into Config properties
+  - Transparency system: per-component opacity (bar, launcher, clipboard, notif center, notif popup, OSD, settings, anim picker) with global fallback, alpha baked into background colors so text stays opaque
+  - Blur support: all quickshell layer surfaces have WlrLayershell.namespace, Hyprland layerrules enable blur+ignore_alpha on all namespaces (quickshell, quickshell-osd, quickshell-notif, quickshell-launcher, quickshell-clipboard, quickshell-notifcenter, quickshell-animpicker, quickshell-settings)
+  - OSD unified into same transparency system (uses Theme.osdBg)
+- hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 
 ## Dotfiles Structure

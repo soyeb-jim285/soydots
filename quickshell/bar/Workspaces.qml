@@ -13,10 +13,10 @@ Item {
     Row {
         id: wsRow
         anchors.centerIn: parent
-        spacing: 6
+        spacing: Config.workspaceSpacing
 
         Repeater {
-            model: 10
+            model: Config.workspaceCount
 
             Rectangle {
                 id: wsButton
@@ -31,16 +31,16 @@ Item {
                     return false;
                 }
 
-                width: isFocused ? 28 : 10
-                height: 10
-                radius: 5
+                width: isFocused ? Config.workspaceFocusedWidth : Config.workspaceUnfocusedWidth
+                height: Config.workspaceDotHeight
+                radius: Config.workspaceDotRadius
                 color: isFocused ? Theme.blue
                     : isOccupied ? Theme.subtext0
                     : Theme.surface2
                 opacity: isFocused ? 1.0 : isOccupied ? 0.8 : 0.3
 
                 Behavior on width {
-                    NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
+                    NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutBack; easing.overshoot: Config.workspaceOvershoot }
                 }
                 Behavior on color {
                     ColorAnimation { duration: Theme.animDuration }

@@ -60,7 +60,7 @@ Item {
 
         onWheel: (event) => {
             if (root.sink?.audio) {
-                let delta = event.angleDelta.y > 0 ? 0.05 : -0.05;
+                let delta = event.angleDelta.y > 0 ? Config.volumeScrollIncrement : -Config.volumeScrollIncrement;
                 root.sink.audio.volume = Math.max(0, Math.min(1.0, root.volume + delta));
             }
         }

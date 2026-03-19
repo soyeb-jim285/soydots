@@ -13,7 +13,7 @@ Item {
     Row {
         id: trayRow
         anchors.centerIn: parent
-        spacing: 4
+        spacing: Config.sysTraySpacing
 
         Repeater {
             model: SystemTray.items
@@ -21,14 +21,14 @@ Item {
             Item {
                 id: trayItem
                 required property var modelData
-                width: 20
-                height: 20
+                width: Config.sysTrayIconSize
+                height: Config.sysTrayIconSize
 
                 Image {
                     anchors.fill: parent
                     source: Quickshell.iconPath(trayItem.modelData.icon ?? "", "application-x-executable")
-                    sourceSize: Qt.size(20, 20)
-                    opacity: trayMouse.containsMouse ? 1.0 : 0.7
+                    sourceSize: Qt.size(Config.sysTrayIconSize, Config.sysTrayIconSize)
+                    opacity: trayMouse.containsMouse ? 1.0 : Config.sysTrayOpacity
 
                     Behavior on opacity {
                         NumberAnimation { duration: Theme.animDurationFast }

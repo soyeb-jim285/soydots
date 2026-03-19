@@ -50,7 +50,7 @@ Item {
             font.family: Theme.fontFamily
             elide: Text.ElideRight
             maximumLineCount: 1
-            width: Math.min(implicitWidth, 200)
+            width: Math.min(implicitWidth, Config.mediaMaxWidth)
         }
     }
 

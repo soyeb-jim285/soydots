@@ -143,13 +143,14 @@ Scope {
     Process { id: wifiOffProc; command: ["nmcli", "radio", "wifi", "off"]; onRunningChanged: if (!running) wifiProc.running = true }
     Process { id: btOnProc; command: ["bluetoothctl", "power", "on"]; onRunningChanged: if (!running) btProc.running = true }
     Process { id: btOffProc; command: ["bluetoothctl", "power", "off"]; onRunningChanged: if (!running) btProc.running = true }
-    Process { id: nightLightOnProc; command: ["bash", "-c", "pkill hyprsunset; hyprsunset -t 4000 &"] }
+    Process { id: nightLightOnProc; command: ["bash", "-c", "pkill hyprsunset; hyprsunset -t " + Config.nightLightTemp + " &"] }
     Process { id: nightLightOffProc; command: ["pkill", "hyprsunset"] }
     Process { id: caffeineOnProc; command: ["bash", "-c", "pkill hypridle; notify-send 'Caffeine' 'Screen will stay awake'"] }
     Process { id: caffeineOffProc; command: ["bash", "-c", "hypridle & notify-send 'Caffeine' 'Screen sleep restored'"] }
     Process { id: lockProc; command: ["hyprlock"] }
     Process { id: ssProc; command: ["bash", "-c", "sleep 0.3 && hyprshot -m region --freeze --clipboard-only"] }
     Process { id: reloadProc; command: ["hyprctl", "dispatch", "exec", "bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"'"] }
+    Process { id: settingsOpenProc; command: ["quickshell", "msg", "settings", "toggle"] }
 
     // Brightness set
     Process {
@@ -166,15 +167,18 @@ Scope {
             id: window
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            WlrLayershell.namespace: "quickshell-notifcenter"
 
             anchors { top: true; left: true; right: true; bottom: true }
             color: "transparent"
 
             Rectangle {
-                anchors.fill: parent; color: "#000000"; opacity: 0
+                anchors.fill: parent
+                property real fadeIn: 0
+                color: Qt.rgba(0, 0, 0, fadeIn * 0.25)
                 MouseArea { anchors.fill: parent; onClicked: root.toggle() }
-                NumberAnimation on opacity {
-                    from: 0; to: 0.4; duration: 200
+                NumberAnimation on fadeIn {
+                    from: 0; to: 1; duration: Config.animDuration
                     easing.type: Easing.OutCubic; running: true
                 }
             }
@@ -187,14 +191,14 @@ Scope {
                 anchors.topMargin: 6
                 anchors.rightMargin: 8
                 anchors.bottomMargin: 8
-                width: 300
-                color: Theme.mantle
-                radius: 14
+                width: Config.notifCenterWidth
+                color: Theme.notifCenterBg
+                radius: Config.notifCenterRadius
                 border.color: Theme.surface1
                 border.width: 1
 
                 NumberAnimation on anchors.rightMargin {
-                    from: -320; to: 8; duration: 300
+                    from: Config.notifCenterSlideFrom; to: Config.notifCenterSlideTo; duration: 300
                     easing.type: Easing.OutCubic; running: true
                 }
                 opacity: 1
@@ -234,14 +238,14 @@ Scope {
                         // Toggle grid — 2x3
                         GridLayout {
                             Layout.fillWidth: true
-                            columns: 3
-                            rowSpacing: 6
-                            columnSpacing: 6
+                            columns: Config.notifQsColumns
+                            rowSpacing: Config.notifQsSpacing
+                            columnSpacing: Config.notifQsSpacing
 
                             // Wi-Fi
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: root.wifiEnabled ? Theme.blue : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -251,13 +255,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf1eb"
                                         color: root.wifiEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "Wi-Fi"
                                         color: root.wifiEnabled ? Theme.crust : Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -273,7 +277,7 @@ Scope {
                             // Bluetooth
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: root.btEnabled ? Theme.blue : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -283,13 +287,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf293"
                                         color: root.btEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "Bluetooth"
                                         color: root.btEnabled ? Theme.crust : Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -305,7 +309,7 @@ Scope {
                             // Do Not Disturb
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: root.dndEnabled ? Theme.mauve : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -315,13 +319,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf1f6"
                                         color: root.dndEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "DND"
                                         color: root.dndEnabled ? Theme.crust : Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -333,7 +337,7 @@ Scope {
                             // Night Light
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: root.nightLightEnabled ? Theme.peach : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -343,13 +347,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf186"
                                         color: root.nightLightEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "Night"
                                         color: root.nightLightEnabled ? Theme.crust : Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -365,7 +369,7 @@ Scope {
                             // Screenshot
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: ssMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -375,13 +379,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf030"
                                         color: Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "Screenshot"
                                         color: Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -395,7 +399,7 @@ Scope {
                             // Lock Screen
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: lockMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -405,13 +409,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf023"
                                         color: Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "Lock"
                                         color: Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -425,7 +429,7 @@ Scope {
                             // Reload (Hyprland + Quickshell)
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 56; radius: 10
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
                                 color: reloadMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -435,13 +439,13 @@ Scope {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "\uf2f1"
                                         color: Theme.overlay0
-                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: "Reload"
                                         color: Theme.subtext0
-                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
@@ -449,6 +453,68 @@ Scope {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                     hoverEnabled: true
                                     onClicked: reloadProc.running = true
+                                }
+                            }
+
+                            // Caffeine
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
+                                color: root.caffeineEnabled ? Theme.yellow : Theme.surface0
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
+                                Column {
+                                    anchors.centerIn: parent; spacing: 2
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "\uf0f4"
+                                        color: root.caffeineEnabled ? Theme.crust : Theme.overlay0
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "Caffeine"
+                                        color: root.caffeineEnabled ? Theme.crust : Theme.subtext0
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
+                                    }
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.caffeineEnabled = !root.caffeineEnabled;
+                                        if (root.caffeineEnabled) caffeineOnProc.running = true;
+                                        else caffeineOffProc.running = true;
+                                    }
+                                }
+                            }
+
+                            // Settings
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
+                                color: settingsMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
+                                Column {
+                                    anchors.centerIn: parent; spacing: 2
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "\uf013"
+                                        color: Theme.overlay0
+                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "Settings"
+                                        color: Theme.subtext0
+                                        font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
+                                    }
+                                }
+                                MouseArea {
+                                    id: settingsMouse
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    hoverEnabled: true
+                                    onClicked: { root.toggle(); settingsOpenProc.running = true; }
                                 }
                             }
                         }

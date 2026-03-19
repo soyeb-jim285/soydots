@@ -22,17 +22,17 @@ Item {
 
     property string batteryColor: {
         if (charging) return Theme.green;
-        if (percentage > 60) return Theme.green;
-        if (percentage > 20) return Theme.yellow;
+        if (percentage > Config.batteryGreenThreshold) return Theme.green;
+        if (percentage > Config.batteryYellowThreshold) return Theme.yellow;
         return Theme.red;
     }
 
     property string icon: {
         if (charging) return "\uf0e7";
         if (percentage > 80) return "\uf240";
-        if (percentage > 60) return "\uf241";
+        if (percentage > Config.batteryGreenThreshold) return "\uf241";
         if (percentage > 40) return "\uf242";
-        if (percentage > 20) return "\uf243";
+        if (percentage > Config.batteryYellowThreshold) return "\uf243";
         return "\uf244";
     }
 

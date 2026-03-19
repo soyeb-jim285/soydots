@@ -81,7 +81,7 @@ Scope {
     // Auto-stop BT scanning after 60 seconds
     Timer {
         id: btScanTimeout
-        interval: 60000
+        interval: Config.btScanTimeout
         onTriggered: {
             if (root.btAdapter && root.btScanning)
                 root.btAdapter.discovering = false;
@@ -213,7 +213,7 @@ Scope {
     }
     Timer {
         id: rescanDelay
-        interval: 3000
+        interval: Config.wifiRescanDelay
         onTriggered: wifiScanProc.running = true
     }
 
@@ -318,7 +318,7 @@ Scope {
         color: "transparent"
 
         // WiFi panel positioning
-        property real wifiPanelWidth: 300
+        property real wifiPanelWidth: Config.wifiPanelWidth
         property real wifiIconWindowX: barContent.x + rightSection.x + networkWidget.x + networkWidget.width / 2
         property real wifiPanelLeft: {
             let left = wifiIconWindowX - wifiPanelWidth / 2;
@@ -327,7 +327,7 @@ Scope {
         }
 
         // Bluetooth panel positioning
-        property real btPanelWidth: 280
+        property real btPanelWidth: Config.btPanelWidth
         property real btIconWindowX: barContent.x + rightSection.x + btWidget.x + btWidget.width / 2
         property real btPanelLeft: {
             let left = btIconWindowX - btPanelWidth / 2;
@@ -351,7 +351,7 @@ Scope {
             : root.btOpen ? btContent.implicitHeight + 28
             : 0
         Behavior on panelAnimHeight {
-            NumberAnimation { duration: 350; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Config.animPanelDuration; easing.type: Easing.OutCubic }
         }
 
         // ===== CALENDAR HOVER ZONE =====
@@ -360,7 +360,7 @@ Scope {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 0
             z: 10
-            width: 280 + Theme.barRadius * 2
+            width: Config.calendarWidth + Theme.barRadius * 2
             height: root.clockOpen ? Theme.barHeight + mainWindow.panelAnimHeight : Theme.barHeight
             hoverEnabled: true
 
@@ -386,7 +386,7 @@ Scope {
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Theme.barHeight
-                width: 280
+                width: Config.calendarWidth
                 height: Math.max(0, mainWindow.panelAnimHeight)
                 clip: true
                 visible: root.clockOpen || (root.activePopup === "" && root.lastPopup === "clock")
@@ -449,7 +449,7 @@ Scope {
                         Layout.alignment: Qt.AlignHCenter; spacing: 0
                         Repeater {
                             model: root.dayHeaders
-                            Text { required property string modelData; width: 34; text: modelData; color: Theme.overlay0; font.pixelSize: 10; font.family: Theme.fontFamily; font.bold: true; horizontalAlignment: Text.AlignHCenter }
+                            Text { required property string modelData; width: Config.calendarCellWidth; text: modelData; color: Theme.overlay0; font.pixelSize: 10; font.family: Theme.fontFamily; font.bold: true; horizontalAlignment: Text.AlignHCenter }
                         }
                     }
 
@@ -460,7 +460,7 @@ Scope {
                             Rectangle {
                                 required property var modelData; required property int index
                                 property bool isToday: modelData.current && modelData.day === root.today && root.viewMonth === root.currentMonth && root.viewYear === root.currentYear
-                                width: 34; height: 28; radius: 6
+                                width: Config.calendarCellWidth; height: Config.calendarCellHeight; radius: Config.calendarCellRadius
                                 color: isToday ? Theme.blue : "transparent"
                                 Text { anchors.centerIn: parent; text: parent.modelData.day; color: parent.isToday ? Theme.crust : parent.modelData.current ? Theme.text : Theme.surface2; font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: parent.isToday }
                             }
@@ -545,7 +545,7 @@ Scope {
 
                     Flickable {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Math.min(contentHeight, 250)
+                        Layout.preferredHeight: Math.min(contentHeight, Config.wifiMaxListHeight)
                         contentHeight: networkCol.implicitHeight
                         clip: true; boundsBehavior: Flickable.StopAtBounds
                         visible: root.wifiNetworks.length > 0
@@ -557,7 +557,7 @@ Scope {
                                 Rectangle {
                                     required property var modelData
                                     required property int index
-                                    Layout.fillWidth: true; height: 44; radius: 10
+                                    Layout.fillWidth: true; height: Config.wifiItemHeight; radius: Config.wifiItemRadius
                                     property bool isConnecting: root.wifiConnectingSSID === modelData.ssid
                                     color: netItemMouse.containsMouse ? Theme.surface0 : modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.08) : "transparent"
                                     border.color: modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.3) : "transparent"
@@ -810,7 +810,7 @@ Scope {
                     // Device list (reactive from Bluetooth.devices model)
                     Flickable {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Math.min(contentHeight, 250)
+                        Layout.preferredHeight: Math.min(contentHeight, Config.btMaxListHeight)
                         contentHeight: btDevCol.implicitHeight
                         clip: true; boundsBehavior: Flickable.StopAtBounds
                         visible: root.btPowered && btContent.btDeviceCount > 0
@@ -825,7 +825,7 @@ Scope {
                                     required property var modelData
                                     required property int index
                                     Layout.fillWidth: true
-                                    height: showDevice ? 48 : 0; radius: 10
+                                    height: showDevice ? Config.btDeviceHeight : 0; radius: Config.btDeviceRadius
                                     visible: showDevice
                                     Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -840,7 +840,7 @@ Scope {
 
                                         // BT icon (static, no spin)
                                         Rectangle {
-                                            width: 32; height: 32; radius: 16
+                                            width: Config.btDeviceIconSize; height: Config.btDeviceIconSize; radius: Config.btDeviceIconSize / 2
                                             color: modelData.connected ? Theme.blue : Theme.surface0
                                             Behavior on color { ColorAnimation { duration: 200 } }
 
@@ -1016,7 +1016,7 @@ Scope {
 
         Timer {
             id: closeTimer
-            interval: 200
+            interval: Config.animPanelCloseDuration
             onTriggered: {
                 if (root.clockOpen && !panelHover.containsMouse)
                     root.activePopup = "";
@@ -1046,7 +1046,7 @@ Scope {
 
             // Closed bar shape
             ShapePath {
-                fillColor: mainWindow.panelAnimHeight > 1 ? "transparent" : Theme.mantle
+                fillColor: mainWindow.panelAnimHeight > 1 ? "transparent" : Theme.barBg
                 strokeColor: mainWindow.panelAnimHeight > 1 ? "transparent" : Theme.surface1
                 strokeWidth: 2
 
@@ -1065,7 +1065,7 @@ Scope {
 
             // Open bar+panel T-shape
             ShapePath {
-                fillColor: mainWindow.panelAnimHeight > 1 ? Theme.mantle : "transparent"
+                fillColor: mainWindow.panelAnimHeight > 1 ? Theme.barBg : "transparent"
                 strokeColor: mainWindow.panelAnimHeight > 1 ? Theme.surface1 : "transparent"
                 strokeWidth: 2
 

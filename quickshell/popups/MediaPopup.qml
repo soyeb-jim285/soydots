@@ -8,7 +8,7 @@ import ".."
 
 PopupWindow {
     id: popup
-    implicitWidth: 300
+    implicitWidth: Config.mediaPopupWidth
     implicitHeight: contentCol.implicitHeight + 32
     color: "transparent"
 
@@ -16,8 +16,8 @@ PopupWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.base
-        radius: 12
+        color: Theme.panelBg
+        radius: Config.mediaPopupRadius
         border.color: Theme.surface1
         border.width: 1
 

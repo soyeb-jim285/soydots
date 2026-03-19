@@ -53,7 +53,7 @@ Item {
     }
 
     Timer {
-        interval: 10000
+        interval: Config.networkPollInterval
         running: true
         repeat: true
         triggeredOnStart: true

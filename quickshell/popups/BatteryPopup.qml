@@ -8,7 +8,7 @@ import ".."
 
 PopupWindow {
     id: popup
-    implicitWidth: 240
+    implicitWidth: Config.batteryPopupWidth
     implicitHeight: contentCol.implicitHeight + 32
     color: "transparent"
 
@@ -25,8 +25,8 @@ PopupWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.base
-        radius: 12
+        color: Theme.panelBg
+        radius: Config.batteryPopupRadius
         border.color: Theme.surface1
         border.width: 1
 
@@ -54,8 +54,8 @@ PopupWindow {
                     width: parent.width * (popup.percentage / 100)
                     height: parent.height
                     radius: 4
-                    color: popup.percentage > 60 ? Theme.green
-                        : popup.percentage > 20 ? Theme.yellow
+                    color: popup.percentage > Config.batteryGreenThreshold ? Theme.green
+                        : popup.percentage > Config.batteryYellowThreshold ? Theme.yellow
                         : Theme.red
                     Behavior on width { NumberAnimation { duration: Theme.animDuration } }
                 }

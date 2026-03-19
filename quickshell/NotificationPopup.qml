@@ -37,7 +37,7 @@ Scope {
 
         onNotification: notification => {
             notification.tracked = true;
-            let timeout = notification.expireTimeout > 0 ? notification.expireTimeout : 5000;
+            let timeout = notification.expireTimeout > 0 ? notification.expireTimeout : Config.notifDefaultTimeout;
 
             let entry = {
                 summary: notification.summary || "",
@@ -66,7 +66,7 @@ Scope {
                 time: new Date(),
                 timeout: timeout
             });
-            if (hist.length > 50) hist.pop();
+            if (hist.length > Config.notifMaxHistory) hist.pop();
             root.history = hist;
             root.unreadCount++;
         }
@@ -147,8 +147,8 @@ Scope {
     }
 
     property int toastIdCounter: 0
-    property int itemHeight: 48
-    property int itemSpacing: 6
+    property int itemHeight: Config.notifPopupHeight
+    property int itemSpacing: Config.notifPopupSpacing
 
     function addToast(entry: var, notification: var) {
         let id = toastIdCounter++;
@@ -168,7 +168,7 @@ Scope {
             elapsed: 0,
             hasActions: hasActions
         });
-        if (toastModel.count > 3)
+        if (toastModel.count > Config.notifMaxToasts)
             toastModel.remove(toastModel.count - 1);
     }
 
@@ -255,7 +255,7 @@ Scope {
             WlrLayershell.namespace: "quickshell-notif"
 
         anchors { top: true; right: true }
-        implicitWidth: 300
+        implicitWidth: Config.notifPopupWindowWidth
         implicitHeight: 250
         exclusiveZone: 0
         color: "transparent"
@@ -268,7 +268,7 @@ Scope {
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.topMargin: 6
-            width: 280
+            width: Config.notifPopupWidth
             height: parent.height
 
             Repeater {
@@ -288,8 +288,8 @@ Scope {
 
                     width: toastContainer.width
                     height: root.itemHeight
-                    radius: 10
-                    color: "#cc181825"
+                    radius: Config.notifPopupRadius
+                    color: Theme.notifPopupBg
                     border.color: urgency === NotificationUrgency.Critical ? Theme.red : Theme.surface1
                     border.width: 1
                     // Progress bar
@@ -314,14 +314,14 @@ Scope {
                     property bool isNew: true
                     property bool isDying: root.isDying(toastId)
 
-                    x: isNew ? 280 : (isDying ? 280 : 0)
+                    x: isNew ? Config.notifPopupWidth : (isDying ? Config.notifPopupWidth : 0)
                     opacity: isNew ? 0 : (isDying ? 0 : 1)
                     Component.onCompleted: isNew = false
                     Behavior on x {
-                        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: Config.animPopupSlideDuration; easing.type: Easing.OutCubic }
                     }
                     Behavior on opacity {
-                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: Config.animPopupFadeDuration; easing.type: Easing.OutCubic }
                     }
 
 

@@ -8,7 +8,7 @@ import ".."
 
 PopupWindow {
     id: popup
-    implicitWidth: 280
+    implicitWidth: Config.calendarWidth
     implicitHeight: panelContent.implicitHeight + 24
     color: "transparent"
 
@@ -95,7 +95,7 @@ PopupWindow {
     Rectangle {
         id: panelBg
         anchors.fill: parent
-        color: Theme.mantle
+        color: Theme.panelBg
         topLeftRadius: 0
         topRightRadius: 0
         bottomLeftRadius: Theme.barRadius
@@ -186,7 +186,7 @@ PopupWindow {
 
                     Text {
                         required property string modelData
-                        width: 34
+                        width: Config.calendarCellWidth
                         text: modelData
                         color: Theme.overlay0
                         font.pixelSize: 10
@@ -215,9 +215,9 @@ PopupWindow {
                             && popup.viewMonth === popup.currentMonth
                             && popup.viewYear === popup.currentYear
 
-                        width: 34
-                        height: 28
-                        radius: 6
+                        width: Config.calendarCellWidth
+                        height: Config.calendarCellHeight
+                        radius: Config.calendarCellRadius
                         color: isToday ? Theme.blue : "transparent"
 
                         Text {

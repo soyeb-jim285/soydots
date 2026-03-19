@@ -14,16 +14,7 @@ Scope {
     property string searchText: ""
 
     // Filter out system/network tools that shouldn't appear in a launcher
-    property list<string> hiddenApps: [
-        "avahi-discover",
-        "bssh",
-        "bvnc",
-        "lstopo",
-        "qv4l2",
-        "qvidcap",
-        "electron",
-        "cmake-gui",
-    ]
+    property var hiddenApps: Config.launcherHiddenApps
 
     property list<DesktopEntry> allApps: {
         let apps = Array.from(DesktopEntries.applications.values);
@@ -60,7 +51,7 @@ Scope {
 
     function launch(app) {
         if (app.runInTerminal) {
-            Quickshell.execDetached(["kitty"].concat(app.command));
+            Quickshell.execDetached([Config.launcherTerminal].concat(app.command));
         } else {
             app.execute();
         }
@@ -89,6 +80,7 @@ Scope {
 
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            WlrLayershell.namespace: "quickshell-launcher"
 
             anchors {
                 top: true
@@ -99,22 +91,22 @@ Scope {
 
             color: "transparent"
 
-            // Background overlay fade
+            // Background overlay fade — use color alpha (not element opacity)
+            // so Hyprland ignore_alpha can distinguish backdrop from panel
             Rectangle {
                 id: backdrop
                 anchors.fill: parent
-                color: "#000000"
-                opacity: 0
+                property real fadeIn: 0
+                color: Qt.rgba(0, 0, 0, fadeIn * 0.25)
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: root.toggle()
                 }
 
-                NumberAnimation on opacity {
-                    id: backdropIn
-                    from: 0; to: 0.4
-                    duration: 200
+                NumberAnimation on fadeIn {
+                    from: 0; to: 1
+                    duration: Config.animLauncherFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -124,26 +116,26 @@ Scope {
             Rectangle {
                 id: container
                 anchors.centerIn: parent
-                width: 600
-                height: Math.min(500, searchBox.height + resultsView.contentHeight + 40)
-                color: "#1e1e2e"
-                radius: 16
-                border.color: "#45475a"
+                width: Config.launcherWidth
+                height: Math.min(Config.launcherMaxHeight, searchBox.height + resultsView.contentHeight + 40)
+                color: Theme.launcherBg
+                radius: Config.launcherRadius
+                border.color: Config.surface1
                 border.width: 1
 
                 // Entry animation
-                scale: 0.85
+                scale: Config.animLauncherScaleFrom
                 opacity: 0
                 NumberAnimation on scale {
-                    from: 0.85; to: 1.0
-                    duration: 250
+                    from: Config.animLauncherScaleFrom; to: 1.0
+                    duration: Config.animLauncherScaleDuration
                     easing.type: Easing.OutBack
-                    easing.overshoot: 1.2
+                    easing.overshoot: Config.animLauncherOvershoot
                     running: true
                 }
                 NumberAnimation on opacity {
                     from: 0; to: 1.0
-                    duration: 200
+                    duration: Config.animLauncherFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -168,9 +160,9 @@ Scope {
                     Rectangle {
                         id: searchBox
                         Layout.fillWidth: true
-                        height: 48
-                        radius: 12
-                        color: "#313244"
+                        height: Config.launcherSearchHeight
+                        radius: Config.launcherSearchRadius
+                        color: Config.surface0
 
                         TextInput {
                             id: searchInput
@@ -178,9 +170,9 @@ Scope {
                             anchors.leftMargin: 14
                             anchors.rightMargin: 14
                             verticalAlignment: TextInput.AlignVCenter
-                            color: "#cdd6f4"
+                            color: Config.text
                             font.pixelSize: 16
-                            font.family: "Maple Mono"
+                            font.family: Config.fontFamily
                             clip: true
                             focus: root.visible
 
@@ -190,7 +182,7 @@ Scope {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
                                 text: "Search apps..."
-                                color: "#6c7086"
+                                color: Config.overlay0
                                 font: searchInput.font
                                 visible: !searchInput.text
                             }
@@ -224,11 +216,11 @@ Scope {
                             required property int index
 
                             width: resultsView.width
-                            height: 44
-                            radius: 10
+                            height: Config.launcherItemHeight
+                            radius: Config.launcherItemRadius
                             color: (resultsView.currentIndex === index)
-                                ? "#45475a"
-                                : appMouse.containsMouse ? "#313244" : "transparent"
+                                ? Config.surface1
+                                : appMouse.containsMouse ? Config.surface0 : "transparent"
 
                             Behavior on color {
                                 ColorAnimation { duration: 100 }
@@ -242,25 +234,25 @@ Scope {
 
                                 Image {
                                     source: Quickshell.iconPath(appItem.modelData.icon ?? "", "application-x-executable")
-                                    Layout.preferredWidth: 28
-                                    Layout.preferredHeight: 28
-                                    sourceSize: Qt.size(28, 28)
+                                    Layout.preferredWidth: Config.launcherIconSize
+                                    Layout.preferredHeight: Config.launcherIconSize
+                                    sourceSize: Qt.size(Config.launcherIconSize, Config.launcherIconSize)
                                 }
 
                                 Text {
                                     text: appItem.modelData.name ?? ""
-                                    color: "#cdd6f4"
+                                    color: Config.text
                                     font.pixelSize: 14
-                                    font.family: "Maple Mono"
+                                    font.family: Config.fontFamily
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }
 
                                 Text {
                                     text: appItem.modelData.genericName ?? ""
-                                    color: "#6c7086"
+                                    color: Config.overlay0
                                     font.pixelSize: 12
-                                    font.family: "Maple Mono"
+                                    font.family: Config.fontFamily
                                     elide: Text.ElideRight
                                     Layout.maximumWidth: 180
                                 }

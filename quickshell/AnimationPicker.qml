@@ -11,7 +11,7 @@ Scope {
     id: root
 
     property bool visible: false
-    property int selected: 3
+    property int selected: Config.animPickerSelectedPreset
 
     function toggle() {
         root.visible = !root.visible;
@@ -54,6 +54,7 @@ Scope {
         PanelWindow {
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            WlrLayershell.namespace: "quickshell-animpicker"
 
             anchors {
                 top: true
@@ -66,18 +67,18 @@ Scope {
 
             Rectangle {
                 anchors.fill: parent
-                color: "#000000"
-                opacity: 0
+                property real fadeIn: 0
+                color: Qt.rgba(0, 0, 0, fadeIn * 0.25)
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: root.toggle()
                 }
 
-                NumberAnimation on opacity {
+                NumberAnimation on fadeIn {
                     from: 0
-                    to: 0.58
-                    duration: 180
+                    to: 1
+                    duration: Config.animPickerFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -86,20 +87,19 @@ Scope {
             Rectangle {
                 id: panel
                 anchors.centerIn: parent
-                width: 620
-                height: 440
-                radius: 24
-                color: Theme.mantle
+                width: Config.animPickerWidth
+                height: Config.animPickerHeight
+                radius: Config.animPickerRadius
+                color: Theme.animPickerBg
                 border.color: Theme.surface1
                 border.width: 1
 
-                scale: 0.97
+                scale: Config.animPickerScaleFrom
                 opacity: 0
 
                 NumberAnimation on scale {
-                    from: 0.97
-                    to: 1.0
-                    duration: 180
+                    from: Config.animPickerScaleFrom
+                    to: 1.0; duration: Config.animPickerScaleDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -107,7 +107,7 @@ Scope {
                 NumberAnimation on opacity {
                     from: 0
                     to: 1
-                    duration: 180
+                    duration: Config.animPickerFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -141,9 +141,9 @@ Scope {
 
                     GridLayout {
                         Layout.alignment: Qt.AlignHCenter
-                        columns: 3
-                        columnSpacing: 18
-                        rowSpacing: 18
+                        columns: Config.animPickerColumns
+                        columnSpacing: Config.animPickerSpacing
+                        rowSpacing: Config.animPickerSpacing
 
                         AnimCard {
                             num: 1

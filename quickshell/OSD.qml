@@ -25,7 +25,7 @@ Scope {
 
     Timer {
         id: readyDelay
-        interval: 2000
+        interval: Config.osdReadyDelay
         running: true
         onTriggered: root.volumeReady = true
     }
@@ -120,7 +120,7 @@ Scope {
 
     Timer {
         id: hideTimer
-        interval: 2000
+        interval: Config.osdHideTimeout
         onTriggered: root.osdVisible = false
     }
 
@@ -182,31 +182,31 @@ Scope {
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 80
+                anchors.bottomMargin: Config.osdBottomMargin
                 width: osdRow.implicitWidth + 28
-                height: 36
+                height: Config.osdHeight
 
                 Rectangle {
                     id: osdBg
                     anchors.fill: parent
-                    radius: 18
-                    color: "#6611111b"
+                    radius: Config.osdRadius
+                    color: Theme.osdBg
                     border.color: Theme.surface1
                     border.width: 1
                 }
 
-                scale: 0.85
+                scale: Config.animOsdScaleFrom
                 opacity: 0
 
                 NumberAnimation on scale {
-                    from: 0.85; to: 1.0
-                    duration: 150
+                    from: Config.animOsdScaleFrom; to: 1.0
+                    duration: Config.animOsdScaleDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
                 NumberAnimation on opacity {
                     from: 0; to: 1.0
-                    duration: 120
+                    duration: Config.animOsdFadeDuration
                     easing.type: Easing.OutCubic
                     running: true
                 }
@@ -228,8 +228,8 @@ Scope {
                     Item {
                         visible: root.hasProgressBar
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 90
-                        height: 4
+                        width: Config.osdProgressWidth
+                        height: Config.osdProgressHeight
 
                         Rectangle {
                             anchors.fill: parent
