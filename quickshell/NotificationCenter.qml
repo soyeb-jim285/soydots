@@ -78,13 +78,13 @@ Scope {
                 border.color: Theme.surface1
                 border.width: 1
 
-                NumberAnimation on x {
-                    from: 320; to: 0; duration: 250
+                NumberAnimation on anchors.rightMargin {
+                    from: -320; to: 8; duration: 300
                     easing.type: Easing.OutCubic; running: true
                 }
                 opacity: 1
                 NumberAnimation on opacity {
-                    from: 0; to: 1; duration: 180
+                    from: 0; to: 1; duration: 200
                     easing.type: Easing.OutCubic; running: true
                 }
 
@@ -268,19 +268,25 @@ Scope {
                                 }
                             }
 
-                            // Dismiss
-                            Text {
+                            // Dismiss button
+                            Rectangle {
                                 id: histDismiss
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                anchors.rightMargin: 8
-                                text: "\uf00d"
-                                color: histDismissMouse.containsMouse ? Theme.text : Theme.surface2
-                                font.pixelSize: 8; font.family: Theme.iconFont
-                                visible: histMouse.containsMouse
+                                anchors.rightMargin: 6
+                                width: 24; height: 24; radius: 12
+                                visible: histMouse.containsMouse || histDismissMouse.containsMouse
+                                color: histDismissMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 80 } }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "\uf00d"
+                                    color: histDismissMouse.containsMouse ? Theme.red : Theme.overlay0
+                                    font.pixelSize: 11; font.family: Theme.iconFont
+                                    Behavior on color { ColorAnimation { duration: 80 } }
+                                }
                                 MouseArea {
-                                    id: histDismissMouse; anchors.fill: parent; anchors.margins: -4
+                                    id: histDismissMouse; anchors.fill: parent
                                     hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: histItem.dismiss()
                                 }
