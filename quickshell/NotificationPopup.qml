@@ -265,6 +265,7 @@ Scope {
                         height: 2
                         radius: 1
                         color: root.urgencyColor(toast.urgency)
+                        Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.Linear } }
                     }
 
                     // Position based on index, animated smoothly

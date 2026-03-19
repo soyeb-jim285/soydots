@@ -37,6 +37,9 @@ Scope {
             wifiProc.running = true;
             btProc.running = true;
             brightnessReadProc.running = true;
+        } else {
+            panelHovered = false;
+            closeTimer.stop();
         }
     }
 
@@ -54,9 +57,25 @@ Scope {
         }
     }
 
+    property bool panelHovered: false
+
+    function show() {
+        if (!root.visible) root.toggle();
+    }
+
+    Timer {
+        id: closeTimer
+        interval: 300
+        onTriggered: {
+            if (!root.panelHovered && root.visible)
+                root.toggle();
+        }
+    }
+
     IpcHandler {
         target: "notifications"
         function toggle(): void { root.toggle(); }
+        function show(): void { root.show(); }
     }
 
     Timer {
@@ -101,6 +120,7 @@ Scope {
     Process { id: caffeineOffProc; command: ["bash", "-c", "hypridle & notify-send 'Caffeine' 'Screen sleep restored'"] }
     Process { id: lockProc; command: ["hyprlock"] }
     Process { id: ssProc; command: ["bash", "-c", "sleep 0.3 && hyprshot -m region --freeze --clipboard-only"] }
+    Process { id: reloadProc; command: ["hyprctl", "dispatch", "exec", "bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"'"] }
 
     // Brightness set
     Process {
@@ -152,6 +172,15 @@ Scope {
                 NumberAnimation on opacity {
                     from: 0; to: 1; duration: 200
                     easing.type: Easing.OutCubic; running: true
+                }
+
+                HoverHandler {
+                    id: panelHover
+                    onHoveredChanged: {
+                        root.panelHovered = hovered;
+                        if (!hovered) closeTimer.restart();
+                        else closeTimer.stop();
+                    }
                 }
 
                 MouseArea {
@@ -363,6 +392,36 @@ Scope {
                                     onClicked: { root.toggle(); lockProc.running = true; }
                                 }
                             }
+
+                            // Reload (Hyprland + Quickshell)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 56; radius: 10
+                                color: reloadMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
+                                Column {
+                                    anchors.centerIn: parent; spacing: 2
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "\uf2f1"
+                                        color: Theme.overlay0
+                                        font.pixelSize: 16; font.family: Theme.iconFont
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "Reload"
+                                        color: Theme.subtext0
+                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                    }
+                                }
+                                MouseArea {
+                                    id: reloadMouse
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    hoverEnabled: true
+                                    onClicked: reloadProc.running = true
+                                }
+                            }
                         }
 
                         // ===== SLIDERS =====
@@ -506,7 +565,7 @@ Scope {
 
                         // ===== SEPARATOR =====
                         Rectangle {
-                            Layout.fillWidth: true; height: 1
+                            Layout.fillWidth: true; implicitHeight: 1
                             color: Theme.surface0
                         }
 
@@ -587,7 +646,7 @@ Scope {
                                 required property int index
 
                                 Layout.fillWidth: true
-                                height: histRow.implicitHeight + 12
+                                implicitHeight: histRow.implicitHeight + 16
                                 radius: 8
                                 color: histMouse.containsMouse ? Theme.surface0 : "transparent"
                                 Behavior on color { ColorAnimation { duration: 80 } }
@@ -609,10 +668,56 @@ Scope {
                                     onTriggered: root.notifSource.dismissHistory(histItem.index)
                                 }
 
+                                // Right side: time or dismiss button
+                                Item {
+                                    id: histRight
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.rightMargin: 8
+                                    width: Math.max(timeText.implicitWidth, 22)
+                                    height: 22
+
+                                    property bool hovered: histMouse.containsMouse || histDismissMouse.containsMouse
+
+                                    Text {
+                                        id: timeText
+                                        anchors.centerIn: parent
+                                        text: root.notifSource.timeAgo(histItem.modelData.time)
+                                        color: Theme.surface2
+                                        font.pixelSize: 9; font.family: Theme.fontFamily
+                                        opacity: histRight.hovered ? 0 : 1
+                                        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                                    }
+
+                                    Rectangle {
+                                        id: histDismiss
+                                        anchors.centerIn: parent
+                                        width: 22; height: 22; radius: 11
+                                        opacity: histRight.hovered ? 1 : 0
+                                        visible: opacity > 0
+                                        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                                        color: histDismissMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                                        Behavior on color { ColorAnimation { duration: 80 } }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "\uf00d"
+                                            color: histDismissMouse.containsMouse ? Theme.red : Theme.overlay0
+                                            font.pixelSize: 10; font.family: Theme.iconFont
+                                            Behavior on color { ColorAnimation { duration: 80 } }
+                                        }
+                                        MouseArea {
+                                            id: histDismissMouse; anchors.fill: parent
+                                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                            onClicked: histItem.dismiss()
+                                        }
+                                    }
+                                }
+
+                                // Left side: dot + text content
                                 Row {
                                     id: histRow
                                     anchors.left: parent.left
-                                    anchors.right: histDismiss.left
+                                    anchors.right: histRight.left
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.leftMargin: 8
                                     anchors.rightMargin: 4
@@ -628,21 +733,12 @@ Scope {
                                         width: parent.width - 18
                                         spacing: 1
 
-                                        Row {
-                                            width: parent.width; spacing: 4
-                                            Text {
-                                                text: histItem.modelData.summary || histItem.modelData.appName || "Notification"
-                                                color: Theme.text
-                                                font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
-                                                elide: Text.ElideRight
-                                                width: parent.width - timeText.implicitWidth - 8
-                                            }
-                                            Text {
-                                                id: timeText
-                                                text: root.notifSource.timeAgo(histItem.modelData.time)
-                                                color: Theme.surface2
-                                                font.pixelSize: 9; font.family: Theme.fontFamily
-                                            }
+                                        Text {
+                                            text: histItem.modelData.summary || histItem.modelData.appName || "Notification"
+                                            color: Theme.text
+                                            font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
+                                            elide: Text.ElideRight
+                                            width: parent.width
                                         }
 
                                         Text {
@@ -653,29 +749,6 @@ Scope {
                                             width: parent.width
                                             elide: Text.ElideRight; maximumLineCount: 1
                                         }
-                                    }
-                                }
-
-                                Rectangle {
-                                    id: histDismiss
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.rightMargin: 6
-                                    width: 24; height: 24; radius: 12
-                                    visible: histMouse.containsMouse || histDismissMouse.containsMouse
-                                    color: histDismissMouse.containsMouse ? Theme.surface1 : Theme.surface0
-                                    Behavior on color { ColorAnimation { duration: 80 } }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "\uf00d"
-                                        color: histDismissMouse.containsMouse ? Theme.red : Theme.overlay0
-                                        font.pixelSize: 11; font.family: Theme.iconFont
-                                        Behavior on color { ColorAnimation { duration: 80 } }
-                                    }
-                                    MouseArea {
-                                        id: histDismissMouse; anchors.fill: parent
-                                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                        onClicked: histItem.dismiss()
                                     }
                                 }
 

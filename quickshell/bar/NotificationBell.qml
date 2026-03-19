@@ -57,11 +57,11 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: notifToggle.running = true
+        onEntered: notifShow.running = true
     }
 
     Process {
-        id: notifToggle
-        command: ["quickshell", "msg", "notifications", "toggle"]
+        id: notifShow
+        command: ["quickshell", "msg", "notifications", "show"]
     }
 }

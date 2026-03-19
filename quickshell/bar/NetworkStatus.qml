@@ -10,6 +10,10 @@ Item {
     width: netIcon.implicitWidth + Theme.widgetPadding
     height: parent?.height ?? Theme.barHeight
 
+    required property string activePopup
+    signal togglePopup()
+    property bool hovered: netMouse.containsMouse
+
     property string status: "disconnected"
     property string connectionName: ""
     property string icon: {
@@ -56,6 +60,13 @@ Item {
         onTriggered: netProc.running = true
     }
 
+    Rectangle {
+        anchors.fill: parent
+        radius: Theme.widgetRadius
+        color: netMouse.containsMouse ? Theme.surface0 : "transparent"
+        Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
+    }
+
     Text {
         id: netIcon
         anchors.centerIn: parent
@@ -64,5 +75,13 @@ Item {
         font.pixelSize: Theme.fontSizeIcon
         font.family: Theme.iconFont
         Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+    }
+
+    MouseArea {
+        id: netMouse
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.togglePopup()
     }
 }

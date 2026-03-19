@@ -43,7 +43,7 @@
   - Volume (right, Pipewire, scroll to adjust, click to mute)
   - Battery (right, UPower, hidden on desktop, popup with stats)
   - Bluetooth (right, bluetoothctl, click to toggle power, connected device indicator)
-  - Network status (right, nmcli-based)
+  - Network status (right, nmcli-based, hover to open WiFi panel with network list, signal strength, connect/password support)
   - Notification bell (right, unread badge, click to open notification center)
   - System tray (right)
 - quickshell OSD overlay — Catppuccin themed, blurred background, auto-hide:
