@@ -289,6 +289,13 @@ Scope {
                             else
                                 currentIndex--;
                         }
+                        Keys.onPressed: (event) => {
+                            if (!event.modifiers && event.text && event.text.length > 0) {
+                                searchInput.forceActiveFocus();
+                                searchInput.text += event.text;
+                                event.accepted = true;
+                            }
+                        }
                     }
                 }
             }
