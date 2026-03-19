@@ -62,8 +62,10 @@
   - Volume and brightness sliders in notification center
 - quickshell settings system — fully configurable via TOML config file and GUI:
   - Config.qml singleton with built-in TOML parser/writer, FileView persistence, ~120 configurable properties
-  - Settings window (Super+Comma or IPC): sidebar navigation + 10 category pages
-  - Categories: Appearance (theme presets, colors, fonts), Bar (dimensions, workspaces, clock, systray, volume), Notifications (popups, center, quick settings), Launcher (dimensions, hidden apps, terminal), Clipboard (dimensions), OSD (position, size, timing), Animations (per-component timings, scale, overshoot), Network (WiFi/BT panels, polling), Calendar (grid, popups), Battery (thresholds, night light)
+  - Settings window (Super+Comma or IPC): sidebar navigation + 11 category pages
+  - Categories: Appearance (theme presets, colors, fonts, transparency), Bar, Notifications, Launcher, Clipboard, OSD, Animations, Network, Calendar, Battery, Integrations (Hyprland + Kitty)
+  - Hyprland integration: live sync of border colors (blue/lavender gradient), gaps, border size, rounding via hyprctl keyword
+  - Kitty integration: auto-writes current-theme.conf with full palette mapping (16 terminal colors, cursor, tabs, marks), live reload via kitty remote control, background opacity control
   - Controls: color swatches with hex editor, sliders, text inputs, toggle switches, editable lists
   - Theme presets: Catppuccin Mocha, Macchiato, Frappe, Latte (one-click switch)
   - Live preview: changes apply immediately via reactive property bindings

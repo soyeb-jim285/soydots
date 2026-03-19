@@ -41,7 +41,8 @@ Scope {
         { name: "Animations", icon: "\uf021", section: "animations" },
         { name: "Network", icon: "\uf1eb", section: "network" },
         { name: "Calendar", icon: "\uf073", section: "calendar" },
-        { name: "Battery", icon: "\uf240", section: "battery" }
+        { name: "Battery", icon: "\uf240", section: "battery" },
+        { name: "Integrations", icon: "\uf0c1", section: "hyprland" }
     ]
 
     LazyLoader {
@@ -321,7 +322,7 @@ Scope {
                                     let names = ["AppearancePage", "BarPage", "NotificationsPage",
                                                  "LauncherPage", "ClipboardPage", "OsdPage",
                                                  "AnimationsPage", "NetworkPage", "CalendarPage",
-                                                 "BatteryPage"];
+                                                 "BatteryPage", "IntegrationsPage"];
                                     return "settings/" + names[root.activePage] + ".qml";
                                 }
                             }

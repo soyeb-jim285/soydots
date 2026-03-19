@@ -2,6 +2,7 @@ pragma Singleton
 
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import QtQuick
 
 QtObject {
@@ -238,7 +239,18 @@ QtObject {
                 selectedPreset: animPickerSelectedPreset
             },
             batteryPopup: { width: batteryPopupWidth, radius: batteryPopupRadius },
-            mediaPopup: { width: mediaPopupWidth, radius: mediaPopupRadius }
+            mediaPopup: { width: mediaPopupWidth, radius: mediaPopupRadius },
+            hyprland: {
+                gapsIn: hyprGapsIn, gapsOut: hyprGapsOut,
+                borderSize: hyprBorderSize, rounding: hyprRounding,
+                syncColors: hyprSyncColors,
+                blurEnabled: hyprBlurEnabled, blurSize: hyprBlurSize,
+                blurPasses: hyprBlurPasses, blurVibrancy: hyprBlurVibrancy,
+                blurXray: hyprBlurXray
+            },
+            kitty: {
+                syncColors: kittySyncColors, opacity: kittyOpacity
+            }
         };
         _fileView.setText(writeTOML(d));
     }
@@ -248,6 +260,9 @@ QtObject {
     function set(section, key, value) {
         if (!_data[section]) _data[section] = {};
         _data[section][key] = value;
+        // Force sync for integrations
+        if (section === "hyprland") _syncHyprland();
+        if (section === "kitty") _syncKitty();
         let copy = {};
         let keys = Object.keys(_data);
         for (let k of keys) copy[k] = _data[k];
@@ -270,6 +285,168 @@ QtObject {
     function resetAll() {
         _data = parseTOML(_defaultsTOML);
         save();
+    }
+
+    // ===== Hyprland Sync =====
+
+    property int hyprGapsIn: _data?.hyprland?.gapsIn ?? 3
+    property int hyprGapsOut: _data?.hyprland?.gapsOut ?? 8
+    property int hyprBorderSize: _data?.hyprland?.borderSize ?? 2
+    property int hyprRounding: _data?.hyprland?.rounding ?? 10
+    property bool hyprSyncColors: _data?.hyprland?.syncColors ?? true
+    property bool hyprBlurEnabled: _data?.hyprland?.blurEnabled ?? true
+    property int hyprBlurSize: _data?.hyprland?.blurSize ?? 8
+    property int hyprBlurPasses: _data?.hyprland?.blurPasses ?? 3
+    property real hyprBlurVibrancy: _data?.hyprland?.blurVibrancy ?? 0.17
+    property bool hyprBlurXray: _data?.hyprland?.blurXray ?? false
+
+    // Live-sync to Hyprland when properties change
+    onHyprGapsInChanged: _syncHyprland()
+    onHyprGapsOutChanged: _syncHyprland()
+    onHyprBorderSizeChanged: _syncHyprland()
+    onHyprRoundingChanged: _syncHyprland()
+    onHyprSyncColorsChanged: _syncHyprland()
+    onHyprBlurEnabledChanged: _syncHyprland()
+    onHyprBlurSizeChanged: _syncHyprland()
+    onHyprBlurPassesChanged: _syncHyprland()
+    onHyprBlurVibrancyChanged: _syncHyprland()
+    onHyprBlurXrayChanged: _syncHyprland()
+    onBaseChanged: { _syncHyprland(); _syncKitty(); }
+    onBlueChanged: { _syncHyprland(); _syncKitty(); }
+    onLavenderChanged: { _syncHyprland(); _syncKitty(); }
+    onTextChanged: _syncKitty()
+    onRedChanged: _syncKitty()
+    onGreenChanged: _syncKitty()
+    onYellowChanged: _syncKitty()
+    onMauveChanged: _syncKitty()
+    onPinkChanged: _syncKitty()
+    onTealChanged: _syncKitty()
+    onPeachChanged: _syncKitty()
+    onSurface2Changed: _syncHyprland()
+
+    property var _hyprSyncTimer: Timer {
+        interval: 200
+        onTriggered: config._doSyncHyprland()
+    }
+
+    function _syncHyprland() { _hyprSyncTimer.restart(); }
+
+    property string _homeDir: Quickshell.env("HOME")
+    property string _kittyThemePath: _homeDir + "/jimdots/kitty/current-theme.conf"
+
+    function _doSyncHyprland() {
+        if (!hyprSyncColors) return;
+        let b = blue.replace("#", "");
+        let l = lavender.replace("#", "");
+        let s = surface2.replace("#", "");
+        let script = "hyprctl keyword general:gaps_in " + hyprGapsIn +
+            " && hyprctl keyword general:gaps_out " + hyprGapsOut +
+            " && hyprctl keyword general:border_size " + hyprBorderSize +
+            " && hyprctl keyword decoration:rounding " + hyprRounding +
+            " && hyprctl keyword general:col.active_border 'rgba(" + b + "ee) rgba(" + l + "ee) 45deg'" +
+            " && hyprctl keyword general:col.inactive_border 'rgba(" + s + "aa)'" +
+            " && hyprctl keyword decoration:blur:enabled " + (hyprBlurEnabled ? "true" : "false") +
+            " && hyprctl keyword decoration:blur:size " + hyprBlurSize +
+            " && hyprctl keyword decoration:blur:passes " + hyprBlurPasses +
+            " && hyprctl keyword decoration:blur:vibrancy " + hyprBlurVibrancy +
+            " && hyprctl keyword decoration:blur:xray " + (hyprBlurXray ? "true" : "false");
+        _hyprProc.command = ["bash", "-c", script];
+        _hyprProc.running = true;
+    }
+
+    property var _hyprProc: Process { command: ["true"] }
+
+    // ===== Kitty Sync =====
+
+    property bool kittySyncColors: _data?.kitty?.syncColors ?? true
+    property real kittyOpacity: _data?.kitty?.opacity ?? 0.6
+
+    onKittySyncColorsChanged: _syncKitty()
+    onKittyOpacityChanged: _syncKitty()
+
+    property var _kittySyncTimer: Timer {
+        interval: 300
+        onTriggered: config._doSyncKitty()
+    }
+
+    function _syncKitty() { _kittySyncTimer.restart(); }
+
+    function _doSyncKitty() {
+        if (!kittySyncColors) return;
+        // Write theme file
+        let themeContent = _buildKittyTheme();
+        _kittyWriteProc.command = ["bash", "-c",
+            "cat > " + _kittyThemePath + " << 'KITTYEOF'\n" + themeContent + "KITTYEOF"];
+        _kittyWriteProc.running = true;
+    }
+
+    property var _kittyWriteProc: Process {
+        command: ["true"]
+        onExited: {
+            // After writing theme, reload all kitty instances
+            config._kittyApplyProc.command = ["bash", "-c",
+                "for sock in $(ss -lx 2>/dev/null | grep -oP '@kitty-\\d+'); do " +
+                "kitty @ --to unix:$sock set-colors --all --configured " + config._kittyThemePath + " 2>/dev/null; " +
+                "kitty @ --to unix:$sock set-background-opacity " + config.kittyOpacity + " 2>/dev/null; " +
+                "done"];
+            config._kittyApplyProc.running = true;
+        }
+    }
+
+    property var _kittyApplyProc: Process {
+        command: ["true"]
+    }
+
+    function _buildKittyTheme() {
+        return "# Auto-generated by quickshell Config\n" +
+            "# Theme synced from quickshell settings\n\n" +
+            "# Basic colors\n" +
+            "foreground              " + text + "\n" +
+            "background              " + base + "\n" +
+            "selection_foreground    " + base + "\n" +
+            "selection_background    " + lavender + "\n\n" +
+            "# Cursor\n" +
+            "cursor                  " + lavender + "\n" +
+            "cursor_text_color       " + base + "\n\n" +
+            "# URL\n" +
+            "url_color               " + lavender + "\n\n" +
+            "# Borders\n" +
+            "active_border_color     " + lavender + "\n" +
+            "inactive_border_color   " + overlay0 + "\n" +
+            "bell_border_color       " + yellow + "\n\n" +
+            "# Titlebar\n" +
+            "wayland_titlebar_color  system\n" +
+            "macos_titlebar_color    system\n\n" +
+            "# Tabs\n" +
+            "active_tab_foreground   " + crust + "\n" +
+            "active_tab_background   " + mauve + "\n" +
+            "inactive_tab_foreground " + text + "\n" +
+            "inactive_tab_background " + mantle + "\n" +
+            "tab_bar_background      " + crust + "\n\n" +
+            "# Marks\n" +
+            "mark1_foreground " + base + "\n" +
+            "mark1_background " + lavender + "\n" +
+            "mark2_foreground " + base + "\n" +
+            "mark2_background " + mauve + "\n" +
+            "mark3_foreground " + base + "\n" +
+            "mark3_background " + teal + "\n\n" +
+            "# Terminal colors\n" +
+            "color0  " + surface1 + "\n" +
+            "color8  " + surface2 + "\n" +
+            "color1  " + red + "\n" +
+            "color9  " + red + "\n" +
+            "color2  " + green + "\n" +
+            "color10 " + green + "\n" +
+            "color3  " + yellow + "\n" +
+            "color11 " + yellow + "\n" +
+            "color4  " + blue + "\n" +
+            "color12 " + blue + "\n" +
+            "color5  " + pink + "\n" +
+            "color13 " + pink + "\n" +
+            "color6  " + teal + "\n" +
+            "color14 " + teal + "\n" +
+            "color7  " + subtext1 + "\n" +
+            "color15 " + subtext0 + "\n";
     }
 
     // ===== Defaults (embedded for fallback) =====
