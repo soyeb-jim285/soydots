@@ -10,6 +10,9 @@ Item {
     width: trayRow.implicitWidth
     height: parent?.height ?? Theme.barHeight
 
+    property bool hovered: false
+    signal trayMenuRequested(var menuHandle, real iconCenterX)
+
     Row {
         id: trayRow
         anchors.centerIn: parent
@@ -25,9 +28,23 @@ Item {
                 height: Config.sysTrayIconSize
 
                 Image {
+                    id: trayIcon
                     anchors.fill: parent
-                    source: Quickshell.iconPath(trayItem.modelData.icon ?? "", "application-x-executable")
-                    sourceSize: Qt.size(Config.sysTrayIconSize, Config.sysTrayIconSize)
+
+                    property string rawIcon: trayItem.modelData.icon ?? ""
+                    source: {
+                        if (rawIcon.includes("?path=")) {
+                            let parts = rawIcon.split("?path=");
+                            let name = parts[0];
+                            let path = parts[1];
+                            return path + "/" + name.slice(name.lastIndexOf("/") + 1);
+                        }
+                        return rawIcon;
+                    }
+
+                    sourceSize: Qt.size(Config.sysTrayIconSize * 2, Config.sysTrayIconSize * 2)
+                    smooth: true
+                    fillMode: Image.PreserveAspectFit
                     opacity: trayMouse.containsMouse ? 1.0 : Config.sysTrayOpacity
 
                     Behavior on opacity {
@@ -40,6 +57,15 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
+
+                    onContainsMouseChanged: {
+                        if (containsMouse && trayItem.modelData.hasMenu) {
+                            let globalX = trayItem.mapToItem(null, trayItem.width / 2, 0).x;
+                            root.trayMenuRequested(trayItem.modelData.menu, globalX);
+                        }
+                        root.hovered = containsMouse;
+                    }
+
                     onClicked: trayItem.modelData.activate()
                 }
             }

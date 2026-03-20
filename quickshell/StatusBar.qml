@@ -17,6 +17,9 @@ Scope {
     property bool clockOpen: activePopup === "clock"
     property bool wifiOpen: activePopup === "wifi"
     property bool btOpen: activePopup === "bluetooth"
+    property bool trayMenuOpen: activePopup === "traymenu"
+    property var activeTrayMenu: null
+    property real trayMenuCenterX: 0
     property int notifUnreadCount: 0
     property string lastPopup: ""
 
@@ -335,6 +338,14 @@ Scope {
                             Math.min(left, width - btPanelWidth - Theme.barMargin - 2 * Theme.barRadius));
         }
 
+        // Tray menu panel positioning
+        property real trayMenuWidth: 220
+        property real trayMenuLeft: {
+            let left = root.trayMenuCenterX - trayMenuWidth / 2;
+            return Math.max(Theme.barMargin + 2 * Theme.barRadius,
+                            Math.min(left, width - trayMenuWidth - Theme.barMargin - 2 * Theme.barRadius));
+        }
+
         mask: Region {
             // Bar area — full width
             x: 0; y: 0
@@ -344,11 +355,13 @@ Scope {
             Region { item: panelHover; intersection: Intersection.Combine }
             Region { item: wifiPanelHover; intersection: Intersection.Combine }
             Region { item: btPanelHover; intersection: Intersection.Combine }
+            Region { item: trayMenuHover; intersection: Intersection.Combine }
         }
 
         property real panelAnimHeight: root.clockOpen ? calendarContent.implicitHeight + 28
             : root.wifiOpen ? wifiContent.implicitHeight + 28
             : root.btOpen ? btContent.implicitHeight + 28
+            : root.trayMenuOpen ? trayMenuContent.implicitHeight + 28
             : 0
         Behavior on panelAnimHeight {
             NumberAnimation { duration: Config.animPanelDuration; easing.type: Easing.OutCubic }
@@ -982,6 +995,122 @@ Scope {
             }
         }
 
+        // ===== TRAY MENU HOVER ZONE =====
+        MouseArea {
+            id: trayMenuHover
+            x: mainWindow.trayMenuLeft - Theme.barRadius
+            y: Theme.barHeight
+            z: 10
+            width: mainWindow.trayMenuWidth + Theme.barRadius * 2
+            height: root.trayMenuOpen ? mainWindow.panelAnimHeight : 0
+            hoverEnabled: true
+
+            onContainsMouseChanged: {
+                if (containsMouse) closeTimer.stop();
+                else if (root.trayMenuOpen) closeTimer.restart();
+            }
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 0
+                width: mainWindow.trayMenuWidth
+                height: Math.max(0, mainWindow.panelAnimHeight)
+                clip: true
+                visible: root.trayMenuOpen || (root.activePopup === "" && root.lastPopup === "traymenu")
+
+                ColumnLayout {
+                    id: trayMenuContent
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 24
+                    spacing: 2
+
+                    QsMenuOpener {
+                        id: trayMenuOpener
+                        menu: root.activeTrayMenu
+                    }
+
+                    Repeater {
+                        model: trayMenuOpener.children
+
+                        Rectangle {
+                            id: menuEntry
+                            required property var modelData
+                            Layout.fillWidth: true
+                            height: modelData.isSeparator ? 9 : 32
+                            radius: 6
+                            color: !modelData.isSeparator && menuItemMouse.containsMouse ? Config.surface0 : "transparent"
+                            Behavior on color { ColorAnimation { duration: 80 } }
+
+                            // Separator
+                            Rectangle {
+                                visible: menuEntry.modelData.isSeparator
+                                anchors.centerIn: parent
+                                width: parent.width - 8
+                                height: 1
+                                color: Config.surface0
+                            }
+
+                            // Menu item content
+                            Row {
+                                visible: !menuEntry.modelData.isSeparator
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                anchors.right: parent.right
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                Image {
+                                    visible: menuEntry.modelData.icon !== ""
+                                    source: menuEntry.modelData.icon ?? ""
+                                    width: 16; height: 16
+                                    sourceSize: Qt.size(32, 32)
+                                    smooth: true
+                                    fillMode: Image.PreserveAspectFit
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: menuEntry.modelData.text ?? ""
+                                    color: menuEntry.modelData.enabled ? Config.text : Config.overlay0
+                                    font.pixelSize: 12
+                                    font.family: Config.fontFamily
+                                    elide: Text.ElideRight
+                                    width: parent.width - parent.spacing - (menuEntry.modelData.icon !== "" ? 24 : 0) - (menuEntry.modelData.hasChildren ? 20 : 0)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    visible: menuEntry.modelData.hasChildren
+                                    text: "\uf054"
+                                    color: Config.overlay0
+                                    font.pixelSize: 10
+                                    font.family: Config.iconFont
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            MouseArea {
+                                id: menuItemMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: !menuEntry.modelData.isSeparator && menuEntry.modelData.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                visible: !menuEntry.modelData.isSeparator
+                                onClicked: {
+                                    if (menuEntry.modelData.enabled) {
+                                        menuEntry.modelData.triggered();
+                                        root.activePopup = "";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Hover-to-open for WiFi icon
         Connections {
             target: networkWidget
@@ -1014,6 +1143,18 @@ Scope {
             }
         }
 
+        // Hover-to-close for SysTray
+        Connections {
+            target: sysTrayWidget
+            function onHoveredChanged() {
+                if (sysTrayWidget.hovered) {
+                    if (root.trayMenuOpen) closeTimer.stop();
+                } else if (root.trayMenuOpen && !trayMenuHover.containsMouse) {
+                    closeTimer.restart();
+                }
+            }
+        }
+
         Timer {
             id: closeTimer
             interval: Config.animPanelCloseDuration
@@ -1023,6 +1164,8 @@ Scope {
                 else if (root.wifiOpen && !wifiPanelHover.containsMouse && !networkWidget.hovered)
                     root.activePopup = "";
                 else if (root.btOpen && !btPanelHover.containsMouse && !btWidget.hovered)
+                    root.activePopup = "";
+                else if (root.trayMenuOpen && !trayMenuHover.containsMouse)
                     root.activePopup = "";
             }
         }
@@ -1038,8 +1181,9 @@ Scope {
             property real barB: Theme.barHeight
             property bool showWifiShape: root.wifiOpen || (root.activePopup === "" && root.lastPopup === "wifi" && mainWindow.panelAnimHeight > 1)
             property bool showBtShape: root.btOpen || (root.activePopup === "" && root.lastPopup === "bluetooth" && mainWindow.panelAnimHeight > 1)
-            property real pw: showWifiShape ? mainWindow.wifiPanelWidth : showBtShape ? mainWindow.btPanelWidth : 280
-            property real pL: showWifiShape ? mainWindow.wifiPanelLeft : showBtShape ? mainWindow.btPanelLeft : (width - pw) / 2
+            property bool showTrayShape: root.trayMenuOpen || (root.activePopup === "" && root.lastPopup === "traymenu" && mainWindow.panelAnimHeight > 1)
+            property real pw: showWifiShape ? mainWindow.wifiPanelWidth : showBtShape ? mainWindow.btPanelWidth : showTrayShape ? mainWindow.trayMenuWidth : 280
+            property real pL: showWifiShape ? mainWindow.wifiPanelLeft : showBtShape ? mainWindow.btPanelLeft : showTrayShape ? mainWindow.trayMenuLeft : (width - pw) / 2
             property real pR: pL + pw
             property real pB: barB + mainWindow.panelAnimHeight
             property real w: width
@@ -1131,6 +1275,16 @@ Scope {
                 height: parent.height
                 spacing: Theme.widgetSpacing
                 MediaPlayer {}
+                SysTray {
+                    id: sysTrayWidget
+                    onTrayMenuRequested: (menuHandle, iconCenterX) => {
+                        root.activeTrayMenu = menuHandle;
+                        root.trayMenuCenterX = iconCenterX;
+                        if (root.activePopup !== "traymenu") {
+                            root.togglePopup("traymenu");
+                        }
+                    }
+                }
                 Volume { barWindow: mainWindow }
                 Battery { barWindow: mainWindow; activePopup: root.activePopup; onTogglePopup: root.togglePopup("battery") }
                 Bluetooth {
@@ -1144,7 +1298,6 @@ Scope {
                     onTogglePopup: root.togglePopup("wifi")
                 }
                 NotificationBell { unreadCount: root.notifUnreadCount }
-                SysTray {}
             }
         }
     }
