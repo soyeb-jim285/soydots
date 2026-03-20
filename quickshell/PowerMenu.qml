@@ -30,12 +30,12 @@ Scope {
     }
 
     property var actions: [
-        { name: "Lock", icon: "\uf023", color: Theme.blue, confirm: "Lock screen?" },
-        { name: "Logout", icon: "\uf2f5", color: Theme.yellow, confirm: "Exit Hyprland?" },
-        { name: "Suspend", icon: "\uf186", color: Theme.mauve, confirm: "Suspend system?" },
-        { name: "Hibernate", icon: "\uf0c2", color: Theme.teal, confirm: "Hibernate system?" },
-        { name: "Reboot", icon: "\uf2f1", color: Theme.peach, confirm: "Reboot system?" },
-        { name: "Shutdown", icon: "\uf011", color: Theme.red, confirm: "Shut down system?" }
+        { name: "Lock", icon: "\uf023", color: Theme.blue },
+        { name: "Logout", icon: "\uf2f5", color: Theme.yellow },
+        { name: "Suspend", icon: "\uf186", color: Theme.mauve },
+        { name: "Hibernate", icon: "\uf0c2", color: Theme.teal },
+        { name: "Reboot", icon: "\uf2f1", color: Theme.peach },
+        { name: "Shutdown", icon: "\uf011", color: Theme.red }
     ]
 
     function executeAction(index) {
@@ -143,6 +143,32 @@ Scope {
                     }
                 }
 
+                Item {
+                    id: keyNav
+                    focus: true
+                    Component.onCompleted: forceActiveFocus()
+
+                    Keys.onPressed: (event) => {
+                        if (event.key === Qt.Key_Escape) {
+                            root.toggle();
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            if (root.selectedAction >= 0)
+                                root.executeAction(root.selectedAction);
+                        } else if (event.key === Qt.Key_Left) {
+                            root.selectedAction = root.selectedAction <= 0 ? 5 : root.selectedAction - 1;
+                        } else if (event.key === Qt.Key_Right) {
+                            root.selectedAction = root.selectedAction >= 5 ? 0 : root.selectedAction + 1;
+                        } else if (event.key === Qt.Key_Up) {
+                            root.selectedAction = root.selectedAction < 3 ? root.selectedAction + 3 : root.selectedAction - 3;
+                        } else if (event.key === Qt.Key_Down) {
+                            root.selectedAction = root.selectedAction >= 3 ? root.selectedAction - 3 : root.selectedAction + 3;
+                        } else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_6) {
+                            root.executeAction(event.key - Qt.Key_1);
+                        }
+                        event.accepted = true;
+                    }
+                }
+
                 ColumnLayout {
                     id: panelContent
                     anchors.fill: parent
@@ -172,26 +198,14 @@ Scope {
                         }
                     }
 
-                    // Confirmation text with smooth crossfade
+                    // Action name display
                     Text {
-                        id: confirmText
-                        text: root.selectedAction >= 0 ? root.actions[root.selectedAction].confirm : "Choose an action"
+                        text: root.selectedAction >= 0 ? root.actions[root.selectedAction].name : "Choose an action"
                         color: root.selectedAction >= 0 ? root.actions[root.selectedAction].color : Theme.subtext0
                         font.pixelSize: 12
                         font.family: Config.fontFamily
                         Layout.alignment: Qt.AlignHCenter
-
                         Behavior on color { ColorAnimation { duration: 200 } }
-                        Behavior on opacity { NumberAnimation { duration: 150 } }
-
-                        // Gentle scale pulse when selection changes
-                        scale: 1.0
-                        Behavior on text {
-                            SequentialAnimation {
-                                NumberAnimation { target: confirmText; property: "scale"; to: 1.06; duration: 100; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: confirmText; property: "scale"; to: 1.0; duration: 150; easing.type: Easing.OutCubic }
-                            }
-                        }
                     }
 
                     // Action grid
@@ -211,7 +225,6 @@ Scope {
 
                                 property bool isSelected: root.selectedAction === index
                                 property bool isHovered: cardMouse.containsMouse
-                                property bool isDimmed: root.selectedAction >= 0 && !isSelected
 
                                 width: 118
                                 height: 96
@@ -225,9 +238,7 @@ Scope {
                                 border.width: 1
 
                                 // Staggered entrance animation
-                                Component.onCompleted: {
-                                    entranceAnim.start();
-                                }
+                                Component.onCompleted: entranceAnim.start()
                                 transform: Translate { id: cardTranslate; y: 20 }
                                 property real cardOpacity: 0
 
@@ -240,13 +251,11 @@ Scope {
                                     }
                                 }
 
-                                // Apply staggered opacity (multiply with dimmed opacity)
-                                opacity: cardOpacity * (isDimmed ? 0.4 : 1.0)
+                                opacity: cardOpacity
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
                                 Behavior on border.color { ColorAnimation { duration: 150 } }
 
-                                // Scale bounce on selection
                                 scale: 1.0
                                 Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack; easing.overshoot: 2.0 } }
 
@@ -254,9 +263,7 @@ Scope {
                                     anchors.centerIn: parent
                                     spacing: 8
 
-                                    // Icon circle with pulse animation on select
                                     Rectangle {
-                                        id: iconCircle
                                         Layout.alignment: Qt.AlignHCenter
                                         width: 42; height: 42; radius: 21
                                         color: actionCard.isSelected
@@ -266,26 +273,6 @@ Scope {
                                                 : Theme.surface0
 
                                         Behavior on color { ColorAnimation { duration: 200 } }
-                                        Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                                        Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-
-                                        // Pulsing ring when selected
-                                        Rectangle {
-                                            anchors.centerIn: parent
-                                            width: parent.width + 8; height: parent.height + 8; radius: width / 2
-                                            color: "transparent"
-                                            border.color: actionCard.isSelected ? modelData.color : "transparent"
-                                            border.width: 1.5
-                                            opacity: actionCard.isSelected ? pulseOpacity : 0
-                                            property real pulseOpacity: 0.6
-
-                                            SequentialAnimation on pulseOpacity {
-                                                loops: Animation.Infinite
-                                                running: actionCard.isSelected
-                                                NumberAnimation { from: 0.6; to: 0.15; duration: 800; easing.type: Easing.InOutCubic }
-                                                NumberAnimation { from: 0.15; to: 0.6; duration: 800; easing.type: Easing.InOutCubic }
-                                            }
-                                        }
 
                                         Text {
                                             anchors.centerIn: parent
@@ -294,17 +281,12 @@ Scope {
                                             font.pixelSize: 18
                                             font.family: Config.iconFont
                                             Behavior on color { ColorAnimation { duration: 200 } }
-
-                                            // Rotate icon on selection
-                                            rotation: 0
-                                            Behavior on rotation { RotationAnimation { duration: 300; easing.type: Easing.OutBack } }
                                         }
                                     }
 
-                                    // Label
                                     Text {
                                         Layout.alignment: Qt.AlignHCenter
-                                        text: actionCard.isSelected ? "Confirm" : modelData.name
+                                        text: modelData.name
                                         color: actionCard.isSelected ? modelData.color : Theme.text
                                         font.pixelSize: 11
                                         font.family: Config.fontFamily
@@ -318,75 +300,44 @@ Scope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+
                                     onClicked: {
-                                        if (root.selectedAction === actionCard.index) {
-                                            // Second click — scale down + execute
-                                            actionCard.scale = 0.9;
-                                            executeTimer.restart();
-                                        } else {
-                                            // First click — bounce up + select
-                                            actionCard.scale = 1.08;
-                                            root.selectedAction = actionCard.index;
-                                        }
+                                        actionCard.scale = 0.9;
+                                        executeTimer.restart();
                                     }
 
                                     Timer {
                                         id: executeTimer
-                                        interval: 200
+                                        interval: 150
                                         onTriggered: root.executeAction(actionCard.index)
                                     }
 
-                                    // Hover scale
                                     onContainsMouseChanged: {
-                                        if (!actionCard.isSelected) {
-                                            actionCard.scale = containsMouse ? 1.04 : 1.0;
+                                        if (containsMouse) {
+                                            root.selectedAction = actionCard.index;
+                                            actionCard.scale = 1.04;
+                                        } else {
+                                            actionCard.scale = 1.0;
                                         }
                                     }
-                                }
-
-                                // Reset scale after selection bounce
-                                onIsSelectedChanged: {
-                                    if (isSelected) {
-                                        scaleResetTimer.restart();
-                                    } else {
-                                        scale = 1.0;
-                                    }
-                                }
-                                Timer {
-                                    id: scaleResetTimer
-                                    interval: 200
-                                    onTriggered: actionCard.scale = 1.0
                                 }
                             }
                         }
                     }
 
-                    // Hint with fade
+                    // Hint
                     Text {
-                        id: hintText
-                        text: root.selectedAction >= 0 ? "Click again to confirm \u2022 Escape to cancel" : "Press Escape to close"
+                        text: "Click or Enter to execute \u2022 Arrow keys to navigate \u2022 1-6 for quick select"
                         color: Theme.overlay0
                         font.pixelSize: 10
                         font.family: Config.fontFamily
                         Layout.alignment: Qt.AlignHCenter
-                        Behavior on text {
-                            SequentialAnimation {
-                                NumberAnimation { target: hintText; property: "opacity"; to: 0; duration: 80 }
-                                PropertyAction { target: hintText; property: "text" }
-                                NumberAnimation { target: hintText; property: "opacity"; to: 1; duration: 150 }
-                            }
-                        }
                     }
                 }
 
                 Shortcut {
                     sequence: "Escape"
-                    onActivated: {
-                        if (root.selectedAction >= 0)
-                            root.selectedAction = -1;
-                        else
-                            root.toggle();
-                    }
+                    onActivated: root.toggle()
                 }
             }
         }
