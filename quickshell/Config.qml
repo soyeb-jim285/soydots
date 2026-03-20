@@ -240,6 +240,12 @@ QtObject {
             },
             batteryPopup: { width: batteryPopupWidth, radius: batteryPopupRadius },
             mediaPopup: { width: mediaPopupWidth, radius: mediaPopupRadius },
+            lockscreen: {
+                clockSize: lockClockSize, dateSize: lockDateSize,
+                inputWidth: lockInputWidth, inputHeight: lockInputHeight,
+                inputRadius: lockInputRadius, showDate: lockShowDate,
+                timeFormat: lockTimeFormat, dateFormat: lockDateFormat
+            },
             hyprland: {
                 gapsIn: hyprGapsIn, gapsOut: hyprGapsOut,
                 borderSize: hyprBorderSize, rounding: hyprRounding,
@@ -250,6 +256,16 @@ QtObject {
             },
             kitty: {
                 syncColors: kittySyncColors, opacity: kittyOpacity
+            },
+            tmux: {
+                syncColors: tmuxSyncColors,
+                statusBottom: tmuxStatusBottom,
+                pillShape: tmuxPillShape,
+                showClock: tmuxShowClock,
+                clockFormat: tmuxClockFormat,
+                showCpu: tmuxShowCpu,
+                showGpu: tmuxShowGpu,
+                showTemp: tmuxShowTemp
             }
         };
         _fileView.setText(writeTOML(d));
@@ -263,6 +279,7 @@ QtObject {
         // Force sync for integrations
         if (section === "hyprland") _syncHyprland();
         if (section === "kitty") _syncKitty();
+        if (section === "tmux") _syncTmux();
         let copy = {};
         let keys = Object.keys(_data);
         for (let k of keys) copy[k] = _data[k];
@@ -311,17 +328,20 @@ QtObject {
     onHyprBlurPassesChanged: _syncHyprland()
     onHyprBlurVibrancyChanged: _syncHyprland()
     onHyprBlurXrayChanged: _syncHyprland()
-    onBaseChanged: { _syncHyprland(); _syncKitty(); }
-    onBlueChanged: { _syncHyprland(); _syncKitty(); }
-    onLavenderChanged: { _syncHyprland(); _syncKitty(); }
-    onTextChanged: _syncKitty()
-    onRedChanged: _syncKitty()
-    onGreenChanged: _syncKitty()
-    onYellowChanged: _syncKitty()
-    onMauveChanged: _syncKitty()
-    onPinkChanged: _syncKitty()
-    onTealChanged: _syncKitty()
-    onPeachChanged: _syncKitty()
+    onBaseChanged: { _syncHyprland(); _syncKitty(); _syncTmux(); }
+    onBlueChanged: { _syncHyprland(); _syncKitty(); _syncTmux(); }
+    onLavenderChanged: { _syncHyprland(); _syncKitty(); _syncTmux(); }
+    onTextChanged: { _syncKitty(); _syncTmux(); }
+    onRedChanged: { _syncKitty(); _syncTmux(); }
+    onGreenChanged: { _syncKitty(); _syncTmux(); }
+    onYellowChanged: { _syncKitty(); _syncTmux(); }
+    onMauveChanged: { _syncKitty(); _syncTmux(); }
+    onPinkChanged: { _syncKitty(); _syncTmux(); }
+    onTealChanged: { _syncKitty(); _syncTmux(); }
+    onPeachChanged: { _syncKitty(); _syncTmux(); }
+    onMantleChanged: _syncTmux()
+    onCrustChanged: _syncTmux()
+    onSurface0Changed: _syncTmux()
     onSurface2Changed: _syncHyprland()
 
     property var _hyprSyncTimer: Timer {
@@ -480,6 +500,107 @@ QtObject {
             "color14 " + teal + "\n" +
             "color7  " + subtext1 + "\n" +
             "color15 " + subtext0 + "\n";
+    }
+
+    // ===== Tmux Sync =====
+
+    property bool tmuxSyncColors: _data?.tmux?.syncColors ?? true
+    property bool tmuxStatusBottom: _data?.tmux?.statusBottom ?? false
+    property bool tmuxPillShape: _data?.tmux?.pillShape ?? true
+    property bool tmuxShowClock: _data?.tmux?.showClock ?? false
+    property string tmuxClockFormat: _data?.tmux?.clockFormat ?? "%H:%M"
+    property bool tmuxShowCpu: _data?.tmux?.showCpu ?? false
+    property bool tmuxShowGpu: _data?.tmux?.showGpu ?? false
+    property bool tmuxShowTemp: _data?.tmux?.showTemp ?? false
+
+    onTmuxSyncColorsChanged: _syncTmux()
+    onTmuxStatusBottomChanged: _syncTmux()
+    onTmuxPillShapeChanged: _syncTmux()
+    onTmuxShowClockChanged: _syncTmux()
+    onTmuxClockFormatChanged: _syncTmux()
+    onTmuxShowCpuChanged: _syncTmux()
+    onTmuxShowGpuChanged: _syncTmux()
+    onTmuxShowTempChanged: _syncTmux()
+
+    property string _tmuxThemePath: _homeDir + "/.config/tmux/plugins/catppuccin-tmux/catppuccin-mocha.tmuxtheme"
+    property string _tmuxConfScript: _homeDir + "/jimdots/tmux/write-quickshell-conf.py"
+
+    property var _tmuxSyncTimer: Timer {
+        interval: 300
+        onTriggered: config._doSyncTmux()
+    }
+
+    function _syncTmux() { _tmuxSyncTimer.restart(); }
+
+    function _doSyncTmux() {
+        if (!tmuxSyncColors) return;
+        // Write catppuccin theme override file
+        let themeContent = _buildTmuxTheme();
+
+        // Build modules_right list
+        let modules = ["directory"];
+        if (tmuxShowClock) modules.push("date_time");
+        if (tmuxShowCpu) modules.push("cpu");
+        if (tmuxShowGpu) modules.push("gpu");
+        if (tmuxShowTemp) modules.push("temp");
+
+        let args = JSON.stringify({
+            statusBottom: tmuxStatusBottom,
+            pill: tmuxPillShape,
+            modules_right: modules.join(" "),
+            clockFormat: tmuxShowClock ? tmuxClockFormat : ""
+        });
+
+        _tmuxWriteProc.command = ["bash", "-c",
+            "cat > " + _tmuxThemePath + " << 'TMUXEOF'\n" + themeContent + "TMUXEOF\n" +
+            "python3 " + _tmuxConfScript + " '" + args + "'"];
+        _tmuxWriteProc.running = true;
+    }
+
+    property var _tmuxWriteProc: Process {
+        command: ["true"]
+        onExited: {
+            // After writing theme + conf, reload tmux if running
+            let lav = config.lavender;
+            let s1 = config.surface1;
+            let fg = config.text;
+            let gray = config.surface0;
+            let pos = config.tmuxStatusBottom ? "bottom" : "top";
+
+            config._tmuxApplyProc.command = ["bash", "-c",
+                "if tmux info >/dev/null 2>&1; then " +
+                "tmux set -g status-position " + pos + " \\; " +
+                "set -g pane-active-border-style 'fg=" + lav + ",bg=default' \\; " +
+                "set -g pane-border-style 'fg=" + s1 + ",bg=default' \\; " +
+                "set -g message-style 'fg=" + fg + ",bg=" + gray + "' \\; " +
+                "set -g mode-style 'fg=" + config.crust + ",bg=" + lav + "' \\; " +
+                "source-file ~/.config/tmux/tmux.conf 2>/dev/null; " +
+                "fi"];
+            config._tmuxApplyProc.running = true;
+        }
+    }
+
+    property var _tmuxApplyProc: Process {
+        command: ["true"]
+    }
+
+    function _buildTmuxTheme() {
+        return "# NOTE: you can use vars with $<var> and ${<var>} as long as the str is double quoted: \"\"\n" +
+            "# WARNING: hex colors can't contain capital letters\n\n" +
+            "# --> Catppuccin (Synced from quickshell settings)\n" +
+            "thm_bg=\"" + base + "\"\n" +
+            "thm_fg=\"" + text + "\"\n" +
+            "thm_cyan=\"" + teal + "\"\n" +
+            "thm_black=\"" + mantle + "\"\n" +
+            "thm_gray=\"" + surface0 + "\"\n" +
+            "thm_magenta=\"" + mauve + "\"\n" +
+            "thm_pink=\"" + pink + "\"\n" +
+            "thm_red=\"" + red + "\"\n" +
+            "thm_green=\"" + green + "\"\n" +
+            "thm_yellow=\"" + yellow + "\"\n" +
+            "thm_blue=\"" + blue + "\"\n" +
+            "thm_orange=\"" + peach + "\"\n" +
+            "thm_black4=\"" + surface2 + "\"\n";
     }
 
     // ===== Defaults (embedded for fallback) =====
@@ -897,10 +1018,21 @@ unfocusedWidth = 10'
     property int mediaPopupWidth: _data?.mediaPopup?.width ?? 300
     property int mediaPopupRadius: _data?.mediaPopup?.radius ?? 12
 
+    // ===== LOCK SCREEN =====
+
+    property int lockClockSize: _data?.lockscreen?.clockSize ?? 64
+    property int lockDateSize: _data?.lockscreen?.dateSize ?? 16
+    property int lockInputWidth: _data?.lockscreen?.inputWidth ?? 300
+    property int lockInputHeight: _data?.lockscreen?.inputHeight ?? 48
+    property int lockInputRadius: _data?.lockscreen?.inputRadius ?? 24
+    property bool lockShowDate: _data?.lockscreen?.showDate ?? true
+    property string lockTimeFormat: _data?.lockscreen?.timeFormat ?? "h:mm"
+    property string lockDateFormat: _data?.lockscreen?.dateFormat ?? "dddd, MMMM d"
+
     // ===== Convenience: all section names =====
 
     property var sectionNames: ["appearance", "bar", "workspaces", "clock", "volume", "battery",
         "media", "systray", "network", "wifi", "bluetooth", "calendar", "notifications",
         "launcher", "clipboard", "osd", "animations", "nightlight", "animationPicker",
-        "batteryPopup", "mediaPopup"]
+        "batteryPopup", "mediaPopup", "lockscreen"]
 }

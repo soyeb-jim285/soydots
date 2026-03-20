@@ -1,6 +1,7 @@
 # Arch Hyprland Setup
 
 ## Installed
+- yay
 - hyprpolkitagent (polkit authentication agent for Hyprland)
 - git
 - base-devel
@@ -23,6 +24,9 @@
 - hyprsunset (night light / warm color filter)
 - hyprlock (Hyprland lock screen)
 - hypridle (idle daemon, screen sleep management)
+- tmux (terminal multiplexer)
+- tpm (Tmux Plugin Manager, ~/.tmux/plugins/tpm)
+- fzf (fuzzy finder, used by tmux session switcher and fzf-url)
 - nvidia-open-dkms, nvidia-utils, nvidia-settings (NVIDIA open kernel driver for GTX 1650 Mobile)
 - linux-headers (needed for DKMS kernel module building)
 
@@ -33,7 +37,7 @@
   - Meta+F5/F6: brightness down/up
   - Meta+Shift+P: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
   - Meta+Shift+A: region screenshot to file, Meta+Shift+W: window screenshot to clipboard
-  - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker, Meta+Comma: settings
+  - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker, Meta+Comma: settings, Meta+M: power menu
 - hyprland autostart: cliphist (text + image watchers)
 - hyprland autostart: quickshell
 - quickshell app launcher — Catppuccin Mocha themed, fuzzy search, keyboard navigation, IPC toggle
@@ -58,14 +62,20 @@
   - Toast popups (top-right, slide-in/out animations, progress bar, auto-dismiss, urgency icons/colors)
   - Notification center panel (right side, full history, clear all, IPC toggle, click to focus app/switch workspace)
   - Bell icon in status bar with unread count badge
-  - Quick settings panel: Wi-Fi, Bluetooth, DND, Night Light, Screenshot, Lock
+  - Quick settings panel: Wi-Fi, Bluetooth, DND, Night Light, Screenshot, Power, Reload, Caffeine, Settings
   - Volume and brightness sliders in notification center
 - quickshell settings system — fully configurable via TOML config file and GUI:
   - Config.qml singleton with built-in TOML parser/writer, FileView persistence, ~120 configurable properties
   - Settings window (Super+Comma or IPC): sidebar navigation + 11 category pages
-  - Categories: Appearance (theme presets, colors, fonts, transparency), Bar, Notifications, Launcher, Clipboard, OSD, Animations, Network, Calendar, Battery, Integrations (Hyprland + Kitty)
+  - Categories: Appearance (theme presets, colors, fonts, transparency), Bar, Notifications, Launcher, Clipboard, OSD, Animations, Network, Calendar, Battery, Integrations (Hyprland + Kitty + Tmux)
   - Hyprland integration: live sync of border colors (blue/lavender gradient), gaps, border size, rounding via hyprctl keyword
   - Kitty integration: auto-writes current-theme.conf with full palette mapping (16 terminal colors, cursor, tabs, marks), live reload via kitty remote control, background opacity control
+  - Tmux integration: overwrites catppuccin-mocha.tmuxtheme with synced palette, generates quickshell-tmux.conf with all @catppuccin_* options, live reload via tmux source-file
+    - Configurable: status bar position (top/bottom), separator shape (pill/rectangular), color sync toggle
+    - Optional status modules: clock (configurable format), CPU utilization, GPU utilization (nvidia-smi), temperature (lm-sensors)
+    - Custom catppuccin modules (cpu.sh, gpu.sh, temp.sh) in tmux/, auto-copied to plugin custom/ on sync
+    - Python helper (write-quickshell-conf.py) for Unicode-safe powerline glyph writing
+    - Live preview bar in settings UI reflecting shape and enabled modules
   - Controls: color swatches with hex editor, sliders, text inputs, toggle switches, editable lists
   - Theme presets: Catppuccin Mocha, Macchiato, Frappe, Latte (one-click switch)
   - Live preview: changes apply immediately via reactive property bindings
@@ -75,6 +85,25 @@
   - Transparency system: per-component opacity (bar, launcher, clipboard, notif center, notif popup, OSD, settings, anim picker) with global fallback, alpha baked into background colors so text stays opaque
   - Blur support: all quickshell layer surfaces have WlrLayershell.namespace, Hyprland layerrules enable blur+ignore_alpha on all namespaces (quickshell, quickshell-osd, quickshell-notif, quickshell-launcher, quickshell-clipboard, quickshell-notifcenter, quickshell-animpicker, quickshell-settings)
   - OSD unified into same transparency system (uses Theme.osdBg)
+- quickshell lock screen (WlSessionLock, fully themed):
+  - Large clock + date with staggered slide-up entrance animations
+  - User icon circle with state-dependent colors (blue/green/red)
+  - Password dots with pop-in animation, shake on wrong password
+  - Status text transitions: idle → verifying (pulse) → error (shake) → success (scale down)
+  - PAM authentication via unix_chkpwd
+  - Configurable in Settings: clock size, date size, time/date format, input dimensions
+- quickshell power menu (Meta+M or quick settings Power button):
+  - Lock, Logout, Suspend, Hibernate, Reboot, Shutdown
+  - Two-click confirmation (click to select, click again to execute)
+  - Centered overlay with themed action cards
+- tmux — Catppuccin Mocha themed, Ctrl+Space prefix, vi copy mode, status bar with powerline separators:
+  - Plugins (TPM): tmux-sensible, tmux-yank (wl-copy), tmux-resurrect, tmux-continuum (auto-save/restore), vim-tmux-navigator, tmux-sessionist, tmux-thumbs, tmux-fzf, tmux-fzf-url
+  - Undercurl support for neovim diagnostics
+  - Popup fzf session switcher (prefix+S), fzf-url picker for extracting URLs, tmux-thumbs for quick-copying visible text
+  - Keybindings: |/- splits (current path), hjkl pane nav, Alt+arrows, Alt+h/l window nav, Alt+1-9 window select, v for copy mode
+  - Status bar: top position, rounded pill shapes, session name (blue), current command, lavender active window tab
+  - Prefix indicator: all pills turn red when Ctrl+Space prefix is active (session, active window, command pill)
+  - Colors unified with quickshell/kitty: base, mantle, crust, surface, overlay, text, lavender, mauve from settings TOML
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 
@@ -85,3 +114,4 @@ All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `hypr/` -> `~/.config/hypr` (hyprland.conf)
 - `claude/settings.json` -> `~/.claude/settings.json`
 - `claude/statusline-command.sh` -> `~/.claude/statusline-command.sh`
+- `tmux/` -> `~/.config/tmux` (tmux.conf)

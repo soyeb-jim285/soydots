@@ -10,4 +10,6 @@ ShellRoot {
     NotificationCenter { id: notifCenter; notifSource: notifs }
     AnimationPicker {}
     Settings {}
+    PowerMenu {}
+    LockScreen { id: lockScreen }
 }

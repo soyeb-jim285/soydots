@@ -1,0 +1,233 @@
+[animationPicker]
+columns = 3
+height = 440
+radius = 24
+selectedPreset = 3
+spacing = 18
+width = 620
+
+[animations]
+clipboardFadeDuration = 200
+clipboardOvershoot = 1.2
+clipboardScaleDuration = 250
+clipboardScaleFrom = 0.85
+duration = 200
+durationFast = 100
+launcherFadeDuration = 200
+launcherOvershoot = 1.2
+launcherScaleDuration = 250
+launcherScaleFrom = 0.85
+osdFadeDuration = 120
+osdScaleDuration = 150
+osdScaleFrom = 0.85
+panelCloseDuration = 200
+panelDuration = 350
+pickerBackdropOpacity = 0.58
+pickerFadeDuration = 180
+pickerScaleDuration = 180
+pickerScaleFrom = 0.97
+popupFadeDuration = 200
+popupSlideDuration = 250
+
+[appearance]
+base = "#1e1e2e"
+blue = "#89b4fa"
+crust = "#11111b"
+fontFamily = "Maple Mono"
+fontSize = 13
+fontSizeIcon = 16
+fontSizeSmall = 11
+green = "#a6e3a1"
+iconFont = "Maple Mono NF"
+lavender = "#b4befe"
+mantle = "#181825"
+mauve = "#cba6f7"
+overlay0 = "#6c7086"
+overlay1 = "#7f849c"
+peach = "#fab387"
+pink = "#f5c2e7"
+red = "#f38ba8"
+subtext0 = "#a6adc8"
+subtext1 = "#bac2de"
+surface0 = "#313244"
+surface1 = "#45475a"
+surface2 = "#585b70"
+teal = "#94e2d5"
+text = "#cdd6f4"
+transparencyEnabled = true
+transparencyLevel = 0.4
+yellow = "#f9e2af"
+
+[bar]
+height = 38
+margin = 6
+radius = 10
+widgetPadding = 10
+widgetRadius = 8
+widgetSpacing = 5
+
+[battery]
+greenThreshold = 60
+yellowThreshold = 20
+
+[batteryPopup]
+radius = 12
+width = 240
+
+[bluetooth]
+deviceHeight = 48
+deviceIconSize = 32
+deviceRadius = 10
+maxListHeight = 250
+panelWidth = 280
+scanTimeout = 60000
+
+[calendar]
+cellHeight = 28
+cellRadius = 6
+cellWidth = 34
+width = 280
+
+[clipboard]
+backdropOpacity = 0.4
+height = 450
+imageItemHeight = 80
+itemHeight = 38
+radius = 16
+searchHeight = 42
+searchRadius = 12
+width = 500
+
+[clock]
+dateFormat = "ddd, MMM d"
+separatorHeight = 14
+spacing = 8
+timeFormat = "h:mm AP"
+
+[hyprland]
+blurEnabled = true
+blurPasses = 3
+blurSize = 8
+blurVibrancy = 0.17
+blurXray = false
+borderSize = 2
+gapsIn = 5
+gapsOut = 8
+rounding = 8
+syncColors = true
+
+[kitty]
+opacity = 0.45
+syncColors = true
+
+[launcher]
+backdropOpacity = 0.4
+hiddenApps = ["avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap", "electron", "cmake-gui"]
+iconSize = 28
+itemHeight = 44
+itemRadius = 10
+maxHeight = 500
+radius = 16
+searchHeight = 48
+searchRadius = 12
+terminal = "kitty"
+width = 600
+
+[lockscreen]
+clockSize = 64
+dateFormat = "dddd, MMMM d"
+dateSize = 16
+inputHeight = 48
+inputRadius = 24
+inputWidth = 300
+showDate = true
+timeFormat = "h:mm"
+
+[media]
+maxWidth = 181
+
+[mediaPopup]
+radius = 12
+width = 300
+
+[network]
+pollInterval = 10000
+
+[nightlight]
+temperature = 4000
+
+[notifications]
+centerOverlayOpacity = 0.4
+centerRadius = 14
+centerSlideFrom = -320
+centerSlideTo = 8
+centerWidth = 300
+defaultTimeout = 5000
+maxHistory = 50
+maxToasts = 3
+popupBgColor = "#cc181825"
+popupHeight = 48
+popupRadius = 10
+popupSpacing = 6
+popupWidth = 280
+popupWindowWidth = 300
+qsButtonHeight = 56
+qsButtonRadius = 10
+qsColumns = 3
+qsIconSize = 16
+qsLabelSize = 9
+qsSpacing = 6
+
+[osd]
+bgColor = "#6611111b"
+bottomMargin = 80
+height = 36
+hideTimeout = 2000
+progressHeight = 4
+progressWidth = 90
+radius = 18
+readyDelay = 2000
+
+[systray]
+iconSize = 20
+opacity = 0.7
+spacing = 4
+
+[tmux]
+clockFormat = "%H:%M"
+pillShape = true
+showClock = false
+showCpu = false
+showGpu = false
+showTemp = false
+statusBottom = false
+syncColors = true
+
+[transparency]
+animPicker = -1
+bar = -1
+clipboard = -1
+launcher = -1
+notifCenter = -1
+notifPopup = -1
+osd = -1
+settings = -1
+
+[volume]
+scrollIncrement = 0.05
+
+[wifi]
+itemHeight = 44
+itemRadius = 10
+maxListHeight = 250
+panelWidth = 300
+rescanDelay = 3000
+
+[workspaces]
+count = 9
+dotHeight = 12
+dotRadius = 5
+focusedWidth = 33
+overshoot = 1.5
+spacing = 6
+unfocusedWidth = 12

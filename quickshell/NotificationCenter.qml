@@ -147,10 +147,11 @@ Scope {
     Process { id: nightLightOffProc; command: ["pkill", "hyprsunset"] }
     Process { id: caffeineOnProc; command: ["bash", "-c", "pkill hypridle; notify-send 'Caffeine' 'Screen will stay awake'"] }
     Process { id: caffeineOffProc; command: ["bash", "-c", "hypridle & notify-send 'Caffeine' 'Screen sleep restored'"] }
-    Process { id: lockProc; command: ["hyprlock"] }
+    Process { id: lockProc; command: ["quickshell", "msg", "lockscreen", "lock"] }
     Process { id: ssProc; command: ["bash", "-c", "sleep 0.3 && hyprshot -m region --freeze --clipboard-only"] }
     Process { id: reloadProc; command: ["hyprctl", "dispatch", "exec", "bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"'"] }
     Process { id: settingsOpenProc; command: ["quickshell", "msg", "settings", "toggle"] }
+    Process { id: powerMenuProc; command: ["quickshell", "msg", "powermenu", "toggle"] }
 
     // Brightness set
     Process {
@@ -396,33 +397,33 @@ Scope {
                                 }
                             }
 
-                            // Lock Screen
+                            // Power Menu
                             Rectangle {
                                 Layout.fillWidth: true
                                 height: Config.notifQsButtonHeight; radius: Config.notifQsButtonRadius
-                                color: lockMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                                color: powerMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf023"
+                                        text: "\uf011"
                                         color: Theme.overlay0
                                         font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "Lock"
+                                        text: "Power"
                                         color: Theme.subtext0
                                         font.pixelSize: Config.notifQsLabelSize; font.family: Theme.fontFamily
                                     }
                                 }
                                 MouseArea {
-                                    id: lockMouse
+                                    id: powerMouse
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                     hoverEnabled: true
-                                    onClicked: { root.toggle(); lockProc.running = true; }
+                                    onClicked: { root.toggle(); powerMenuProc.running = true; }
                                 }
                             }
 

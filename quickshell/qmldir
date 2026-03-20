@@ -8,3 +8,5 @@ NotificationPopup 1.0 NotificationPopup.qml
 NotificationCenter 1.0 NotificationCenter.qml
 AnimationPicker 1.0 AnimationPicker.qml
 Settings 1.0 Settings.qml
+PowerMenu 1.0 PowerMenu.qml
+LockScreen 1.0 LockScreen.qml
