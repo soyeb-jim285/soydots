@@ -15,14 +15,14 @@ Scope {
     property string errorMsg: ""
     property string timeText: ""
     property string dateText: ""
-    property int dotCount: 0
+    property bool showPassword: false
 
     function lock() {
         root.locked = true;
         root.password = "";
         root.status = "idle";
         root.errorMsg = "";
-        root.dotCount = 0;
+        root.showPassword = false;
     }
 
     property string _user: Quickshell.env("USER") || "jim"
@@ -65,7 +65,6 @@ Scope {
                 root.status = "error";
                 root.errorMsg = "Wrong password";
                 root.password = "";
-                root.dotCount = 0;
                 errorResetTimer.restart();
             }
         }
@@ -116,15 +115,11 @@ Scope {
                         root.tryUnlock();
                     } else if (event.key === Qt.Key_Escape) {
                         root.password = "";
-                        root.dotCount = 0;
                     } else if (event.key === Qt.Key_Backspace) {
-                        if (root.password.length > 0) {
+                        if (root.password.length > 0)
                             root.password = root.password.slice(0, -1);
-                            root.dotCount = root.password.length;
-                        }
                     } else if (event.text && event.text.length > 0 && !event.modifiers) {
                         root.password += event.text;
-                        root.dotCount = root.password.length;
                     }
                     event.accepted = true;
                 }
@@ -300,7 +295,7 @@ Scope {
                         color: Config.surface0
                         border.color: root.status === "error" ? Config.red
                             : root.status === "success" ? Config.green
-                            : hiddenInput.activeFocus ? Config.blue
+                            : keyHandler.activeFocus ? Config.blue
                             : Config.surface1
                         border.width: 1.5
 
@@ -322,33 +317,97 @@ Scope {
                             NumberAnimation { target: inputSlide; property: "y"; from: 15; to: 0; duration: 400; easing.type: Easing.OutCubic }
                         }
 
-                        // Password dots
-                        Row {
+                        // Password dots — ListView with ScriptModel
+                        ListView {
+                            id: lockDotList
                             anchors.centerIn: parent
-                            spacing: 8
-                            visible: root.dotCount > 0
+                            anchors.horizontalCenterOffset: -12 // offset for eye icon
+                            property real fullWidth: count * (implicitHeight + spacing) - (count > 0 ? spacing : 0)
+                            implicitHeight: 10
+                            implicitWidth: fullWidth
+                            width: Math.min(implicitWidth, inputField.width - 56)
+                            height: implicitHeight
+                            orientation: Qt.Horizontal
+                            spacing: 6
+                            interactive: false
+                            visible: root.password.length > 0 && root.status === "idle" && !root.showPassword
 
-                            Repeater {
-                                model: root.dotCount
+                            Behavior on implicitWidth {
+                                NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                            }
 
-                                Rectangle {
-                                    required property int index
-                                    width: 10; height: 10; radius: 5
-                                    color: root.status === "error" ? Config.red
-                                        : root.status === "success" ? Config.green
-                                        : Config.text
+                            model: ScriptModel {
+                                values: root.password.split("")
+                            }
 
-                                    Behavior on color { ColorAnimation { duration: 200 } }
+                            displaced: Transition {
+                                NumberAnimation { properties: "x"; duration: 200; easing.type: Easing.OutCubic }
+                            }
 
-                                    // Pop-in animation
-                                    scale: 0
-                                    Component.onCompleted: popIn.start()
-                                    SequentialAnimation {
-                                        id: popIn
-                                        NumberAnimation { target: parent; property: "scale"; from: 0; to: 1.3; duration: 80; easing.type: Easing.OutCubic }
-                                        NumberAnimation { target: parent; property: "scale"; from: 1.3; to: 1.0; duration: 120; easing.type: Easing.OutCubic }
+                            add: Transition {
+                                ParallelAnimation {
+                                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150; easing.type: Easing.OutCubic }
+                                    NumberAnimation {
+                                        property: "scale"; from: 0; to: 1; duration: 200
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: [0.34, 1.56, 0.64, 1, 1, 1]
                                     }
                                 }
+                            }
+
+                            remove: Transition {
+                                ParallelAnimation {
+                                    NumberAnimation { property: "opacity"; to: 0; duration: 150; easing.type: Easing.OutCubic }
+                                    NumberAnimation { property: "scale"; to: 0; duration: 150; easing.type: Easing.InCubic }
+                                }
+                            }
+
+                            delegate: Rectangle {
+                                width: 10; height: 10; radius: 5
+                                color: root.status === "error" ? Config.red
+                                    : root.status === "success" ? Config.green
+                                    : Config.text
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
+                        }
+
+                        // Plain text password (shown when eye toggled)
+                        Text {
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -12
+                            text: root.password
+                            color: Config.text
+                            font.pixelSize: 13
+                            font.family: Config.fontFamily
+                            font.letterSpacing: 2
+                            elide: Text.ElideRight
+                            width: inputField.width - 56
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: root.password.length > 0 && root.status === "idle" && root.showPassword
+                            opacity: root.showPassword ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                        }
+
+                        // Eye toggle icon
+                        Text {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.showPassword ? "\uf06e" : "\uf070"  // eye / eye-slash
+                            color: eyeMouse.containsMouse ? Config.text : Config.overlay0
+                            font.pixelSize: 14
+                            font.family: Config.iconFont
+                            visible: root.password.length > 0 && root.status === "idle"
+
+                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                            MouseArea {
+                                id: eyeMouse
+                                anchors.fill: parent
+                                anchors.margins: -6
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.showPassword = !root.showPassword
                             }
                         }
 
@@ -365,13 +424,12 @@ Scope {
                                 : Config.overlay0
                             font.pixelSize: 13
                             font.family: Config.fontFamily
-                            visible: root.dotCount === 0 || root.status !== "idle"
-                            opacity: root.status === "verifying" ? verifyPulse : (root.dotCount > 0 && root.status === "idle" ? 0 : 1)
+                            visible: root.password.length === 0 || root.status !== "idle"
+                            opacity: root.status === "verifying" ? verifyPulse : (root.password.length > 0 && root.status === "idle" ? 0 : 1)
                             property real verifyPulse: 1.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                             Behavior on color { ColorAnimation { duration: 200 } }
 
-                            // Pulse on verifying
                             SequentialAnimation on verifyPulse {
                                 loops: Animation.Infinite
                                 running: root.status === "verifying"
@@ -383,6 +441,7 @@ Scope {
                         // Click to refocus
                         MouseArea {
                             anchors.fill: parent
+                            z: -1
                             onClicked: lockSurface.contentItem.forceActiveFocus()
                         }
                     }
@@ -393,7 +452,7 @@ Scope {
                         text: root.status === "error" ? "Try again"
                             : root.status === "success" ? ""
                             : root.status === "verifying" ? ""
-                            : root.dotCount > 0 ? "Press Enter to unlock" : ""
+                            : root.password.length > 0 ? "Press Enter to unlock" : ""
                         color: Config.overlay0
                         font.pixelSize: 10
                         font.family: Config.fontFamily

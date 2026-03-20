@@ -1006,7 +1006,7 @@ unfocusedWidth = 10'
     property int animPickerRadius: _data?.animationPicker?.radius ?? 24
     property int animPickerColumns: _data?.animationPicker?.columns ?? 3
     property int animPickerSpacing: _data?.animationPicker?.spacing ?? 18
-    property int animPickerSelectedPreset: _data?.animationPicker?.selectedPreset ?? 3
+    property int animPickerSelectedPreset: _data?.animationPicker?.selectedPreset ?? 1
 
     // ===== BATTERY POPUP =====
 

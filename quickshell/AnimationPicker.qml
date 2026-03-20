@@ -115,142 +115,101 @@ Scope {
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 24
-                    spacing: 18
+                    spacing: 14
 
-                    ColumnLayout {
+                    Text {
+                        text: "Password Input Style"
+                        color: Theme.text
+                        font.pixelSize: 18; font.family: Theme.fontFamily; font.bold: true
                         Layout.alignment: Qt.AlignHCenter
-                        spacing: 6
+                    }
 
-                        Text {
-                            text: "Choose a connection animation"
-                            color: Theme.text
-                            font.pixelSize: 18
-                            font.family: Theme.fontFamily
-                            font.bold: true
-                            Layout.alignment: Qt.AlignHCenter
-                        }
+                    Text {
+                        text: root.selected > 0 ? "Selected: " + root.animationName(root.selected) : "Click a style to select, then type to preview."
+                        color: root.selected > 0 ? Theme.green : Theme.subtext1
+                        font.pixelSize: 11; font.family: Theme.fontFamily
+                        Layout.alignment: Qt.AlignHCenter
+                    }
 
-                        Text {
-                            text: root.selected > 0 ? "Selected: " + root.animationName(root.selected) : "Click a spinner to select."
-                            color: root.selected > 0 ? Theme.green : Theme.subtext1
-                            font.pixelSize: 11
-                            font.family: Theme.fontFamily
-                            Layout.alignment: Qt.AlignHCenter
+                    // Shared buffer for all variants
+                    property string sharedBuffer: ""
+
+                    Item {
+                        id: sharedKeyHandler
+                        focus: true
+                        Layout.preferredWidth: 0; Layout.preferredHeight: 0
+                        Component.onCompleted: forceActiveFocus()
+                        Keys.onPressed: (event) => {
+                            if (event.key === Qt.Key_Escape) {
+                                parent.sharedBuffer = "";
+                            } else if (event.key === Qt.Key_Backspace) {
+                                if (parent.sharedBuffer.length > 0)
+                                    parent.sharedBuffer = parent.sharedBuffer.slice(0, -1);
+                            } else if (event.text && event.text.length > 0 && !event.modifiers) {
+                                parent.sharedBuffer += event.text;
+                            }
+                            event.accepted = true;
                         }
                     }
 
                     GridLayout {
                         Layout.alignment: Qt.AlignHCenter
-                        columns: Config.animPickerColumns
-                        columnSpacing: Config.animPickerSpacing
-                        rowSpacing: Config.animPickerSpacing
+                        columns: 3
+                        columnSpacing: 14
+                        rowSpacing: 14
 
-                        AnimCard {
-                            num: 1
-                            label: "Slow"
-                            sel: root.selected
-                            onPicked: root.selected = 1
-
-                            SpinnerPreview {
-                                anchors.centerIn: parent
-                                spinDuration: 1200
-                                sweepDuration: 2200
-                                growRatio: 0.35
-                                maxSweep: 300
-                                minSweep: 30
-                                showHalo: false
-                                radius: 18
-                            }
+                        // Style 1: Circle dots, tight spacing, bouncy
+                        DotStyleCard {
+                            num: 1; label: "Bouncy"; sel: root.selected; onPicked: root.selected = 1
+                            buffer: parent.parent.sharedBuffer
+                            dotSize: 10; dotRadius: 5; dotSpacing: 6
+                            addDuration: 200; removeDuration: 150; slideDuration: 200
+                            addCurve: [0.34, 1.56, 0.64, 1, 1, 1]
                         }
 
-                        AnimCard {
-                            num: 2
-                            label: "Gentle"
-                            sel: root.selected
-                            onPicked: root.selected = 2
-
-                            SpinnerPreview {
-                                anchors.centerIn: parent
-                                spinDuration: 900
-                                sweepDuration: 1800
-                                growRatio: 0.35
-                                maxSweep: 300
-                                minSweep: 30
-                                showHalo: false
-                                radius: 18
-                            }
+                        // Style 2: Circle dots, wide spacing, gentle
+                        DotStyleCard {
+                            num: 2; label: "Gentle"; sel: root.selected; onPicked: root.selected = 2
+                            buffer: parent.parent.sharedBuffer
+                            dotSize: 10; dotRadius: 5; dotSpacing: 12
+                            addDuration: 350; removeDuration: 250; slideDuration: 300
+                            addCurve: [0.05, 0.7, 0.1, 1, 1, 1]
                         }
 
-                        AnimCard {
-                            num: 3
-                            label: "Medium"
-                            sel: root.selected
-                            onPicked: root.selected = 3
-
-                            SpinnerPreview {
-                                anchors.centerIn: parent
-                                spinDuration: 750
-                                sweepDuration: 1500
-                                growRatio: 0.35
-                                maxSweep: 300
-                                minSweep: 30
-                                showHalo: false
-                                radius: 18
-                            }
+                        // Style 3: Square dots, snappy
+                        DotStyleCard {
+                            num: 3; label: "Square"; sel: root.selected; onPicked: root.selected = 3
+                            buffer: parent.parent.sharedBuffer
+                            dotSize: 9; dotRadius: 2; dotSpacing: 6
+                            addDuration: 120; removeDuration: 100; slideDuration: 150
+                            addCurve: [0.2, 0, 0, 1, 1, 1]
                         }
 
-                        AnimCard {
-                            num: 4
-                            label: "Brisk"
-                            sel: root.selected
-                            onPicked: root.selected = 4
-
-                            SpinnerPreview {
-                                anchors.centerIn: parent
-                                spinDuration: 600
-                                sweepDuration: 1200
-                                growRatio: 0.35
-                                maxSweep: 300
-                                minSweep: 30
-                                showHalo: false
-                                radius: 18
-                            }
+                        // Style 4: Large round, springy
+                        DotStyleCard {
+                            num: 4; label: "Springy"; sel: root.selected; onPicked: root.selected = 4
+                            buffer: parent.parent.sharedBuffer
+                            dotSize: 12; dotRadius: 6; dotSpacing: 8
+                            addDuration: 250; removeDuration: 180; slideDuration: 250
+                            addCurve: [0.42, 1.67, 0.21, 0.9, 1, 1]
                         }
 
-                        AnimCard {
-                            num: 5
-                            label: "Fast"
-                            sel: root.selected
-                            onPicked: root.selected = 5
-
-                            SpinnerPreview {
-                                anchors.centerIn: parent
-                                spinDuration: 480
-                                sweepDuration: 950
-                                growRatio: 0.35
-                                maxSweep: 280
-                                minSweep: 25
-                                showHalo: false
-                                radius: 18
-                            }
+                        // Style 5: Pill-shaped, smooth
+                        DotStyleCard {
+                            num: 5; label: "Pill"; sel: root.selected; onPicked: root.selected = 5
+                            buffer: parent.parent.sharedBuffer
+                            dotSize: 10; dotRadius: 3; dotSpacing: 4; dotWidth: 16
+                            addDuration: 200; removeDuration: 150; slideDuration: 200
+                            addCurve: [0.34, 1.56, 0.64, 1, 1, 1]
                         }
 
-                        AnimCard {
-                            num: 6
-                            label: "Rapid"
-                            sel: root.selected
-                            onPicked: root.selected = 6
-
-                            SpinnerPreview {
-                                anchors.centerIn: parent
-                                spinDuration: 380
-                                sweepDuration: 750
-                                growRatio: 0.33
-                                maxSweep: 260
-                                minSweep: 20
-                                showHalo: false
-                                radius: 18
-                            }
+                        // Style 6: Tiny dots, rapid
+                        DotStyleCard {
+                            num: 6; label: "Minimal"; sel: root.selected; onPicked: root.selected = 6
+                            buffer: parent.parent.sharedBuffer
+                            dotSize: 7; dotRadius: 3.5; dotSpacing: 10
+                            addDuration: 100; removeDuration: 80; slideDuration: 120
+                            addCurve: [0.2, 0, 0, 1, 1, 1]
                         }
                     }
 
@@ -267,194 +226,108 @@ Scope {
         }
     }
 
-    component SpinnerPreview: Item {
-        id: spinner
-
-        property int arcCount: 1
-        property real radius: 22
-        property real arcWidth: 2.8
-        property int spinDuration: 700
-        property int sweepDuration: 1400
-        property real growRatio: 0.38
-        property real centerSize: 28
-        property bool showHalo: true
-        property real minSweep: 20
-        property real maxSweep: arcCount === 1 ? 270 : 130
-
-        width: 72
-        height: 72
-
-        Item {
-            id: rotor
-            anchors.fill: parent
-            transformOrigin: Item.Center
-
-            RotationAnimator on rotation {
-                from: 0
-                to: 360
-                duration: spinner.spinDuration
-                loops: Animation.Infinite
-                running: true
-            }
-
-            Repeater {
-                model: spinner.arcCount
-
-                delegate: Item {
-                    id: arcDel
-                    anchors.fill: parent
-
-                    required property int index
-                    property real sweep: spinner.minSweep
-                    property real tailProgress: 0
-                    property real cycleBase: 0
-                    property real baseAngle: index * (360 / spinner.arcCount)
-                    property real tailShift: spinner.maxSweep - spinner.minSweep
-
-                    Shape {
-                        anchors.fill: parent
-
-                        ShapePath {
-                            strokeColor: Theme.blue
-                            strokeWidth: spinner.arcWidth
-                            fillColor: "transparent"
-                            capStyle: ShapePath.RoundCap
-
-                            PathAngleArc {
-                                centerX: spinner.width / 2
-                                centerY: spinner.height / 2
-                                radiusX: spinner.radius
-                                radiusY: spinner.radius
-                                startAngle: arcDel.baseAngle + arcDel.cycleBase + arcDel.tailProgress * arcDel.tailShift
-                                sweepAngle: arcDel.sweep
-                            }
-                        }
-                    }
-
-                    SequentialAnimation {
-                        loops: Animation.Infinite
-                        running: true
-
-                        ParallelAnimation {
-                            NumberAnimation {
-                                target: arcDel; property: "sweep"
-                                from: spinner.minSweep; to: spinner.maxSweep
-                                duration: Math.round(spinner.sweepDuration * spinner.growRatio)
-                                easing.type: Easing.InOutCubic
-                            }
-                            NumberAnimation {
-                                target: arcDel; property: "tailProgress"
-                                from: 0; to: 0
-                                duration: Math.round(spinner.sweepDuration * spinner.growRatio)
-                            }
-                        }
-
-                        ParallelAnimation {
-                            NumberAnimation {
-                                target: arcDel; property: "sweep"
-                                from: spinner.maxSweep; to: spinner.minSweep
-                                duration: Math.round(spinner.sweepDuration * (1 - spinner.growRatio))
-                                easing.type: Easing.InOutCubic
-                            }
-                            NumberAnimation {
-                                target: arcDel; property: "tailProgress"
-                                from: 0; to: 1
-                                duration: Math.round(spinner.sweepDuration * (1 - spinner.growRatio))
-                                easing.type: Easing.InOutCubic
-                            }
-                        }
-
-                        ScriptAction {
-                            script: { arcDel.cycleBase += arcDel.tailShift; arcDel.tailProgress = 0; }
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            anchors.centerIn: parent
-            visible: spinner.showHalo
-            width: spinner.centerSize + 10
-            height: spinner.centerSize + 10
-            radius: width / 2
-            color: root.accent(0.05)
-            border.color: root.accent(0.18)
-            border.width: 1
-        }
-
-        Rectangle {
-            anchors.centerIn: parent
-            width: spinner.centerSize
-            height: spinner.centerSize
-            radius: width / 2
-            color: Theme.crust
-            border.color: root.accent(0.22)
-            border.width: 1
-
-            Text {
-                anchors.centerIn: parent
-                text: "\uf0c1"
-                color: Theme.blue
-                font.pixelSize: Math.round(spinner.centerSize * 0.42)
-                font.family: Theme.iconFont
-            }
-        }
-    }
-
-    component AnimCard: Rectangle {
+    component DotStyleCard: Rectangle {
         id: card
 
         required property int num
         required property string label
         required property int sel
+        required property string buffer
+
+        property int dotSize: 10
+        property real dotRadius: 5
+        property int dotSpacing: 8
+        property int dotWidth: dotSize  // allow non-square (pill)
+        property int addDuration: 200
+        property int removeDuration: 150
+        property int slideDuration: 200
+        property var addCurve: [0.34, 1.56, 0.64, 1, 1, 1]
 
         signal picked()
 
-        width: 164
-        height: 162
-        radius: 18
+        width: 190
+        height: 100
+        radius: 14
         color: sel === num ? root.accent(0.10) : cardMouse.containsMouse ? Theme.surface0 : "transparent"
         border.color: sel === num ? root.accent(0.35) : cardMouse.containsMouse ? Theme.surface1 : Theme.surface0
         border.width: 1
 
-        Behavior on color {
-            ColorAnimation { duration: 120 }
-        }
+        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on border.color { ColorAnimation { duration: 120 } }
 
-        Behavior on border.color {
-            ColorAnimation { duration: 120 }
-        }
-
-        default property alias content: preview.data
-
+        // Dot preview area
         Rectangle {
-            id: previewFrame
-            width: 102
-            height: 102
-            radius: 30
+            id: dotFrame
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 14
-            color: Theme.crust
-            border.color: sel === num ? root.accent(0.22) : Theme.surface1
-            border.width: 1
-        }
+            y: 10
+            width: parent.width - 24
+            height: 46
+            radius: 10
+            color: Config.surface0
+            border.color: Config.surface1; border.width: 1
 
-        Item {
-            id: preview
-            anchors.centerIn: previewFrame
-            width: 72
-            height: 72
+            ListView {
+                anchors.centerIn: parent
+                property real fullWidth: count * (card.dotWidth + spacing) - (count > 0 ? spacing : 0)
+                implicitHeight: card.dotSize
+                implicitWidth: fullWidth
+                width: Math.min(implicitWidth, dotFrame.width - 16)
+                height: implicitHeight
+                orientation: Qt.Horizontal
+                spacing: card.dotSpacing
+                interactive: false
+
+                Behavior on implicitWidth {
+                    NumberAnimation { duration: card.slideDuration; easing.type: Easing.OutCubic }
+                }
+
+                model: ScriptModel { values: card.buffer.split("") }
+
+                displaced: Transition {
+                    NumberAnimation { properties: "x"; duration: card.slideDuration; easing.type: Easing.OutCubic }
+                }
+
+                add: Transition {
+                    ParallelAnimation {
+                        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: card.addDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation {
+                            property: "scale"; from: 0; to: 1; duration: card.addDuration
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: card.addCurve
+                        }
+                    }
+                }
+
+                remove: Transition {
+                    ParallelAnimation {
+                        NumberAnimation { property: "opacity"; to: 0; duration: card.removeDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation { property: "scale"; to: 0; duration: card.removeDuration; easing.type: Easing.InCubic }
+                    }
+                }
+
+                delegate: Rectangle {
+                    width: card.dotWidth; height: card.dotSize
+                    radius: card.dotRadius
+                    color: Config.text
+                }
+            }
+
+            // Placeholder
+            Text {
+                anchors.centerIn: parent
+                text: "type..."
+                color: Config.overlay0
+                font.pixelSize: 10; font.family: Config.fontFamily
+                visible: card.buffer.length === 0
+            }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 14
+            anchors.bottomMargin: 10
             text: card.label
             color: card.sel === card.num ? Theme.blue : Theme.text
-            font.pixelSize: 11
-            font.family: Theme.fontFamily
+            font.pixelSize: 11; font.family: Theme.fontFamily
             font.bold: card.sel === card.num
         }
 
