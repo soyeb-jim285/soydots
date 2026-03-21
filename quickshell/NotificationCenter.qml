@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Services.Pipewire
 import QtQuick
 import QtQuick.Layouts
+import "icons"
 
 Scope {
     id: root
@@ -252,11 +253,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconWifi {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf1eb"
+                                        size: Config.notifQsIconSize
                                         color: root.wifiEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -284,11 +284,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconBluetooth {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf293"
+                                        size: Config.notifQsIconSize
                                         color: root.btEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -316,11 +315,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconBellOff {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf1f6"
+                                        size: Config.notifQsIconSize
                                         color: root.dndEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -344,11 +342,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconMoon {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf186"
+                                        size: Config.notifQsIconSize
                                         color: root.nightLightEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -376,11 +373,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconCamera {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf030"
+                                        size: Config.notifQsIconSize
                                         color: Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -406,11 +402,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconPower {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf011"
+                                        size: Config.notifQsIconSize
                                         color: Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -436,11 +431,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconRefreshCw {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf2f1"
+                                        size: Config.notifQsIconSize
                                         color: Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -466,11 +460,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconCoffee {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf0f4"
+                                        size: Config.notifQsIconSize
                                         color: root.caffeineEnabled ? Theme.crust : Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -498,11 +491,10 @@ Scope {
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 2
-                                    Text {
+                                    IconSettings {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "\uf013"
+                                        size: Config.notifQsIconSize
                                         color: Theme.overlay0
-                                        font.pixelSize: Config.notifQsIconSize; font.family: Theme.iconFont
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -529,10 +521,20 @@ Scope {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                Text {
-                                    text: root.muted ? "\uf6a9" : "\uf028"
-                                    color: root.muted ? Theme.red : Theme.blue
-                                    font.pixelSize: 12; font.family: Theme.iconFont
+                                Item {
+                                    width: 12; height: 12
+                                    IconVolume2 {
+                                        anchors.centerIn: parent
+                                        size: 12
+                                        color: Theme.blue
+                                        visible: !root.muted
+                                    }
+                                    IconVolumeX {
+                                        anchors.centerIn: parent
+                                        size: 12
+                                        color: Theme.red
+                                        visible: root.muted
+                                    }
 
                                     MouseArea {
                                         anchors.fill: parent; anchors.margins: -4
@@ -599,10 +601,9 @@ Scope {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                Text {
-                                    text: "\uf185"
+                                IconSun {
+                                    size: 12
                                     color: Theme.yellow
-                                    font.pixelSize: 12; font.family: Theme.iconFont
                                 }
                                 Text {
                                     text: "Brightness"
@@ -669,11 +670,9 @@ Scope {
                         RowLayout {
                             Layout.fillWidth: true
 
-                            Text {
-                                text: "\uf0f3"
+                            IconBell {
+                                size: 13
                                 color: Theme.blue
-                                font.pixelSize: 13
-                                font.family: Theme.iconFont
                             }
                             Text {
                                 text: "Notifications"
@@ -695,11 +694,10 @@ Scope {
                                 width: 22; height: 22; radius: 11
                                 color: clearMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 80 } }
-                                Text {
+                                IconTrash {
                                     anchors.centerIn: parent
-                                    text: "\uf1f8"
+                                    size: 10
                                     color: clearMouse.containsMouse ? Theme.red : Theme.overlay0
-                                    font.pixelSize: 10; font.family: Theme.iconFont
                                     Behavior on color { ColorAnimation { duration: 80 } }
                                 }
                                 MouseArea {
@@ -717,11 +715,10 @@ Scope {
                             Layout.preferredHeight: 80
                             Column {
                                 anchors.centerIn: parent; spacing: 6
-                                Text {
+                                IconBell {
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    text: "\uf0f3"
+                                    size: 24
                                     color: Theme.surface2
-                                    font.pixelSize: 24; font.family: Theme.iconFont
                                 }
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
@@ -794,11 +791,10 @@ Scope {
                                         Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
                                         color: histDismissMouse.containsMouse ? Theme.surface1 : Theme.surface0
                                         Behavior on color { ColorAnimation { duration: 80 } }
-                                        Text {
+                                        IconX {
                                             anchors.centerIn: parent
-                                            text: "\uf00d"
+                                            size: 10
                                             color: histDismissMouse.containsMouse ? Theme.red : Theme.overlay0
-                                            font.pixelSize: 10; font.family: Theme.iconFont
                                             Behavior on color { ColorAnimation { duration: 80 } }
                                         }
                                         MouseArea {
