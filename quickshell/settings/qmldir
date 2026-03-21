@@ -8,6 +8,7 @@ NotificationsPage 1.0 NotificationsPage.qml
 LauncherPage 1.0 LauncherPage.qml
 ClipboardPage 1.0 ClipboardPage.qml
 OsdPage 1.0 OsdPage.qml
+PowerIdlePage 1.0 PowerIdlePage.qml
 AnimationsPage 1.0 AnimationsPage.qml
 NetworkPage 1.0 NetworkPage.qml
 CalendarPage 1.0 CalendarPage.qml
