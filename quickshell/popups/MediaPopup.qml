@@ -5,6 +5,7 @@ import Quickshell.Services.Mpris
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "../icons"
 
 PopupWindow {
     id: popup
@@ -51,11 +52,9 @@ PopupWindow {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 20
 
-                Text {
-                    text: "\uf048"
+                IconSkipBack {
+                    size: 20
                     color: prevMouse.containsMouse ? Theme.text : Theme.subtext0
-                    font.pixelSize: 20
-                    font.family: Theme.iconFont
                     Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
                     MouseArea {
                         id: prevMouse
@@ -66,12 +65,20 @@ PopupWindow {
                     }
                 }
 
-                Text {
-                    text: popup.player?.playbackState === MprisPlaybackState.Playing ? "\uf04c" : "\uf04b"
-                    color: playMouse.containsMouse ? Theme.mauve : Theme.text
-                    font.pixelSize: 24
-                    font.family: Theme.iconFont
-                    Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
+                Item {
+                    width: 24; height: 24
+                    IconPause {
+                        anchors.centerIn: parent; size: 24
+                        color: playMouse.containsMouse ? Theme.mauve : Theme.text
+                        visible: popup.player?.playbackState === MprisPlaybackState.Playing
+                        Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
+                    }
+                    IconPlay {
+                        anchors.centerIn: parent; size: 24
+                        color: playMouse.containsMouse ? Theme.mauve : Theme.text
+                        visible: popup.player?.playbackState !== MprisPlaybackState.Playing
+                        Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
+                    }
                     MouseArea {
                         id: playMouse
                         anchors.fill: parent
@@ -81,11 +88,9 @@ PopupWindow {
                     }
                 }
 
-                Text {
-                    text: "\uf051"
+                IconSkipForward {
+                    size: 20
                     color: nextMouse.containsMouse ? Theme.text : Theme.subtext0
-                    font.pixelSize: 20
-                    font.family: Theme.iconFont
                     Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
                     MouseArea {
                         id: nextMouse

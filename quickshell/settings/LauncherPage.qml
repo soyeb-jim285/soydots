@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "../icons"
 
 ColumnLayout {
     spacing: 6
@@ -50,7 +51,7 @@ ColumnLayout {
                 width: 26; height: 26; radius: 4
                 color: rmMouse.containsMouse ? Config.red : Config.surface0
                 Behavior on color { ColorAnimation { duration: 80 } }
-                Text { anchors.centerIn: parent; text: "\uf00d"; color: Config.text; font.pixelSize: 10; font.family: Config.iconFont }
+                IconX { anchors.centerIn: parent; size: 10; color: Config.text }
                 MouseArea {
                     id: rmMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                     onClicked: {
@@ -94,7 +95,7 @@ ColumnLayout {
             width: 26; height: 26; radius: 4
             color: addBtnMouse.containsMouse ? Config.blue : Config.surface0
             Behavior on color { ColorAnimation { duration: 80 } }
-            Text { anchors.centerIn: parent; text: "\uf067"; color: Config.text; font.pixelSize: 10; font.family: Config.iconFont }
+            IconPlus { anchors.centerIn: parent; size: 10; color: Config.text }
             MouseArea {
                 id: addBtnMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                 onClicked: addInput.accepted()

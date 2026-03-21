@@ -6,6 +6,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
+import "icons"
 
 Scope {
     id: root
@@ -254,17 +255,25 @@ Scope {
                             }
 
                             // Image label
-                            Text {
+                            Row {
                                 visible: clipItem.modelData.isImage
                                 anchors.left: parent.left
                                 anchors.leftMargin: 84
-                                anchors.right: parent.right
-                                anchors.rightMargin: 12
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "\uf03e  Image"
-                                color: Theme.subtext0
-                                font.pixelSize: 12
-                                font.family: Theme.iconFont
+                                spacing: 6
+
+                                IconImage {
+                                    size: 12
+                                    color: Theme.subtext0
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: "Image"
+                                    color: Theme.subtext0
+                                    font.pixelSize: 12
+                                    font.family: Theme.fontFamily
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
                             }
 
                             // Text content

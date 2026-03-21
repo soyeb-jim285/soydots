@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Services.Notifications
 import QtQuick
 import QtQuick.Layouts
+import "icons"
 
 Scope {
     id: root
@@ -16,10 +17,10 @@ Scope {
     property bool dndEnabled: false
 
 
-    function urgencyIcon(urgency: int): string {
-        if (urgency === NotificationUrgency.Critical) return "\uf06a";
-        if (urgency === NotificationUrgency.Low) return "\uf05a";
-        return "\uf0f3";
+    function urgencyIconSource(urgency: int): string {
+        if (urgency === NotificationUrgency.Critical) return "icons/IconAlertCircle.qml";
+        if (urgency === NotificationUrgency.Low) return "icons/IconInfo.qml";
+        return "icons/IconBell.qml";
     }
 
     function urgencyColor(urgency: int): string {
@@ -334,11 +335,14 @@ Scope {
                         anchors.rightMargin: 4
                         spacing: 8
 
-                        Text {
+                        Loader {
+                            id: urgencyIconLoader
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.urgencyIcon(toast.urgency)
-                            color: root.urgencyColor(toast.urgency)
-                            font.pixelSize: 14; font.family: Theme.iconFont
+                            source: root.urgencyIconSource(toast.urgency)
+                            onLoaded: {
+                                item.size = 14;
+                                item.color = Qt.binding(() => root.urgencyColor(toast.urgency));
+                            }
                         }
 
                         Column {
@@ -373,13 +377,12 @@ Scope {
                         }
                     }
 
-                    Text {
+                    IconX {
                         id: closeBtn
                         anchors.right: parent.right; anchors.top: parent.top
                         anchors.rightMargin: 8; anchors.topMargin: 6
-                        text: "\uf00d"
+                        size: 9
                         color: closeMouse.containsMouse ? Theme.text : Theme.surface2
-                        font.pixelSize: 9; font.family: Theme.iconFont
                         Behavior on color { ColorAnimation { duration: 80 } }
                         MouseArea {
                             id: closeMouse; anchors.fill: parent; anchors.margins: -4

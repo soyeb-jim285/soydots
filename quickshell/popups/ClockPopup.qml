@@ -5,6 +5,7 @@ import Quickshell.Io
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "../icons"
 
 PopupWindow {
     id: popup
@@ -131,11 +132,9 @@ PopupWindow {
             RowLayout {
                 Layout.fillWidth: true
 
-                Text {
-                    text: "\uf053"
+                IconChevronLeft {
+                    size: 12
                     color: prevMouse.containsMouse ? Theme.text : Theme.overlay0
-                    font.pixelSize: 12
-                    font.family: Theme.iconFont
                     Behavior on color { ColorAnimation { duration: 100 } }
 
                     MouseArea {
@@ -159,11 +158,9 @@ PopupWindow {
 
                 Item { Layout.fillWidth: true }
 
-                Text {
-                    text: "\uf054"
+                IconChevronRight {
+                    size: 12
                     color: nextMouse.containsMouse ? Theme.text : Theme.overlay0
-                    font.pixelSize: 12
-                    font.family: Theme.iconFont
                     Behavior on color { ColorAnimation { duration: 100 } }
 
                     MouseArea {
@@ -246,11 +243,9 @@ PopupWindow {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 6
 
-                Text {
-                    text: "\uf017"
+                IconClock {
+                    size: 13
                     color: Theme.peach
-                    font.pixelSize: 13
-                    font.family: Theme.iconFont
                 }
 
                 Text {
