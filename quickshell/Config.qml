@@ -246,6 +246,13 @@ QtObject {
                 inputRadius: lockInputRadius, showDate: lockShowDate,
                 timeFormat: lockTimeFormat, dateFormat: lockDateFormat
             },
+            idle: {
+                dimEnabled: idleDimEnabled, dimTimeout: idleDimTimeout,
+                lockEnabled: idleLockEnabled, lockTimeout: idleLockTimeout,
+                dpmsEnabled: idleDpmsEnabled, dpmsTimeout: idleDpmsTimeout,
+                suspendEnabled: idleSuspendEnabled, suspendTimeout: idleSuspendTimeout,
+                hibernateEnabled: idleHibernateEnabled, hibernateDelay: idleHibernateDelay
+            },
             hyprland: {
                 gapsIn: hyprGapsIn, gapsOut: hyprGapsOut,
                 borderSize: hyprBorderSize, rounding: hyprRounding,
@@ -709,6 +716,18 @@ separatorHeight = 14
 spacing = 8
 timeFormat = "h:mm AP"
 
+[idle]
+dimEnabled = true
+dimTimeout = 180
+dpmsEnabled = true
+dpmsTimeout = 330
+hibernateDelay = 7200
+hibernateEnabled = true
+lockEnabled = true
+lockTimeout = 300
+suspendEnabled = true
+suspendTimeout = 1200
+
 [launcher]
 backdropOpacity = 0.4
 hiddenApps = ["avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap", "electron", "cmake-gui"]
@@ -1029,10 +1048,23 @@ unfocusedWidth = 10'
     property string lockTimeFormat: _data?.lockscreen?.timeFormat ?? "h:mm"
     property string lockDateFormat: _data?.lockscreen?.dateFormat ?? "dddd, MMMM d"
 
+    // ===== IDLE =====
+
+    property bool idleDimEnabled: _data?.idle?.dimEnabled ?? true
+    property int idleDimTimeout: _data?.idle?.dimTimeout ?? 180
+    property bool idleLockEnabled: _data?.idle?.lockEnabled ?? true
+    property int idleLockTimeout: _data?.idle?.lockTimeout ?? 300
+    property bool idleDpmsEnabled: _data?.idle?.dpmsEnabled ?? true
+    property int idleDpmsTimeout: _data?.idle?.dpmsTimeout ?? 330
+    property bool idleSuspendEnabled: _data?.idle?.suspendEnabled ?? true
+    property int idleSuspendTimeout: _data?.idle?.suspendTimeout ?? 1200
+    property bool idleHibernateEnabled: _data?.idle?.hibernateEnabled ?? true
+    property int idleHibernateDelay: _data?.idle?.hibernateDelay ?? 7200
+
     // ===== Convenience: all section names =====
 
     property var sectionNames: ["appearance", "bar", "workspaces", "clock", "volume", "battery",
         "media", "systray", "network", "wifi", "bluetooth", "calendar", "notifications",
         "launcher", "clipboard", "osd", "animations", "nightlight", "animationPicker",
-        "batteryPopup", "mediaPopup", "lockscreen"]
+        "batteryPopup", "mediaPopup", "lockscreen", "idle"]
 }
