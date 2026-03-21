@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import QtQuick
 import QtQuick.Layouts
+import "icons"
 
 Scope {
     id: root
@@ -124,24 +125,6 @@ Scope {
         onTriggered: root.osdVisible = false
     }
 
-    // OSD icon logic
-    function getIcon(): string {
-        if (osdType === "volume") {
-            if (osdBool) return "󰖁";
-            if (osdValue > 0.66) return "\uf028";
-            if (osdValue > 0.33) return "\uf027";
-            return "\uf026";
-        }
-        if (osdType === "brightness") {
-            if (osdValue > 0.66) return "\uf185";
-            if (osdValue > 0.33) return "\uf185";
-            return "\uf185";
-        }
-        if (osdType === "capslock") return osdBool ? "\uf023" : "\uf09c";
-        if (osdType === "numlock") return "\uf292";
-        return "";
-    }
-
     function getColor(): string {
         if (osdType === "volume" && osdBool) return Theme.red;
         if (osdType === "capslock") return osdBool ? Theme.green : Theme.overlay0;
@@ -216,12 +199,49 @@ Scope {
                     anchors.centerIn: parent
                     spacing: 8
 
-                    Text {
+                    Item {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: root.getIcon()
-                        color: root.getColor()
-                        font.pixelSize: 16
-                        font.family: Theme.iconFont
+                        width: 16; height: 16
+
+                        // Volume icons
+                        IconVolumeX {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "volume" && root.osdBool
+                        }
+                        IconVolume2 {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "volume" && !root.osdBool && root.osdValue > 0.66
+                        }
+                        IconVolume1 {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "volume" && !root.osdBool && root.osdValue > 0.33 && root.osdValue <= 0.66
+                        }
+                        IconVolume {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "volume" && !root.osdBool && root.osdValue <= 0.33
+                        }
+
+                        // Brightness icon
+                        IconSun {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "brightness"
+                        }
+
+                        // Capslock icons
+                        IconLock {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "capslock" && root.osdBool
+                        }
+                        IconLockOpen {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "capslock" && !root.osdBool
+                        }
+
+                        // Numlock icon
+                        IconKeyboard {
+                            anchors.centerIn: parent; size: 16; color: root.getColor()
+                            visible: root.osdType === "numlock"
+                        }
                     }
 
                     // Progress bar (volume/brightness)
