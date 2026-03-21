@@ -43,6 +43,7 @@ Scope {
         { name: "Calendar", icon: "\uf073", section: "calendar" },
         { name: "Battery", icon: "\uf240", section: "battery" },
         { name: "Lock Screen", icon: "\uf023", section: "lockscreen" },
+        { name: "Power & Idle", icon: "\uf0e7", section: "idle" },
         { name: "Integrations", icon: "\uf0c1", section: "hyprland" }
     ]
 
@@ -323,7 +324,8 @@ Scope {
                                     let names = ["AppearancePage", "BarPage", "NotificationsPage",
                                                  "LauncherPage", "ClipboardPage", "OsdPage",
                                                  "AnimationsPage", "NetworkPage", "CalendarPage",
-                                                 "BatteryPage", "LockScreenPage", "IntegrationsPage"];
+                                                 "BatteryPage", "LockScreenPage", "PowerIdlePage",
+                                                 "IntegrationsPage"];
                                     return "settings/" + names[root.activePage] + ".qml";
                                 }
                             }
