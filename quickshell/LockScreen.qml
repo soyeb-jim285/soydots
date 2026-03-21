@@ -268,6 +268,7 @@ Scope {
 
                     // Username
                     Text {
+                        id: usernameText
                         text: Quickshell.env("USER") || "user"
                         color: Config.subtext1
                         font.pixelSize: 14
@@ -280,7 +281,7 @@ Scope {
                         SequentialAnimation {
                             id: nameEntrance
                             PauseAnimation { duration: 300 }
-                            NumberAnimation { target: parent; property: "opacity"; from: 0; to: 1; duration: 400; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: usernameText; property: "opacity"; from: 0; to: 1; duration: 400; easing.type: Easing.OutCubic }
                         }
                     }
 
