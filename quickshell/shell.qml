@@ -43,5 +43,6 @@ ShellRoot {
     Settings {}
     PowerMenu {}
     LockScreen { id: lockScreen }
+    IdleManager { caffeineActive: notifCenter.caffeineEnabled }
     Quill.Showcase {}
 }
