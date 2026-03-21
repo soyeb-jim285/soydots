@@ -834,7 +834,7 @@ unfocusedWidth = 10'
     property string lavender: _data?.appearance?.lavender ?? "#b4befe"
 
     property string fontFamily: _data?.appearance?.fontFamily ?? "Maple Mono"
-    property string iconFont: _data?.appearance?.iconFont ?? "Maple Mono NF"
+    property string iconFont: _data?.appearance?.iconFont ?? "Maple Mono NF" // Legacy: only used by IntegrationsPage tmux preview
     property int fontSizeSmall: _data?.appearance?.fontSizeSmall ?? 11
     property int fontSize: _data?.appearance?.fontSize ?? 13
     property int fontSizeIcon: _data?.appearance?.fontSizeIcon ?? 16
