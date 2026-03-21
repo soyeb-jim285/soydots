@@ -52,7 +52,7 @@ Scope {
 
     Process { id: lockProc; command: ["quickshell", "msg", "lockscreen", "lock"] }
     Process { id: logoutProc; command: ["hyprctl", "dispatch", "exit"] }
-    Process { id: suspendProc; command: ["systemctl", "suspend"] }
+    Process { id: suspendProc; command: ["systemctl", Config.idleHibernateEnabled ? "suspend-then-hibernate" : "suspend"] }
     Process { id: hibernateProc; command: ["systemctl", "hibernate"] }
     Process { id: rebootProc; command: ["systemctl", "reboot"] }
     Process { id: shutdownProc; command: ["systemctl", "poweroff"] }
