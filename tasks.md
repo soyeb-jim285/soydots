@@ -39,7 +39,7 @@
   - Meta+Shift+P: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
   - Meta+Shift+A: region screenshot to file, Meta+Shift+W: window screenshot to clipboard
   - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker, Meta+Comma: settings, Meta+M: power menu
-- hyprland autostart: cliphist (text + image watchers)
+- hyprland autostart: cliphist (text + image watchers), hypridle
 - hyprland autostart: quickshell
 - quickshell app launcher — Catppuccin Mocha themed, fuzzy search, keyboard navigation, IPC toggle
 - quickshell clipboard history — Catppuccin Mocha themed, search, image preview, IPC toggle (Meta+V)
@@ -97,6 +97,14 @@
   - Lock, Logout, Suspend, Hibernate, Reboot, Shutdown
   - Two-click confirmation (click to select, click again to execute)
   - Centered overlay with themed action cards
+- hypridle custom config (Quickshell-managed, auto-generated from settings):
+  - Idle pipeline: dim (3min) → lock (5min) → DPMS off (5.5min) → suspend-then-hibernate (20min)
+  - All stages configurable: enable/disable toggle + timeout slider
+  - IdleManager.qml watches Config properties, regenerates hypr/hypridle.conf on change, restarts hypridle
+  - Respects caffeine mode (skips hypridle restart when caffeine active)
+  - Power & Idle settings page in Quickshell settings (Super+Comma)
+  - Pipeline preview showing active stages and their timeouts
+  - Power menu suspend action respects hibernate enable/disable setting
 - tmux — Catppuccin Mocha themed, Ctrl+Space prefix, vi copy mode, status bar with powerline separators:
   - Plugins (TPM): tmux-sensible, tmux-yank (wl-copy), tmux-resurrect, tmux-continuum (auto-save/restore), vim-tmux-navigator, tmux-sessionist, tmux-thumbs, tmux-fzf, tmux-fzf-url
   - Undercurl support for neovim diagnostics
@@ -117,6 +125,19 @@
   - DisplaySection showcase: Icon grid (3 sizes, 5 colors), Label variants (heading/body/caption/overline), Avatar sizes and rounded/square
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
+
+## System Setup Required
+These commands must be run manually for full functionality (not managed by dotfiles):
+
+### Hibernate
+- Add `resume` hook to `/etc/mkinitcpio.conf` HOOKS (before `filesystems`)
+- Add `resume=/dev/nvme0n1p2` kernel parameter to bootloader (swap partition path varies per system)
+- Rebuild initramfs: `sudo mkinitcpio -P`
+- Create `/etc/systemd/sleep.conf.d/hibernate.conf` with `[Sleep]\nHibernateDelaySec=2h`
+- Reboot for kernel parameter to take effect
+
+### Symlinks
+- `~/.config/hypr/hypridle.conf` → `~/jimdots/hypr/hypridle.conf`
 
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
