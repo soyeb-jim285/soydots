@@ -5,6 +5,7 @@ import Quickshell.Services.UPower
 import Quickshell.Io
 import QtQuick
 import ".."
+import "../icons"
 
 Item {
     id: root
@@ -105,12 +106,10 @@ Item {
             }
 
             // Charging bolt overlay
-            Text {
+            IconZap {
                 anchors.centerIn: batBody
-                text: "\uf0e7"
+                size: 8
                 color: root.percentage > 50 ? Theme.crust : Theme.text
-                font.pixelSize: 8
-                font.family: Config.iconFont
                 visible: root.charging
             }
         }

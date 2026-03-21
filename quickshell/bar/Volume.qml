@@ -4,10 +4,11 @@ import Quickshell
 import Quickshell.Services.Pipewire
 import QtQuick
 import ".."
+import "../icons"
 
 Item {
     id: root
-    width: volIcon.implicitWidth + Theme.widgetPadding
+    width: Theme.fontSizeIcon + Theme.widgetPadding
     height: parent?.height ?? Theme.barHeight
 
     required property var barWindow
@@ -21,13 +22,6 @@ Item {
     property real volume: sink?.audio?.volume ?? 0
     property bool muted: sink?.audio?.muted ?? false
 
-    property string icon: {
-        if (muted) return "󰖁";
-        if (volume > 0.66) return "\uf028";
-        if (volume > 0.33) return "\uf027";
-        return "\uf026";
-    }
-
     Rectangle {
         anchors.fill: parent
         radius: Theme.widgetRadius
@@ -35,16 +29,43 @@ Item {
         Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
     }
 
-    Text {
+    Item {
         id: volIcon
+        width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: Theme.widgetPadding / 2
-        text: root.icon
-        color: root.muted ? Theme.red : Theme.blue
-        font.pixelSize: Theme.fontSizeIcon
-        font.family: Theme.iconFont
-        Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+
+        property color iconColor: root.muted ? Theme.red : Theme.blue
+
+        IconVolumeX {
+            visible: root.muted
+            size: Theme.fontSizeIcon
+            color: volIcon.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconVolume2 {
+            visible: !root.muted && root.volume > 0.66
+            size: Theme.fontSizeIcon
+            color: volIcon.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconVolume1 {
+            visible: !root.muted && root.volume > 0.33 && root.volume <= 0.66
+            size: Theme.fontSizeIcon
+            color: volIcon.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconVolume {
+            visible: !root.muted && root.volume <= 0.33
+            size: Theme.fontSizeIcon
+            color: volIcon.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
     }
 
     MouseArea {

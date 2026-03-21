@@ -4,10 +4,11 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import ".."
+import "../icons"
 
 Item {
     id: root
-    width: netIcon.implicitWidth + Theme.widgetPadding
+    width: Theme.fontSizeIcon + Theme.widgetPadding
     height: parent?.height ?? Theme.barHeight
 
     required property string activePopup
@@ -16,12 +17,7 @@ Item {
 
     property string status: "disconnected"
     property string connectionName: ""
-    property string icon: {
-        if (status === "wifi") return "\uf1eb";
-        if (status === "ethernet") return "\uf796";
-        return "\uf071";
-    }
-    property string iconColor: status === "disconnected" ? Theme.red : Theme.green
+    property color iconColor: status === "disconnected" ? Theme.red : Theme.green
 
     Process {
         id: netProc
@@ -67,14 +63,32 @@ Item {
         Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
     }
 
-    Text {
+    Item {
         id: netIcon
+        width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
         anchors.centerIn: parent
-        text: root.icon
-        color: root.iconColor
-        font.pixelSize: Theme.fontSizeIcon
-        font.family: Theme.iconFont
-        Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+
+        IconWifi {
+            visible: root.status === "wifi"
+            size: Theme.fontSizeIcon
+            color: root.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconEthernet {
+            visible: root.status === "ethernet"
+            size: Theme.fontSizeIcon
+            color: root.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconTriangleAlert {
+            visible: root.status === "disconnected"
+            size: Theme.fontSizeIcon
+            color: root.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
     }
 
     MouseArea {

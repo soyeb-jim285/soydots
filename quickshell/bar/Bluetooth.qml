@@ -4,10 +4,11 @@ import Quickshell
 import Quickshell.Bluetooth
 import QtQuick
 import ".."
+import "../icons"
 
 Item {
     id: root
-    width: btIcon.implicitWidth + Theme.widgetPadding
+    width: Theme.fontSizeIcon + Theme.widgetPadding
     height: parent?.height ?? Theme.barHeight
 
     required property string activePopup
@@ -24,11 +25,6 @@ Item {
         return false;
     }
 
-    property string icon: {
-        if (!powered) return "\uf293";
-        if (connected) return "\uf294";
-        return "\uf293";
-    }
     property color iconColor: {
         if (!powered) return Theme.overlay0;
         if (connected) return Theme.blue;
@@ -42,14 +38,25 @@ Item {
         Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
     }
 
-    Text {
+    Item {
         id: btIcon
+        width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
         anchors.centerIn: parent
-        text: root.icon
-        color: root.iconColor
-        font.pixelSize: Theme.fontSizeIcon
-        font.family: Theme.iconFont
-        Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+
+        IconBluetooth {
+            visible: !root.connected
+            size: Theme.fontSizeIcon
+            color: root.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconBluetoothConnected {
+            visible: root.connected
+            size: Theme.fontSizeIcon
+            color: root.iconColor
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
     }
 
     MouseArea {

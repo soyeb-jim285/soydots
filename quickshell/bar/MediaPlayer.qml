@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Services.Mpris
 import QtQuick
 import ".."
+import "../icons"
 
 Item {
     id: root
@@ -36,11 +37,22 @@ Item {
         anchors.centerIn: parent
         spacing: 6
 
-        Text {
-            text: root.player?.playbackState === MprisPlaybackState.Playing ? "\uf04b" : "\uf04c"
-            color: Theme.mauve
-            font.pixelSize: Theme.fontSizeSmall
-            font.family: Theme.iconFont
+        Item {
+            width: Theme.fontSizeSmall; height: Theme.fontSizeSmall
+            anchors.verticalCenter: parent.verticalCenter
+
+            IconPlay {
+                visible: root.player?.playbackState === MprisPlaybackState.Playing
+                size: Theme.fontSizeSmall
+                color: Theme.mauve
+                anchors.centerIn: parent
+            }
+            IconPause {
+                visible: root.player?.playbackState !== MprisPlaybackState.Playing
+                size: Theme.fontSizeSmall
+                color: Theme.mauve
+                anchors.centerIn: parent
+            }
         }
 
         Text {

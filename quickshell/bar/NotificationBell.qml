@@ -4,10 +4,11 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import ".."
+import "../icons"
 
 Item {
     id: root
-    width: bellIcon.implicitWidth + Theme.widgetPadding
+    width: Theme.fontSizeIcon + Theme.widgetPadding
     height: parent?.height ?? Theme.barHeight
 
     required property int unreadCount
@@ -19,14 +20,25 @@ Item {
         Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
     }
 
-    Text {
+    Item {
         id: bellIcon
+        width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
         anchors.centerIn: parent
-        text: root.unreadCount > 0 ? "\uf0f3" : "\uf0a2"
-        color: root.unreadCount > 0 ? Theme.peach : Theme.text
-        font.pixelSize: Theme.fontSizeIcon
-        font.family: Theme.iconFont
-        Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+
+        IconBell {
+            visible: root.unreadCount > 0
+            size: Theme.fontSizeIcon
+            color: root.unreadCount > 0 ? Theme.peach : Theme.text
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
+        IconBellOff {
+            visible: root.unreadCount <= 0
+            size: Theme.fontSizeIcon
+            color: root.unreadCount > 0 ? Theme.peach : Theme.text
+            anchors.centerIn: parent
+            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        }
     }
 
     // Unread badge
