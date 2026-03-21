@@ -101,17 +101,21 @@ ColumnLayout {
         }
     }
 
-    // Icon grid (Flow instead of GridView — works inside Flickable scroll)
-    Flow {
+    // Icon grid — calculates columns to fill width evenly
+    property real _minCellWidth: Math.max(72, root.iconSize + 36)
+    property int _columns: Math.max(1, Math.floor(width / _minCellWidth))
+    property real _cellWidth: width / _columns
+
+    Grid {
         Layout.fillWidth: true
-        spacing: 8
+        columns: root._columns
 
         Repeater {
             model: root.filteredIcons
 
             Item {
                 required property string modelData
-                width: Math.max(80, root.iconSize + 40)
+                width: root._cellWidth
                 height: root.iconSize + 40
 
                 Column {
