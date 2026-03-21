@@ -101,37 +101,38 @@ ColumnLayout {
         }
     }
 
-    // Icon grid
-    GridView {
-        Layout.fillWidth: true; Layout.fillHeight: true
-        cellWidth: Math.max(80, root.iconSize + 40)
-        cellHeight: root.iconSize + 50
-        clip: true
-        model: root.filteredIcons
+    // Icon grid (Flow instead of GridView — works inside Flickable scroll)
+    Flow {
+        Layout.fillWidth: true
+        spacing: 8
 
-        delegate: Item {
-            required property string modelData
-            width: GridView.view.cellWidth
-            height: GridView.view.cellHeight
+        Repeater {
+            model: root.filteredIcons
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 4
+            Item {
+                required property string modelData
+                width: Math.max(80, root.iconSize + 40)
+                height: root.iconSize + 40
 
-                Loader {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    source: "../icons/Icon" + modelData + ".qml"
-                    onLoaded: {
-                        item.size = Qt.binding(() => root.iconSize);
-                        item.color = Qt.binding(() => root.iconColor);
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Loader {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        source: "../icons/Icon" + modelData + ".qml"
+                        onLoaded: {
+                            item.size = Qt.binding(() => root.iconSize);
+                            item.color = Qt.binding(() => root.iconColor);
+                        }
                     }
-                }
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: modelData
-                    color: Config.subtext0
-                    font.pixelSize: 9; font.family: Config.fontFamily
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: modelData
+                        color: Config.subtext0
+                        font.pixelSize: 9; font.family: Config.fontFamily
+                    }
                 }
             }
         }
