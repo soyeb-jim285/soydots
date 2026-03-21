@@ -388,7 +388,7 @@ Shape {
     property real strokeWidth: Math.max(1, size / 12)
     width: size; height: size
     clip: false
-    layer.enabled: true; layer.smooth: true
+    layer.enabled: visible; layer.smooth: true
 
     ShapePath {
         strokeColor: root.color; strokeWidth: root.strokeWidth
@@ -478,7 +478,7 @@ Shape {
     property real strokeWidth: Math.max(1, size / 12)
     width: size; height: size
     clip: false
-    layer.enabled: true; layer.smooth: true
+    layer.enabled: visible; layer.smooth: true
 
     ShapePath {
         fillColor: root.color; strokeColor: "transparent"
@@ -502,7 +502,7 @@ Shape {
     property real strokeWidth: Math.max(1, size / 12)
     width: size; height: size
     clip: false
-    layer.enabled: true; layer.smooth: true
+    layer.enabled: visible; layer.smooth: true
 
     ShapePath {
         fillColor: root.color; strokeColor: "transparent"
@@ -535,7 +535,7 @@ Shape {
     property real strokeWidth: Math.max(1, size / 12)
     width: size; height: size
     clip: false
-    layer.enabled: true; layer.smooth: true
+    layer.enabled: visible; layer.smooth: true
 
     ShapePath {
         strokeColor: root.color; strokeWidth: root.strokeWidth
@@ -649,121 +649,28 @@ import ".."
 Item {
     id: root
 
-    property var iconList: [
-        { name: "AlertCircle", component: compAlertCircle },
-        { name: "Battery", component: compBattery },
-        { name: "Bell", component: compBell },
-        { name: "BellOff", component: compBellOff },
-        { name: "Bluetooth", component: compBluetooth },
-        { name: "BluetoothConnected", component: compBluetoothConnected },
-        { name: "BluetoothOff", component: compBluetoothOff },
-        { name: "Calendar", component: compCalendar },
-        { name: "Camera", component: compCamera },
-        { name: "Check", component: compCheck },
-        { name: "ChevronLeft", component: compChevronLeft },
-        { name: "ChevronRight", component: compChevronRight },
-        { name: "Clipboard", component: compClipboard },
-        { name: "Clock", component: compClock },
-        { name: "Cloud", component: compCloud },
-        { name: "Coffee", component: compCoffee },
-        { name: "Ethernet", component: compEthernet },
-        { name: "Eye", component: compEye },
-        { name: "EyeOff", component: compEyeOff },
-        { name: "Image", component: compImage },
-        { name: "Info", component: compInfo },
-        { name: "Keyboard", component: compKeyboard },
-        { name: "Link", component: compLink },
-        { name: "Lock", component: compLock },
-        { name: "LockOpen", component: compLockOpen },
-        { name: "LogOut", component: compLogOut },
-        { name: "Moon", component: compMoon },
-        { name: "Palette", component: compPalette },
-        { name: "PanelTop", component: compPanelTop },
-        { name: "Pause", component: compPause },
-        { name: "Play", component: compPlay },
-        { name: "Plus", component: compPlus },
-        { name: "Power", component: compPower },
-        { name: "RefreshCw", component: compRefreshCw },
-        { name: "Rocket", component: compRocket },
-        { name: "Settings", component: compSettings },
-        { name: "SkipBack", component: compSkipBack },
-        { name: "SkipForward", component: compSkipForward },
-        { name: "SlidersH", component: compSlidersH },
-        { name: "Sun", component: compSun },
-        { name: "Trash", component: compTrash },
-        { name: "TriangleAlert", component: compTriangleAlert },
-        { name: "Undo", component: compUndo },
-        { name: "Unlink", component: compUnlink },
-        { name: "User", component: compUser },
-        { name: "Volume", component: compVolume },
-        { name: "Volume1", component: compVolume1 },
-        { name: "Volume2", component: compVolume2 },
-        { name: "VolumeX", component: compVolumeX },
-        { name: "Wifi", component: compWifi },
-        { name: "X", component: compX }
+    // Icon names — Loader constructs path as "../icons/Icon" + name + ".qml"
+    property var iconNames: [
+        "AlertCircle", "Battery", "Bell", "BellOff", "Bluetooth",
+        "BluetoothConnected", "BluetoothOff", "Calendar", "Camera",
+        "Check", "ChevronLeft", "ChevronRight", "Clipboard", "Clock",
+        "Cloud", "Coffee", "Ethernet", "Eye", "EyeOff", "Image",
+        "Info", "Keyboard", "Link", "Lock", "LockOpen", "LogOut",
+        "Moon", "Palette", "PanelTop", "Pause", "Play", "Plus",
+        "Power", "RefreshCw", "Rocket", "Settings", "SkipBack",
+        "SkipForward", "SlidersH", "Sun", "Trash", "TriangleAlert",
+        "Undo", "Unlink", "User", "Volume", "Volume1", "Volume2",
+        "VolumeX", "Wifi", "X"
     ]
-
-    // Component declarations for each icon
-    Component { id: compAlertCircle; IconAlertCircle {} }
-    Component { id: compBattery; IconBattery {} }
-    Component { id: compBell; IconBell {} }
-    Component { id: compBellOff; IconBellOff {} }
-    Component { id: compBluetooth; IconBluetooth {} }
-    Component { id: compBluetoothConnected; IconBluetoothConnected {} }
-    Component { id: compBluetoothOff; IconBluetoothOff {} }
-    Component { id: compCalendar; IconCalendar {} }
-    Component { id: compCamera; IconCamera {} }
-    Component { id: compCheck; IconCheck {} }
-    Component { id: compChevronLeft; IconChevronLeft {} }
-    Component { id: compChevronRight; IconChevronRight {} }
-    Component { id: compClipboard; IconClipboard {} }
-    Component { id: compClock; IconClock {} }
-    Component { id: compCloud; IconCloud {} }
-    Component { id: compCoffee; IconCoffee {} }
-    Component { id: compEthernet; IconEthernet {} }
-    Component { id: compEye; IconEye {} }
-    Component { id: compEyeOff; IconEyeOff {} }
-    Component { id: compImage; IconImage {} }
-    Component { id: compInfo; IconInfo {} }
-    Component { id: compKeyboard; IconKeyboard {} }
-    Component { id: compLink; IconLink {} }
-    Component { id: compLock; IconLock {} }
-    Component { id: compLockOpen; IconLockOpen {} }
-    Component { id: compLogOut; IconLogOut {} }
-    Component { id: compMoon; IconMoon {} }
-    Component { id: compPalette; IconPalette {} }
-    Component { id: compPanelTop; IconPanelTop {} }
-    Component { id: compPause; IconPause {} }
-    Component { id: compPlay; IconPlay {} }
-    Component { id: compPlus; IconPlus {} }
-    Component { id: compPower; IconPower {} }
-    Component { id: compRefreshCw; IconRefreshCw {} }
-    Component { id: compRocket; IconRocket {} }
-    Component { id: compSettings; IconSettings {} }
-    Component { id: compSkipBack; IconSkipBack {} }
-    Component { id: compSkipForward; IconSkipForward {} }
-    Component { id: compSlidersH; IconSlidersH {} }
-    Component { id: compSun; IconSun {} }
-    Component { id: compTrash; IconTrash {} }
-    Component { id: compTriangleAlert; IconTriangleAlert {} }
-    Component { id: compUndo; IconUndo {} }
-    Component { id: compUnlink; IconUnlink {} }
-    Component { id: compUser; IconUser {} }
-    Component { id: compVolume; IconVolume {} }
-    Component { id: compVolume1; IconVolume1 {} }
-    Component { id: compVolume2; IconVolume2 {} }
-    Component { id: compVolumeX; IconVolumeX {} }
-    Component { id: compWifi; IconWifi {} }
-    Component { id: compX; IconX {} }
 
     property real iconSize: 24
     property color iconColor: Config.text
     property string searchText: ""
 
     property var filteredIcons: {
-        if (!searchText) return iconList;
+        if (!searchText) return iconNames;
         let s = searchText.toLowerCase();
-        return iconList.filter(i => i.name.toLowerCase().includes(s));
+        return iconNames.filter(n => n.toLowerCase().includes(s));
     }
 
     property var colorOptions: [
@@ -800,15 +707,26 @@ Item {
             }
         }
 
-        // Size slider
+        // Size buttons (no QtQuick.Controls dependency)
         Row {
-            spacing: 10
-            Text { text: "Size: " + Math.round(sizeSlider.value); color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; anchors.verticalCenter: parent.verticalCenter }
-            Slider {
-                id: sizeSlider
-                from: 12; to: 48; value: 24; stepSize: 2
-                width: 200
-                onValueChanged: root.iconSize = value
+            spacing: 6
+            Text { text: "Size:"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+            Repeater {
+                model: [12, 16, 20, 24, 32, 48]
+                Rectangle {
+                    required property int modelData
+                    width: 32; height: 24; radius: 4
+                    color: root.iconSize === modelData ? Config.blue : Config.surface0
+                    Text {
+                        anchors.centerIn: parent; text: parent.modelData
+                        color: root.iconSize === parent.modelData ? Config.crust : Config.text
+                        font.pixelSize: 10; font.family: Config.fontFamily
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: root.iconSize = parent.modelData
+                    }
+                }
             }
         }
 
@@ -840,7 +758,7 @@ Item {
             model: root.filteredIcons
 
             delegate: Item {
-                required property var modelData
+                required property string modelData
                 width: GridView.view.cellWidth
                 height: GridView.view.cellHeight
 
@@ -850,21 +768,16 @@ Item {
 
                     Loader {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        sourceComponent: modelData.component
+                        source: "../icons/Icon" + modelData + ".qml"
                         onLoaded: {
-                            item.size = root.iconSize;
-                            item.color = root.iconColor;
-                        }
-                        Connections {
-                            target: root
-                            function onIconSizeChanged() { if (item) item.size = root.iconSize; }
-                            function onIconColorChanged() { if (item) item.color = root.iconColor; }
+                            item.size = Qt.binding(() => root.iconSize);
+                            item.color = Qt.binding(() => root.iconColor);
                         }
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: modelData.name
+                        text: modelData
                         color: Config.subtext0
                         font.pixelSize: 9; font.family: Config.fontFamily
                     }
@@ -1064,7 +977,7 @@ Understand all icon usages and their surrounding layout structures before making
 
 Add `import "icons"` at the top.
 
-For each quick toggle icon (wifi, bluetooth, bell-slash, moon, camera, power, refresh, coffee, settings), replace:
+For each quick toggle icon, replace. Note: `\uf1f6` (bell-slash / DND toggle) maps to `IconBellOff` — the Lucide bell-off icon has a diagonal slash which matches DND semantics. Replace:
 ```qml
 // Before:
 Text { text: "\uf1eb"; color: ...; font.pixelSize: ...; font.family: Theme.iconFont }
@@ -1132,7 +1045,7 @@ property var pages: [
 
 - [ ] **Step 3: Update sidebar icon rendering**
 
-Replace the icon Text element in the sidebar delegate (around lines 192-200):
+Replace the icon Text element in the sidebar delegate (around lines 192-200). Note: capture `index` in a `required property int index` on the delegate to ensure it's in scope for bindings:
 
 ```qml
 // Before:
@@ -1144,12 +1057,15 @@ Text {
 }
 
 // After:
+// Ensure delegate has: required property int index
 Loader {
+    id: sidebarIconLoader
+    property int pageIndex: index  // capture delegate index
     source: modelData.iconSource
     anchors.verticalCenter: parent.verticalCenter
     onLoaded: {
         item.size = 14;
-        item.color = Qt.binding(() => root.activePage === index ? Config.blue : Config.overlay0);
+        item.color = Qt.binding(() => root.activePage === sidebarIconLoader.pageIndex ? Config.blue : Config.overlay0);
     }
 }
 ```
@@ -1162,10 +1078,12 @@ Replace the inline text+icon pattern (around line 149):
 // Before:
 text: "\uf013  Settings"
 
-// After (restructure to Row):
+// After (restructure to Row — transfer any Layout.* properties from the old Text to the Row):
 Row {
+    Layout.leftMargin: 12; Layout.bottomMargin: 12  // preserve existing Layout properties
     spacing: 6
-    IconSettings { size: 14; color: Config.text; anchors.verticalCenter: parent.verticalCenter }
+    // Note: do NOT use anchors.verticalCenter inside Row children — Row handles positioning
+    IconSettings { size: 16; color: Config.text }
     Text { text: "Settings"; color: Config.text; font.pixelSize: 14; font.family: Config.fontFamily; font.bold: true }
 }
 ```
@@ -1221,7 +1139,7 @@ property var actions: [
 ]
 ```
 
-Replace the icon Text element in the action card delegate:
+Replace the icon Text element in the action card delegate. Capture `isSelected` and `modelData.color` on the Loader to avoid scope issues:
 
 ```qml
 // Before:
@@ -1229,11 +1147,14 @@ Text { text: modelData.icon; color: ...; font.pixelSize: 18; font.family: Config
 
 // After:
 Loader {
+    id: actionIconLoader
+    property bool selected: actionCard.isSelected
+    property color defaultColor: modelData.color
     anchors.centerIn: parent
     source: modelData.iconSource
     onLoaded: {
         item.size = 18;
-        item.color = Qt.binding(() => actionCard.isSelected ? Theme.crust : modelData.color);
+        item.color = Qt.binding(() => actionIconLoader.selected ? Theme.crust : actionIconLoader.defaultColor);
     }
 }
 ```
@@ -1450,7 +1371,9 @@ git commit -m "feat(icons): migrate StatusBar panel icons to Lucide icons"
 
 - [ ] **Step 1: Check for remaining iconFont usages**
 
-Search the entire `quickshell/` directory for remaining `iconFont` and nerd font unicode references. The only expected remaining usage should be `IntegrationsPage.qml` (tmux preview — excluded from migration).
+Search the entire `quickshell/` directory for remaining `iconFont` and nerd font unicode references. Expected remaining usages:
+- `IntegrationsPage.qml` (tmux preview — excluded from migration, uses `Config.fontFamily` which is "Maple Mono NF", a nerd font)
+- `shell.qml` (binds `Quill.Theme.iconFont = Qt.binding(() => Config.iconFont)` — check if Quill theme system still needs this)
 
 ```bash
 grep -r "iconFont\|\\\\uf\|font.family.*icon" quickshell/ --include="*.qml"
@@ -1458,9 +1381,11 @@ grep -r "iconFont\|\\\\uf\|font.family.*icon" quickshell/ --include="*.qml"
 
 - [ ] **Step 2: Clean up Config/Theme icon font properties**
 
-If `iconFont` is only used by IntegrationsPage.qml, keep it but add a comment noting it's only for the tmux preview nerd font icons.
+If `iconFont` is only used by IntegrationsPage.qml and shell.qml's Quill binding, keep it but add a comment noting it's only for legacy nerd font usages. Note that `Config.fontFamily` ("Maple Mono NF") is itself a nerd font, so IntegrationsPage tmux preview icons will keep working regardless.
 
 If `fontSizeIcon` exists, consider keeping it as the default icon size for components.
+
+Also check `shell.qml` for the `Quill.Theme.iconFont` binding — update or remove if the Quill theme system no longer needs it.
 
 - [ ] **Step 3: Update AppearancePage.qml**
 
