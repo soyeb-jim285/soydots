@@ -109,9 +109,10 @@
   - Theme.qml singleton: Catppuccin color tokens, font sizing, spacing, animation duration
   - Label primitive: text variants (heading/body/caption/overline) with auto-styling
   - Icon primitive: glyph display with size variants (small/medium/large)
-  - Components: Button (4 variants, 3 sizes, icon support), IconButton, Toggle, Checkbox, Slider (label, showValue, stepSize), TextField (default/filled, icon, placeholder), RadioButton + RadioGroup, Dropdown (keyboard nav, click-away dismiss)
+  - Components: Button (4 variants, 3 sizes, icon support), IconButton, Toggle, Checkbox, Slider (label, showValue, stepSize), TextField (default/filled, icon, placeholder), RadioButton + RadioGroup, Dropdown (keyboard nav, click-away dismiss), Card (title/subtitle header, default content slot), Separator (horizontal/vertical), Tabs (animated underline, model-driven), Collapsible (animated expand/collapse, nestable), ScrollableList (custom scrollbar, empty state)
   - Showcase panel: full-screen overlay with sidebar navigation (Inputs/Layout/Feedback/Display sections), escape to close, backdrop click dismiss, integrated into shell.qml
   - InputsSection showcase: interactive demos of all input/control components with labeled sections
+  - LayoutSection showcase: Card variants (with/without header, nested content), Separator orientations, Tabs with content switching, Collapsible nesting, ScrollableList with items and empty state
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 
