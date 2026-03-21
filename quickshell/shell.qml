@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import "../quill" as Quill
 
 ShellRoot {
     AppLauncher {}
@@ -12,4 +13,5 @@ ShellRoot {
     Settings {}
     PowerMenu {}
     LockScreen { id: lockScreen }
+    Quill.Showcase {}
 }
