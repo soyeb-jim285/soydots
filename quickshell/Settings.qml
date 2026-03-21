@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import "settings"
+import "icons"
 
 Scope {
     id: root
@@ -32,20 +33,20 @@ Scope {
     }
 
     property var pages: [
-        { name: "Appearance", icon: "\uf53f", section: "appearance" },
-        { name: "Bar", icon: "\uf0c9", section: "bar" },
-        { name: "Notifications", icon: "\uf0f3", section: "notifications" },
-        { name: "Launcher", icon: "\uf135", section: "launcher" },
-        { name: "Clipboard", icon: "\uf328", section: "clipboard" },
-        { name: "OSD", icon: "\uf26c", section: "osd" },
-        { name: "Animations", icon: "\uf021", section: "animations" },
-        { name: "Network", icon: "\uf1eb", section: "network" },
-        { name: "Calendar", icon: "\uf073", section: "calendar" },
-        { name: "Battery", icon: "\uf240", section: "battery" },
-        { name: "Lock Screen", icon: "\uf023", section: "lockscreen" },
-        { name: "Power & Idle", icon: "\uf0e7", section: "idle" },
-        { name: "Integrations", icon: "\uf0c1", section: "hyprland" },
-        { name: "Icon Gallery", icon: "\uf03e", section: "icons" }
+        { name: "Appearance", iconSource: "icons/IconPalette.qml", section: "appearance" },
+        { name: "Bar", iconSource: "icons/IconPanelTop.qml", section: "bar" },
+        { name: "Notifications", iconSource: "icons/IconBell.qml", section: "notifications" },
+        { name: "Launcher", iconSource: "icons/IconRocket.qml", section: "launcher" },
+        { name: "Clipboard", iconSource: "icons/IconClipboard.qml", section: "clipboard" },
+        { name: "OSD", iconSource: "icons/IconSlidersH.qml", section: "osd" },
+        { name: "Animations", iconSource: "icons/IconRefreshCw.qml", section: "animations" },
+        { name: "Network", iconSource: "icons/IconWifi.qml", section: "network" },
+        { name: "Calendar", iconSource: "icons/IconCalendar.qml", section: "calendar" },
+        { name: "Battery", iconSource: "icons/IconBattery.qml", section: "battery" },
+        { name: "Lock Screen", iconSource: "icons/IconLock.qml", section: "lockscreen" },
+        { name: "Power & Idle", iconSource: "icons/IconZap.qml", section: "idle" },
+        { name: "Integrations", iconSource: "icons/IconLink.qml", section: "hyprland" },
+        { name: "Icon Gallery", iconSource: "icons/IconImage.qml", section: "icons" }
     ]
 
     LazyLoader {
@@ -146,14 +147,12 @@ Scope {
                             spacing: 2
 
                             // Header
-                            Text {
-                                text: "\uf013  Settings"
-                                color: Config.text
-                                font.pixelSize: 16
-                                font.family: Config.fontFamily
-                                font.bold: true
+                            Row {
                                 Layout.leftMargin: 12
                                 Layout.bottomMargin: 12
+                                spacing: 6
+                                IconSettings { size: 16; color: Config.text }
+                                Text { text: "Settings"; color: Config.text; font.pixelSize: 14; font.family: Config.fontFamily; font.bold: true }
                             }
 
                             // Scrollable nav items
@@ -190,12 +189,15 @@ Scope {
                                                 anchors.leftMargin: 12
                                                 spacing: 10
 
-                                                Text {
-                                                    text: modelData.icon
-                                                    color: root.activePage === index ? Config.blue : Config.overlay0
-                                                    font.pixelSize: 14
-                                                    font.family: Config.iconFont
+                                                Loader {
+                                                    id: sidebarIconLoader
+                                                    property int pageIndex: index
+                                                    source: modelData.iconSource
                                                     anchors.verticalCenter: parent.verticalCenter
+                                                    onLoaded: {
+                                                        item.size = 14;
+                                                        item.color = Qt.binding(() => root.activePage === sidebarIconLoader.pageIndex ? Config.blue : Config.overlay0);
+                                                    }
                                                 }
 
                                                 Text {
@@ -231,11 +233,7 @@ Scope {
                                 Row {
                                     anchors.centerIn: parent
                                     spacing: 6
-                                    Text {
-                                        text: "\uf2ea"
-                                        color: resetAllMouse.containsMouse ? Config.red : Config.overlay0
-                                        font.pixelSize: 12; font.family: Config.iconFont
-                                    }
+                                    IconUndo { size: 12; color: resetAllMouse.containsMouse ? Config.red : Config.overlay0 }
                                     Text {
                                         text: "Reset All"
                                         color: resetAllMouse.containsMouse ? Config.red : Config.subtext0
@@ -296,11 +294,7 @@ Scope {
                                     id: resetRow
                                     anchors.centerIn: parent
                                     spacing: 4
-                                    Text {
-                                        text: "\uf2ea"
-                                        color: Config.overlay0
-                                        font.pixelSize: 10; font.family: Config.iconFont
-                                    }
+                                    IconUndo { size: 10; color: Config.overlay0 }
                                     Text {
                                         text: "Reset Section"
                                         color: Config.subtext0
