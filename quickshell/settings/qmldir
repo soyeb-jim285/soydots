@@ -15,3 +15,4 @@ CalendarPage 1.0 CalendarPage.qml
 BatteryPage 1.0 BatteryPage.qml
 IntegrationsPage 1.0 IntegrationsPage.qml
 LockScreenPage 1.0 LockScreenPage.qml
+IconGalleryPage 1.0 IconGalleryPage.qml

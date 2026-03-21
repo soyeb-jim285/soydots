@@ -44,7 +44,8 @@ Scope {
         { name: "Battery", icon: "\uf240", section: "battery" },
         { name: "Lock Screen", icon: "\uf023", section: "lockscreen" },
         { name: "Power & Idle", icon: "\uf0e7", section: "idle" },
-        { name: "Integrations", icon: "\uf0c1", section: "hyprland" }
+        { name: "Integrations", icon: "\uf0c1", section: "hyprland" },
+        { name: "Icon Gallery", icon: "\uf03e", section: "icons" }
     ]
 
     LazyLoader {
@@ -337,7 +338,7 @@ Scope {
                                                  "LauncherPage", "ClipboardPage", "OsdPage",
                                                  "AnimationsPage", "NetworkPage", "CalendarPage",
                                                  "BatteryPage", "LockScreenPage", "PowerIdlePage",
-                                                 "IntegrationsPage"];
+                                                 "IntegrationsPage", "IconGalleryPage"];
                                     return "settings/" + names[root.activePage] + ".qml";
                                 }
                             }
