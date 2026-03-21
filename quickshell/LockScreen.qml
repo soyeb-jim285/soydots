@@ -5,6 +5,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
+import "icons"
 
 Scope {
     id: root
@@ -74,7 +75,6 @@ Scope {
         id: unlockTimer
         interval: 400
         onTriggered: {
-            sessionLock.locked = false;
             root.locked = false;
             root.password = "";
             root.status = "idle";
@@ -218,27 +218,39 @@ Scope {
                             NumberAnimation { from: 3; to: 2; duration: 500; easing.type: Easing.InOutCubic }
                         }
 
-                        Text {
+                        Item {
+                            id: statusIconContainer
                             anchors.centerIn: parent
-                            text: root.status === "success" ? "\uf00c"
-                                : root.status === "error" ? "\uf00d"
-                                : "\uf007"
-                            color: root.status === "success" ? Config.green
-                                : root.status === "error" ? Config.red
-                                : Config.text
-                            font.pixelSize: 28
-                            font.family: Config.iconFont
+                            width: 28; height: 28
 
-                            Behavior on color { ColorAnimation { duration: 300 } }
+                            property string currentStatus: root.status
 
-                            // Icon transition animation
+                            IconCheck {
+                                anchors.centerIn: parent
+                                size: 28
+                                color: Config.green
+                                visible: root.status === "success"
+                            }
+                            IconX {
+                                anchors.centerIn: parent
+                                size: 28
+                                color: Config.red
+                                visible: root.status === "error"
+                            }
+                            IconUser {
+                                anchors.centerIn: parent
+                                size: 28
+                                color: Config.text
+                                visible: root.status !== "success" && root.status !== "error"
+                            }
+
+                            // Icon transition animation on status change
                             scale: 1.0
-                            Behavior on text {
-                                SequentialAnimation {
-                                    NumberAnimation { target: userCircle.children[0]; property: "scale"; to: 0.5; duration: 100; easing.type: Easing.InCubic }
-                                    PropertyAction {}
-                                    NumberAnimation { target: userCircle.children[0]; property: "scale"; to: 1.0; duration: 200; easing.type: Easing.OutBack; easing.overshoot: 2.0 }
-                                }
+                            onCurrentStatusChanged: statusBounce.start()
+                            SequentialAnimation {
+                                id: statusBounce
+                                NumberAnimation { target: statusIconContainer; property: "scale"; to: 0.5; duration: 100; easing.type: Easing.InCubic }
+                                NumberAnimation { target: statusIconContainer; property: "scale"; to: 1.0; duration: 200; easing.type: Easing.OutBack; easing.overshoot: 2.0 }
                             }
                         }
 
@@ -388,17 +400,27 @@ Scope {
                         }
 
                         // Eye toggle icon
-                        Text {
+                        Item {
                             anchors.right: parent.right
                             anchors.rightMargin: 12
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.showPassword ? "\uf06e" : "\uf070"  // eye / eye-slash
-                            color: eyeMouse.containsMouse ? Config.text : Config.overlay0
-                            font.pixelSize: 14
-                            font.family: Config.iconFont
+                            width: 14; height: 14
                             visible: root.password.length > 0 && root.status === "idle"
 
-                            Behavior on color { ColorAnimation { duration: 100 } }
+                            IconEye {
+                                anchors.centerIn: parent
+                                size: 14
+                                color: eyeMouse.containsMouse ? Config.text : Config.overlay0
+                                visible: root.showPassword
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                            }
+                            IconEyeOff {
+                                anchors.centerIn: parent
+                                size: 14
+                                color: eyeMouse.containsMouse ? Config.text : Config.overlay0
+                                visible: !root.showPassword
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                            }
 
                             MouseArea {
                                 id: eyeMouse
