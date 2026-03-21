@@ -95,7 +95,7 @@ ColumnLayout {
     }
 
     ToggleSetting { label: "Enable Hibernate"; section: "idle"; key: "hibernateEnabled"; value: Config.idleHibernateEnabled }
-    SliderSetting { label: "Hibernate Delay"; section: "idle"; key: "hibernateDelay"; value: Config.idleHibernateDelay; from: 1800; to: 14400 }
+    SliderSetting { label: "Hibernate Delay"; section: "idle"; key: "hibernateDelay"; value: Config.idleHibernateDelay; from: 1800; to: 14400; stepSize: 300 }
 
     RowLayout {
         Layout.fillWidth: true; spacing: 8

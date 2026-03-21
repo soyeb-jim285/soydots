@@ -308,7 +308,7 @@ Scope {
 
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
         anchors {
             top: true
@@ -1286,7 +1286,7 @@ Scope {
                     }
                 }
                 Volume { barWindow: mainWindow }
-                Battery { barWindow: mainWindow; activePopup: root.activePopup; onTogglePopup: root.togglePopup("battery") }
+                Battery {}
                 Bluetooth {
                     id: btWidget
                     activePopup: root.activePopup

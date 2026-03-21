@@ -67,8 +67,8 @@
   - Volume and brightness sliders in notification center
 - quickshell settings system — fully configurable via TOML config file and GUI:
   - Config.qml singleton with built-in TOML parser/writer, FileView persistence, ~120 configurable properties
-  - Settings window (Super+Comma or IPC): sidebar navigation + 11 category pages
-  - Categories: Appearance (theme presets, colors, fonts, transparency), Bar, Notifications, Launcher, Clipboard, OSD, Animations, Network, Calendar, Battery, Integrations (Hyprland + Kitty + Tmux)
+  - Settings window (Super+Comma or IPC): sidebar navigation + 13 category pages
+  - Categories: Appearance (theme presets, colors, fonts, transparency), Bar, Notifications, Launcher, Clipboard, OSD, Animations, Network, Calendar, Battery, Lock Screen, Power & Idle, Integrations (Hyprland + Kitty + Tmux)
   - Hyprland integration: live sync of border colors (blue/lavender gradient), gaps, border size, rounding via hyprctl keyword
   - Kitty integration: auto-writes current-theme.conf with full palette mapping (16 terminal colors, cursor, tabs, marks), live reload via kitty remote control, background opacity control
   - Tmux integration: overwrites catppuccin-mocha.tmuxtheme with synced palette, generates quickshell-tmux.conf with all @catppuccin_* options, live reload via tmux source-file
