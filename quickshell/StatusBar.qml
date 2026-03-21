@@ -9,6 +9,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
 import "bar"
+import "icons"
 
 Scope {
     id: root
@@ -419,10 +420,9 @@ Scope {
                             width: 28; height: 28; radius: 14
                             color: prevMouse.pressed ? Theme.surface1 : "transparent"
                             Behavior on color { ColorAnimation { duration: 100 } }
-                            Text {
+                            IconChevronLeft {
                                 anchors.centerIn: parent
-                                text: "\uf053"; color: Theme.subtext0
-                                font.pixelSize: 12; font.family: Theme.iconFont
+                                size: 12; color: Theme.subtext0
                             }
                             MouseArea {
                                 id: prevMouse; anchors.fill: parent
@@ -445,10 +445,9 @@ Scope {
                             width: 28; height: 28; radius: 14
                             color: nextMouse.pressed ? Theme.surface1 : "transparent"
                             Behavior on color { ColorAnimation { duration: 100 } }
-                            Text {
+                            IconChevronRight {
                                 anchors.centerIn: parent
-                                text: "\uf054"; color: Theme.subtext0
-                                font.pixelSize: 12; font.family: Theme.iconFont
+                                size: 12; color: Theme.subtext0
                             }
                             MouseArea {
                                 id: nextMouse; anchors.fill: parent
@@ -526,12 +525,11 @@ Scope {
                             width: 28; height: 28; radius: 14
                             color: rescanMouse.containsMouse ? Theme.surface1 : "transparent"
                             Behavior on color { ColorAnimation { duration: 100 } }
-                            Text {
+                            IconRefreshCw {
                                 id: rescanIcon
                                 anchors.centerIn: parent
-                                text: "\uf2f1"
+                                size: 12
                                 color: root.wifiScanning ? Theme.blue : Theme.subtext0
-                                font.pixelSize: 12; font.family: Theme.iconFont
                                 Behavior on color { ColorAnimation { duration: 200 } }
                             }
                             RotationAnimator {
@@ -586,11 +584,10 @@ Scope {
                                             color: modelData.active ? Theme.blue : Theme.surface0
                                             Behavior on color { ColorAnimation { duration: 200 } }
 
-                                            Text {
+                                            IconWifi {
                                                 anchors.centerIn: parent
-                                                text: "\uf1eb"
+                                                size: 12
                                                 color: modelData.active ? Theme.crust : modelData.signal > 66 ? Theme.text : modelData.signal > 33 ? Theme.yellow : Theme.red
-                                                font.pixelSize: 12; font.family: Theme.iconFont
                                                 opacity: modelData.active ? 1 : Math.max(0.4, modelData.signal / 100)
                                             }
                                         }
@@ -620,11 +617,17 @@ Scope {
                                             Behavior on color { ColorAnimation { duration: 100 } }
                                             visible: !isConnecting
 
-                                            Text {
+                                            IconUnlink {
                                                 anchors.centerIn: parent
-                                                text: modelData.active ? "\uf127" : "\uf0c1"
+                                                size: 10
                                                 color: wifiActionMouse.containsMouse ? Theme.crust : Theme.subtext0
-                                                font.pixelSize: 10; font.family: Theme.iconFont
+                                                visible: modelData.active
+                                            }
+                                            IconLink {
+                                                anchors.centerIn: parent
+                                                size: 10
+                                                color: wifiActionMouse.containsMouse ? Theme.crust : Theme.subtext0
+                                                visible: !modelData.active
                                             }
 
                                             MouseArea {
@@ -682,11 +685,10 @@ Scope {
                                                 ScriptAction { script: { wifiSpinner.cycleBase += 270; wifiSpinner.tailProgress = 0; } }
                                             }
 
-                                            Text {
+                                            IconLink {
                                                 anchors.centerIn: parent
-                                                text: "\uf0c1"
+                                                size: 10
                                                 color: Theme.blue
-                                                font.pixelSize: 10; font.family: Theme.iconFont
                                             }
                                         }
                                     }
@@ -721,7 +723,7 @@ Scope {
                                 width: 30; height: 30; radius: 6
                                 color: connectBtnMouse.containsMouse ? Theme.blue : Theme.surface0
                                 Behavior on color { ColorAnimation { duration: 100 } }
-                                Text { anchors.centerIn: parent; text: "\uf054"; color: Theme.text; font.pixelSize: 12; font.family: Theme.iconFont }
+                                IconChevronRight { anchors.centerIn: parent; size: 12; color: Theme.text }
                                 MouseArea { id: connectBtnMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.submitWifiPassword() }
                             }
                         }
@@ -857,11 +859,10 @@ Scope {
                                             color: modelData.connected ? Theme.blue : Theme.surface0
                                             Behavior on color { ColorAnimation { duration: 200 } }
 
-                                            Text {
+                                            IconBluetooth {
                                                 anchors.centerIn: parent
-                                                text: "\uf293"
+                                                size: 14
                                                 color: modelData.connected ? Theme.crust : Theme.overlay0
-                                                font.pixelSize: 14; font.family: Theme.iconFont
                                             }
                                         }
 
@@ -889,11 +890,17 @@ Scope {
                                             Behavior on color { ColorAnimation { duration: 100 } }
                                             visible: !isConnecting
 
-                                            Text {
+                                            IconUnlink {
                                                 anchors.centerIn: parent
-                                                text: modelData.connected ? "\uf127" : "\uf0c1"
+                                                size: 10
                                                 color: btActionMouse.containsMouse ? Theme.crust : Theme.subtext0
-                                                font.pixelSize: 10; font.family: Theme.iconFont
+                                                visible: modelData.connected
+                                            }
+                                            IconLink {
+                                                anchors.centerIn: parent
+                                                size: 10
+                                                color: btActionMouse.containsMouse ? Theme.crust : Theme.subtext0
+                                                visible: !modelData.connected
                                             }
 
                                             MouseArea {
@@ -944,11 +951,10 @@ Scope {
                                                 ScriptAction { script: { btSpinner.cycleBase += 270; btSpinner.tailProgress = 0; } }
                                             }
 
-                                            Text {
+                                            IconLink {
                                                 anchors.centerIn: parent
-                                                text: "\uf0c1"
+                                                size: 10
                                                 color: Theme.blue
-                                                font.pixelSize: 10; font.family: Theme.iconFont
                                             }
                                         }
                                     }
@@ -1082,12 +1088,10 @@ Scope {
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
 
-                                Text {
+                                IconChevronRight {
                                     visible: menuEntry.modelData.hasChildren
-                                    text: "\uf054"
+                                    size: 10
                                     color: Config.overlay0
-                                    font.pixelSize: 10
-                                    font.family: Config.iconFont
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
