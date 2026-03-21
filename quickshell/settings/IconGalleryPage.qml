@@ -134,6 +134,9 @@ ColumnLayout {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: modelData
+                        width: root._cellWidth - 8
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
                         color: Config.subtext0
                         font.pixelSize: 9; font.family: Config.fontFamily
                     }
