@@ -45,7 +45,7 @@
   - Meta+Shift+P: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
   - Meta+Shift+A: region screenshot to file, Meta+Shift+W: window screenshot to clipboard
   - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker, Meta+Comma: settings, Meta+M: power menu
-- hyprland autostart: cliphist (text + image watchers), hypridle
+- hyprland autostart: cliphist (text + image watchers), hypridle, hyprpolkitagent
 - hyprland autostart: quickshell
 - quickshell app launcher — Catppuccin Mocha themed, fuzzy search, keyboard navigation, IPC toggle
 - quickshell clipboard history — Catppuccin Mocha themed, search, image preview, IPC toggle (Meta+V)
@@ -119,6 +119,18 @@
   - Status bar: top position, rounded pill shapes, session name (blue), current command, lavender active window tab
   - Prefix indicator: all pills turn red when Ctrl+Space prefix is active (session, active window, command pill)
   - Colors unified with quickshell/kitty: base, mantle, crust, surface, overlay, text, lavender, mauve from settings TOML
+- quickshell Lucide icons — custom QML icon components in `quickshell/icons/`:
+  - 51 Lucide icon components (stroke-based SVG paths rendered via QtQuick.Shapes)
+  - All QML components migrated from Nerd Font unicode glyphs to Lucide icons:
+    - Bar: NotificationBell, Bluetooth, NetworkStatus, Volume, MediaPlayer, Battery
+    - PowerMenu: Lock, Logout, Suspend, Hibernate, Reboot, Shutdown action icons + title icon
+    - LockScreen: user/check/x status icons, eye/eye-off password toggle
+    - OSD: volume (muted/high/mid/low), brightness, capslock, numlock
+    - Popups: ClockPopup (chevrons, clock), MediaPopup (skip/play/pause)
+    - NotificationPopup: urgency icons (alert/info/bell), close button
+    - ClipboardHistory: image label icon
+    - LauncherPage: remove (x) and add (plus) buttons
+    - StatusBar panels: calendar nav, WiFi (rescan, signal, connect/disconnect), Bluetooth (device, connect/disconnect), tray menu chevrons, password submit
 - quill component library — custom QML design system in `quill/`:
   - Theme.qml singleton: Catppuccin color tokens, font sizing, spacing, animation duration
   - Label primitive: text variants (heading/body/caption/overline) with auto-styling
