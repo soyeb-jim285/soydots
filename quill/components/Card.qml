@@ -7,9 +7,9 @@ Rectangle {
     property string title: ""
     property string subtitle: ""
     default property alias content: contentColumn.data
+    property int padding: Theme.spacingLg
     implicitHeight: mainColumn.implicitHeight + padding * 2
     Layout.fillWidth: true
-    padding: Theme.spacingLg
     radius: Theme.radiusLg
     color: Theme.surface0
     border.color: Theme.surface1

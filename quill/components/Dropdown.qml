@@ -124,16 +124,13 @@ Item {
         }
     }
 
-    Rectangle {
+    // Click-outside overlay — large enough to cover surrounding area
+    MouseArea {
         visible: root.dropdownOpen
-        parent: root.parent
-        anchors.fill: parent
-        color: "transparent"
+        x: -10000; y: -10000
+        width: 20000; height: 20000
         z: 99
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.dropdownOpen = false
-        }
+        onClicked: root.dropdownOpen = false
     }
 
     onDropdownOpenChanged: { if (dropdownOpen) forceActiveFocus(); }

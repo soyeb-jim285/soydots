@@ -73,7 +73,7 @@ Scope {
                 }
             }
 
-            // Main panel
+            // Main panel — transparent bg so blur shows through (same pattern as Settings)
             Rectangle {
                 id: panel
                 anchors.centerIn: parent
@@ -104,12 +104,13 @@ Scope {
                     anchors.fill: parent
                     spacing: 0
 
-                    // Sidebar
+                    // Sidebar (always opaque)
                     Rectangle {
                         Layout.fillHeight: true
                         Layout.preferredWidth: 180
                         color: Theme.backgroundDeep
                         radius: 20
+
 
                         Rectangle {
                             anchors.right: parent.right
@@ -191,6 +192,7 @@ Scope {
                         color: Theme.surface0
                     }
 
+                    // Content area (transparent — inherits blur from outer panel)
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
