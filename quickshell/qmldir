@@ -10,3 +10,4 @@ AnimationPicker 1.0 AnimationPicker.qml
 Settings 1.0 Settings.qml
 PowerMenu 1.0 PowerMenu.qml
 LockScreen 1.0 LockScreen.qml
+IdleManager 1.0 IdleManager.qml
