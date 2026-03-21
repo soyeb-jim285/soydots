@@ -286,6 +286,7 @@ ColumnLayout {
                     radius: parent.parent.parent.shapeRadius; color: Config.surface0
                     Rectangle { anchors.left: parent.left; width: parent.radius; height: parent.height; color: parent.color }
                     Text { id: tempText; anchors.centerIn: parent; text: "52°C"; color: Config.text; font.pixelSize: 9; font.family: Config.fontFamily }
+                }
             }
         }
     }

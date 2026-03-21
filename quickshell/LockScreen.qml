@@ -321,7 +321,6 @@ Scope {
                         ListView {
                             id: lockDotList
                             anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: -12 // offset for eye icon
                             property real fullWidth: count * (implicitHeight + spacing) - (count > 0 ? spacing : 0)
                             implicitHeight: 10
                             implicitWidth: fullWidth
@@ -374,7 +373,6 @@ Scope {
                         // Plain text password (shown when eye toggled)
                         Text {
                             anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: -12
                             text: root.password
                             color: Config.text
                             font.pixelSize: 13

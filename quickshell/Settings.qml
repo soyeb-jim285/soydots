@@ -155,57 +155,69 @@ Scope {
                                 Layout.bottomMargin: 12
                             }
 
-                            // Nav items
-                            Repeater {
-                                model: root.pages
+                            // Scrollable nav items
+                            Flickable {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                contentHeight: navColumn.implicitHeight
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
 
-                                Rectangle {
-                                    required property var modelData
-                                    required property int index
+                                Column {
+                                    id: navColumn
+                                    width: parent.width
+                                    spacing: 2
 
-                                    Layout.fillWidth: true
-                                    height: 36
-                                    radius: 8
-                                    color: root.activePage === index
-                                        ? Qt.rgba(Config.blue.r, Config.blue.g, Config.blue.b, 0.15)
-                                        : navMouse.containsMouse ? Config.surface0 : "transparent"
-                                    Behavior on color { ColorAnimation { duration: 80 } }
+                                    Repeater {
+                                        model: root.pages
 
-                                    Row {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 12
-                                        spacing: 10
+                                        Rectangle {
+                                            required property var modelData
+                                            required property int index
 
-                                        Text {
-                                            text: modelData.icon
-                                            color: root.activePage === index ? Config.blue : Config.overlay0
-                                            font.pixelSize: 14
-                                            font.family: Config.iconFont
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: navColumn.width
+                                            height: 36
+                                            radius: 8
+                                            color: root.activePage === index
+                                                ? Qt.rgba(Config.blue.r, Config.blue.g, Config.blue.b, 0.15)
+                                                : navMouse.containsMouse ? Config.surface0 : "transparent"
+                                            Behavior on color { ColorAnimation { duration: 80 } }
+
+                                            Row {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: 12
+                                                spacing: 10
+
+                                                Text {
+                                                    text: modelData.icon
+                                                    color: root.activePage === index ? Config.blue : Config.overlay0
+                                                    font.pixelSize: 14
+                                                    font.family: Config.iconFont
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
+
+                                                Text {
+                                                    text: modelData.name
+                                                    color: root.activePage === index ? Config.blue : Config.text
+                                                    font.pixelSize: 12
+                                                    font.family: Config.fontFamily
+                                                    font.bold: root.activePage === index
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: navMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.activePage = index
+                                            }
                                         }
-
-                                        Text {
-                                            text: modelData.name
-                                            color: root.activePage === index ? Config.blue : Config.text
-                                            font.pixelSize: 12
-                                            font.family: Config.fontFamily
-                                            font.bold: root.activePage === index
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: navMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.activePage = index
                                     }
                                 }
                             }
-
-                            Item { Layout.fillHeight: true }
 
                             // Reset all button
                             Rectangle {

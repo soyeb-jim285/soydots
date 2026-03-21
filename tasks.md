@@ -30,6 +30,12 @@
 - nvidia-open-dkms, nvidia-utils, nvidia-settings (NVIDIA open kernel driver for GTX 1650 Mobile)
 - linux-headers (needed for DKMS kernel module building)
 - upower
+- zsh (default shell)
+- zsh-autosuggestions, zsh-syntax-highlighting, zsh-completions (zsh plugins)
+- starship (cross-shell prompt)
+- zoxide (smart cd)
+- eza (modern ls with icons)
+- bat (cat with syntax highlighting)
 
 ## Configured
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
@@ -123,6 +129,17 @@
   - LayoutSection showcase: Card variants (with/without header, nested content), Separator orientations, Tabs with content switching, Collapsible nesting, ScrollableList with items and empty state
   - FeedbackSection showcase: Tooltip on IconButtons, Badge text/dot variants, ProgressBar fixed/interactive/indeterminate/variants, Spinner sizes and colors
   - DisplaySection showcase: Icon grid (3 sizes, 5 colors), Label variants (heading/body/caption/overline), Avatar sizes and rounded/square
+- zsh — Catppuccin Mocha themed with:
+  - Vi mode with restored emacs insert-mode bindings (Ctrl+A/E/W/U/K)
+  - Shared history (50k entries, deduped, ignore space-prefixed)
+  - Auto-cd, glob-dots, case-insensitive completion with arrow menu
+  - zsh-autosuggestions (fish-style, Ctrl+F accept, history+completion strategy)
+  - zsh-syntax-highlighting (Catppuccin Mocha colors)
+  - fzf integration (Ctrl+R history, Ctrl+T files with bat preview, Alt+C dirs with eza tree preview)
+  - Catppuccin Mocha fzf color scheme
+  - zoxide (smart cd, `z` command)
+  - Aliases: ls/ll/lt/la (eza), cat (bat), gs/gd/gl/gp (git)
+  - Starship prompt: Arch icon → directory → git branch/status → cmd duration, vi mode indicator
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 
@@ -138,6 +155,9 @@ These commands must be run manually for full functionality (not managed by dotfi
 
 ### Symlinks
 - `~/.config/hypr/hypridle.conf` → `~/jimdots/hypr/hypridle.conf`
+- `~/.zshrc` → `~/jimdots/zsh/.zshrc`
+- `~/.zshenv` → `~/jimdots/zsh/.zshenv`
+- `~/.config/starship.toml` → `~/jimdots/zsh/starship.toml`
 
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
@@ -147,3 +167,4 @@ All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `claude/settings.json` -> `~/.claude/settings.json`
 - `claude/statusline-command.sh` -> `~/.claude/statusline-command.sh`
 - `tmux/` -> `~/.config/tmux` (tmux.conf)
+- `zsh/` -> `~/.zshrc`, `~/.zshenv`, `~/.config/starship.toml` (individual symlinks)

@@ -210,7 +210,7 @@ Scope {
 
                     // Action grid
                     GridLayout {
-                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
                         columns: 3
                         columnSpacing: 14
                         rowSpacing: 14
@@ -226,7 +226,7 @@ Scope {
                                 property bool isSelected: root.selectedAction === index
                                 property bool isHovered: cardMouse.containsMouse
 
-                                width: 118
+                                Layout.fillWidth: true
                                 height: 96
                                 radius: 14
                                 color: isSelected
@@ -327,7 +327,7 @@ Scope {
 
                     // Hint
                     Text {
-                        text: "Click or Enter to execute \u2022 Arrow keys to navigate \u2022 1-6 for quick select"
+                        text: "Enter to confirm \u2022 1-6 to quick select"
                         color: Theme.overlay0
                         font.pixelSize: 10
                         font.family: Config.fontFamily
