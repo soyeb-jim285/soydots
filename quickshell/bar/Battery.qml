@@ -5,7 +5,6 @@ import Quickshell.Services.UPower
 import Quickshell.Io
 import QtQuick
 import ".."
-import "../popups"
 
 Item {
     id: root
@@ -13,9 +12,6 @@ Item {
     height: parent?.height ?? Theme.barHeight
     visible: UPower.displayDevice.isPresent || sysBattery.percentage >= 0
 
-    required property var barWindow
-    required property string activePopup
-    signal togglePopup()
 
     // Prefer UPower, fall back to /sys
     // UPower may return 0-1 (fraction) or 0-100 depending on version
@@ -46,7 +42,7 @@ Item {
         id: batCapFile
         path: "/sys/class/power_supply/BAT0/capacity"
         onTextChanged: {
-            let val = parseInt(text.trim());
+            let val = parseInt(text().trim());
             if (!isNaN(val)) sysBattery.percentage = val;
         }
     }
@@ -55,7 +51,7 @@ Item {
         id: batStatusFile
         path: "/sys/class/power_supply/BAT0/status"
         onTextChanged: {
-            sysBattery.charging = text.trim() === "Charging" || text.trim() === "Full";
+            sysBattery.charging = text().trim() === "Charging" || text().trim() === "Full";
         }
     }
 
@@ -65,12 +61,6 @@ Item {
         onTriggered: { batCapFile.reload(); batStatusFile.reload(); }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        radius: Theme.widgetRadius
-        color: batMouse.containsMouse ? Theme.surface0 : "transparent"
-        Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
-    }
 
     Row {
         id: batRow
@@ -134,21 +124,4 @@ Item {
         }
     }
 
-    MouseArea {
-        id: batMouse
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: root.togglePopup()
-    }
-
-    BatteryPopup {
-        id: batteryPopup
-        anchor.window: root.barWindow
-        anchor.rect.x: root.x + root.width / 2 - implicitWidth / 2
-        anchor.rect.y: Theme.barHeight + 4
-        visible: root.activePopup === "battery"
-        percentage: root.percentage
-        charging: root.charging
-    }
 }
