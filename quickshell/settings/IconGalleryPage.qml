@@ -1,14 +1,16 @@
-pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
 import "../icons"
 import ".."
 
-Item {
+ColumnLayout {
     id: root
+    spacing: 6
 
-    // Icon names — Loader constructs path as "../icons/Icon" + name + ".qml"
+    property real iconSize: 24
+    property color iconColor: Config.text
+    property string searchText: ""
+
     property var iconNames: [
         "AlertCircle", "Battery", "Bell", "BellOff", "Bluetooth",
         "BluetoothConnected", "BluetoothOff", "Calendar", "Camera",
@@ -19,12 +21,8 @@ Item {
         "Power", "RefreshCw", "Rocket", "Settings", "SkipBack",
         "SkipForward", "SlidersH", "Sun", "Trash", "TriangleAlert",
         "Undo", "Unlink", "User", "Volume", "Volume1", "Volume2",
-        "VolumeX", "Wifi", "X"
+        "VolumeX", "Wifi", "X", "Zap"
     ]
-
-    property real iconSize: 24
-    property color iconColor: Config.text
-    property string searchText: ""
 
     property var filteredIcons: {
         if (!searchText) return iconNames;
@@ -44,102 +42,96 @@ Item {
         { name: "Teal", color: Config.teal }
     ]
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 16
-        spacing: 12
+    // Search bar
+    Rectangle {
+        Layout.fillWidth: true; Layout.preferredHeight: 32; radius: 6
+        color: Config.surface0
+        TextInput {
+            anchors.fill: parent; anchors.margins: 8
+            color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily
+            onTextChanged: root.searchText = text
+            Text {
+                visible: !parent.text
+                text: "Search icons..."; color: Config.overlay0
+                font.pixelSize: 12; font.family: Config.fontFamily
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+    }
 
-        // Search bar
-        Rectangle {
-            Layout.fillWidth: true; height: 32; radius: 6
-            color: Config.surface0
-            TextInput {
-                anchors.fill: parent; anchors.margins: 8
-                color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily
-                onTextChanged: root.searchText = text
+    // Size buttons
+    Row {
+        spacing: 6
+        Text { text: "Size:"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; anchors.verticalCenter: parent.verticalCenter }
+        Repeater {
+            model: [12, 16, 20, 24, 32, 48]
+            Rectangle {
+                required property int modelData
+                width: 32; height: 24; radius: 4
+                color: root.iconSize === modelData ? Config.blue : Config.surface0
                 Text {
-                    visible: !parent.text
-                    text: "Search icons..."; color: Config.overlay0
-                    font.pixelSize: 12; font.family: Config.fontFamily
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.centerIn: parent; text: parent.modelData
+                    color: root.iconSize === parent.modelData ? Config.crust : Config.text
+                    font.pixelSize: 10; font.family: Config.fontFamily
+                }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.iconSize = parent.modelData
                 }
             }
         }
+    }
 
-        // Size buttons (no QtQuick.Controls dependency)
-        Row {
-            spacing: 6
-            Text { text: "Size:"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; anchors.verticalCenter: parent.verticalCenter }
-            Repeater {
-                model: [12, 16, 20, 24, 32, 48]
-                Rectangle {
-                    required property int modelData
-                    width: 32; height: 24; radius: 4
-                    color: root.iconSize === modelData ? Config.blue : Config.surface0
-                    Text {
-                        anchors.centerIn: parent; text: parent.modelData
-                        color: root.iconSize === parent.modelData ? Config.crust : Config.text
-                        font.pixelSize: 10; font.family: Config.fontFamily
-                    }
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: root.iconSize = parent.modelData
-                    }
+    // Color picker row
+    Row {
+        spacing: 6
+        Repeater {
+            model: root.colorOptions
+            Rectangle {
+                required property var modelData
+                width: 24; height: 24; radius: 12
+                color: modelData.color
+                border.width: root.iconColor === modelData.color ? 2 : 0
+                border.color: Config.text
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.iconColor = parent.modelData.color
                 }
             }
         }
+    }
 
-        // Color picker row
-        Row {
-            spacing: 6
-            Repeater {
-                model: root.colorOptions
-                Rectangle {
-                    required property var modelData
-                    width: 24; height: 24; radius: 12
-                    color: modelData.color
-                    border.width: root.iconColor === modelData.color ? 2 : 0
-                    border.color: Config.text
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: root.iconColor = parent.modelData.color
+    // Icon grid
+    GridView {
+        Layout.fillWidth: true; Layout.fillHeight: true
+        cellWidth: Math.max(80, root.iconSize + 40)
+        cellHeight: root.iconSize + 50
+        clip: true
+        model: root.filteredIcons
+
+        delegate: Item {
+            required property string modelData
+            width: GridView.view.cellWidth
+            height: GridView.view.cellHeight
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 4
+
+                Loader {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    source: "../icons/Icon" + modelData + ".qml"
+                    onLoaded: {
+                        item.size = Qt.binding(() => root.iconSize);
+                        item.color = Qt.binding(() => root.iconColor);
                     }
                 }
-            }
-        }
 
-        // Icon grid
-        GridView {
-            Layout.fillWidth: true; Layout.fillHeight: true
-            cellWidth: Math.max(80, root.iconSize + 40)
-            cellHeight: root.iconSize + 50
-            clip: true
-            model: root.filteredIcons
-
-            delegate: Item {
-                required property string modelData
-                width: GridView.view.cellWidth
-                height: GridView.view.cellHeight
-
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 4
-
-                    Loader {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        source: "../icons/Icon" + modelData + ".qml"
-                        onLoaded: {
-                            item.size = Qt.binding(() => root.iconSize);
-                            item.color = Qt.binding(() => root.iconColor);
-                        }
-                    }
-
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: modelData
-                        color: Config.subtext0
-                        font.pixelSize: 9; font.family: Config.fontFamily
-                    }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: modelData
+                    color: Config.subtext0
+                    font.pixelSize: 9; font.family: Config.fontFamily
                 }
             }
         }
