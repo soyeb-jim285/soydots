@@ -48,5 +48,9 @@ Rectangle {
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: if (root.enabled) root.clicked()
     }
-    // NOTE: Tooltip will be wired up in Task 14 when Tooltip.qml is created
+    Tooltip {
+        target: root
+        text: root.tooltip
+        visible: root.tooltip !== "" && mouse.containsMouse
+    }
 }
