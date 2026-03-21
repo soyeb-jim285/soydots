@@ -29,6 +29,7 @@
 - fzf (fuzzy finder, used by tmux session switcher and fzf-url)
 - nvidia-open-dkms, nvidia-utils, nvidia-settings (NVIDIA open kernel driver for GTX 1650 Mobile)
 - linux-headers (needed for DKMS kernel module building)
+- upower
 
 ## Configured
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
@@ -104,6 +105,11 @@
   - Status bar: top position, rounded pill shapes, session name (blue), current command, lavender active window tab
   - Prefix indicator: all pills turn red when Ctrl+Space prefix is active (session, active window, command pill)
   - Colors unified with quickshell/kitty: base, mantle, crust, surface, overlay, text, lavender, mauve from settings TOML
+- quill component library — custom QML design system in `quill/`:
+  - Theme.qml singleton: Catppuccin color tokens, font sizing, spacing, animation duration
+  - Label primitive: text variants (heading/body/caption/overline) with auto-styling
+  - Icon primitive: glyph display with size variants (small/medium/large)
+  - Showcase panel: full-screen overlay with sidebar navigation (Inputs/Layout/Feedback/Display sections), escape to close, backdrop click dismiss, integrated into shell.qml
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 
