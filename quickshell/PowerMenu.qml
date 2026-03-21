@@ -6,6 +6,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
+import "icons"
 
 Scope {
     id: root
@@ -30,12 +31,12 @@ Scope {
     }
 
     property var actions: [
-        { name: "Lock", icon: "\uf023", color: Theme.blue },
-        { name: "Logout", icon: "\uf2f5", color: Theme.yellow },
-        { name: "Suspend", icon: "\uf186", color: Theme.mauve },
-        { name: "Hibernate", icon: "\uf0c2", color: Theme.teal },
-        { name: "Reboot", icon: "\uf2f1", color: Theme.peach },
-        { name: "Shutdown", icon: "\uf011", color: Theme.red }
+        { name: "Lock", iconSource: "icons/IconLock.qml", color: Theme.blue },
+        { name: "Logout", iconSource: "icons/IconLogOut.qml", color: Theme.yellow },
+        { name: "Suspend", iconSource: "icons/IconMoon.qml", color: Theme.mauve },
+        { name: "Hibernate", iconSource: "icons/IconCloud.qml", color: Theme.teal },
+        { name: "Reboot", iconSource: "icons/IconRefreshCw.qml", color: Theme.peach },
+        { name: "Shutdown", iconSource: "icons/IconPower.qml", color: Theme.red }
     ]
 
     function executeAction(index) {
@@ -180,11 +181,9 @@ Scope {
                         Layout.alignment: Qt.AlignHCenter
                         spacing: 8
 
-                        Text {
-                            text: "\uf011"
+                        IconPower {
+                            size: 16
                             color: Theme.red
-                            font.pixelSize: 16
-                            font.family: Config.iconFont
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -274,13 +273,16 @@ Scope {
 
                                         Behavior on color { ColorAnimation { duration: 200 } }
 
-                                        Text {
+                                        Loader {
+                                            id: actionIconLoader
+                                            property bool selected: actionCard.isSelected
+                                            property color defaultColor: modelData.color
                                             anchors.centerIn: parent
-                                            text: modelData.icon
-                                            color: actionCard.isSelected ? Theme.crust : modelData.color
-                                            font.pixelSize: 18
-                                            font.family: Config.iconFont
-                                            Behavior on color { ColorAnimation { duration: 200 } }
+                                            source: modelData.iconSource
+                                            onLoaded: {
+                                                item.size = 18;
+                                                item.color = Qt.binding(() => actionIconLoader.selected ? Theme.crust : actionIconLoader.defaultColor);
+                                            }
                                         }
                                     }
 
