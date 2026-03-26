@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import ".."
+import "../quill" as Quill
 
 ColumnLayout {
     spacing: 6
@@ -239,25 +240,15 @@ ColumnLayout {
             font.pixelSize: 11; font.family: Config.fontFamily
         }
 
-        Rectangle {
-            width: 120; height: 28; radius: 6
-            color: Config.surface0
-            border.color: hexInput.activeFocus ? Config.blue : Config.surface1
-            border.width: 1
-
-            TextInput {
-                id: hexInput
-                property string colorKey: ""
-                anchors.fill: parent
-                anchors.leftMargin: 8; anchors.rightMargin: 8
-                verticalAlignment: TextInput.AlignVCenter
-                color: Config.text
-                font.pixelSize: 12; font.family: Config.fontFamily
-                clip: true
-                onAccepted: {
-                    if (colorKey !== "" && text.match(/^#[0-9a-fA-F]{6}$/))
-                        Config.set("appearance", colorKey, text.toLowerCase());
-                }
+        Quill.TextField {
+            id: hexInput
+            property string colorKey: ""
+            Layout.preferredWidth: 120
+            variant: "default"
+            placeholder: "#hexcolor"
+            onSubmitted: (val) => {
+                if (colorKey !== "" && val.match(/^#[0-9a-fA-F]{6}$/))
+                    Config.set("appearance", colorKey, val.toLowerCase());
             }
         }
 
@@ -285,30 +276,24 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true; spacing: 12
         Text { text: "Font Family"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Rectangle {
-            Layout.fillWidth: true; height: 28; radius: 6
-            color: Config.surface0; border.color: fontInput.activeFocus ? Config.blue : Config.surface1; border.width: 1
-            TextInput {
-                id: fontInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
-                verticalAlignment: TextInput.AlignVCenter; color: Config.text
-                font.pixelSize: 12; font.family: Config.fontFamily; text: Config.fontFamily; clip: true
-                onEditingFinished: Config.set("appearance", "fontFamily", text)
-            }
+        Quill.TextField {
+            Layout.fillWidth: true
+            variant: "filled"
+            text: Config.fontFamily
+            placeholder: "Font family..."
+            onSubmitted: (val) => Config.set("appearance", "fontFamily", val)
         }
     }
 
     RowLayout {
         Layout.fillWidth: true; spacing: 12
         Text { text: "Icon Font"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Rectangle {
-            Layout.fillWidth: true; height: 28; radius: 6
-            color: Config.surface0; border.color: iconFontInput.activeFocus ? Config.blue : Config.surface1; border.width: 1
-            TextInput {
-                id: iconFontInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
-                verticalAlignment: TextInput.AlignVCenter; color: Config.text
-                font.pixelSize: 12; font.family: Config.fontFamily; text: Config.iconFont; clip: true
-                onEditingFinished: Config.set("appearance", "iconFont", text)
-            }
+        Quill.TextField {
+            Layout.fillWidth: true
+            variant: "filled"
+            text: Config.iconFont
+            placeholder: "Icon font..."
+            onSubmitted: (val) => Config.set("appearance", "iconFont", val)
         }
     }
 
