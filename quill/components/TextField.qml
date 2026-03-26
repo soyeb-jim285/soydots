@@ -9,6 +9,10 @@ Rectangle {
     property string icon: ""
     property string variant: "default"
     property bool enabled: true
+    property alias focus: input.focus
+    property alias activeFocus: input.activeFocus
+    property int echoMode: TextInput.Normal
+    property alias inputItem: input
     signal textEdited(string text)
     signal submitted(string text)
     implicitHeight: 34
@@ -44,6 +48,7 @@ Rectangle {
                 font.family: Theme.fontFamily
                 clip: true
                 enabled: root.enabled
+                echoMode: root.echoMode
                 onTextEdited: root.textEdited(text)
                 onAccepted: root.submitted(text)
             }
