@@ -8,6 +8,7 @@ import Quickshell.Services.Pipewire
 import QtQuick
 import QtQuick.Layouts
 import "icons"
+import "quill" as Quill
 
 Scope {
     id: root
@@ -555,41 +556,14 @@ Scope {
                                 }
                             }
 
-                            // Slider track
-                            Item {
+                            Quill.Slider {
                                 Layout.fillWidth: true
-                                height: 20
-
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width; height: 4; radius: 2
-                                    color: Theme.surface1
-                                }
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width * Math.min(root.volume, 1.0)
-                                    height: 4; radius: 2
-                                    color: root.muted ? Theme.red : Theme.blue
-                                    Behavior on width { NumberAnimation { duration: 50 } }
-                                }
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    x: parent.width * Math.min(root.volume, 1.0) - 6
-                                    width: 12; height: 12; radius: 6
-                                    color: root.muted ? Theme.red : Theme.blue
-                                    Behavior on x { NumberAnimation { duration: 50 } }
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (event) => {
-                                        if (root.sink?.audio)
-                                            root.sink.audio.volume = Math.max(0, Math.min(1, event.x / width));
-                                    }
-                                    onPositionChanged: (event) => {
-                                        if (pressed && root.sink?.audio)
-                                            root.sink.audio.volume = Math.max(0, Math.min(1, event.x / width));
-                                    }
+                                value: Math.round(root.volume * 100)
+                                from: 0; to: 100; stepSize: 1
+                                trackColor: root.muted ? Theme.red : Theme.blue
+                                onMoved: (val) => {
+                                    if (root.sink?.audio)
+                                        root.sink.audio.volume = val / 100;
                                 }
                             }
                         }
@@ -618,53 +592,21 @@ Scope {
                                 }
                             }
 
-                            Item {
+                            Quill.Slider {
                                 Layout.fillWidth: true
-                                height: 20
-
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width; height: 4; radius: 2
-                                    color: Theme.surface1
-                                }
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width * root.brightness
-                                    height: 4; radius: 2
-                                    color: Theme.yellow
-                                    Behavior on width { NumberAnimation { duration: 50 } }
-                                }
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    x: parent.width * root.brightness - 6
-                                    width: 12; height: 12; radius: 6
-                                    color: Theme.yellow
-                                    Behavior on x { NumberAnimation { duration: 50 } }
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: (event) => {
-                                        root.brightness = Math.max(0.01, Math.min(1, event.x / width));
-                                        brightnessSetProc.pct = Math.round(root.brightness * 100);
-                                        brightnessSetProc.running = true;
-                                    }
-                                    onPositionChanged: (event) => {
-                                        if (pressed) {
-                                            root.brightness = Math.max(0.01, Math.min(1, event.x / width));
-                                            brightnessSetProc.pct = Math.round(root.brightness * 100);
-                                            brightnessSetProc.running = true;
-                                        }
-                                    }
+                                value: Math.round(root.brightness * 100)
+                                from: 0; to: 100; stepSize: 1
+                                trackColor: Theme.yellow
+                                onMoved: (val) => {
+                                    root.brightness = val / 100;
+                                    brightnessSetProc.pct = Math.round(val);
+                                    brightnessSetProc.running = true;
                                 }
                             }
                         }
 
                         // ===== SEPARATOR =====
-                        Rectangle {
-                            Layout.fillWidth: true; implicitHeight: 1
-                            color: Theme.surface0
-                        }
+                        Quill.Separator { Layout.fillWidth: true }
 
                         // ===== NOTIFICATIONS HEADER =====
                         RowLayout {
