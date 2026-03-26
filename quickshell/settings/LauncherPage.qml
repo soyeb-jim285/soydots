@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import ".."
 import "../icons"
+import "../quill" as Quill
 
 ColumnLayout {
     spacing: 6
@@ -20,7 +21,13 @@ ColumnLayout {
 
     Text { text: "Behavior"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
-    TextSetting { label: "Terminal"; section: "launcher"; key: "terminal"; value: Config.launcherTerminal }
+    DropdownSetting {
+        label: "Terminal"
+        section: "launcher"
+        key: "terminal"
+        value: Config.launcherTerminal
+        model: ["kitty", "alacritty", "foot", "wezterm", "ghostty", "konsole", "gnome-terminal", "xterm"]
+    }
 
     Text { text: "Hidden Apps"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 

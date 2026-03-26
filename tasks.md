@@ -83,7 +83,9 @@
     - Custom catppuccin modules (cpu.sh, gpu.sh, temp.sh) in tmux/, auto-copied to plugin custom/ on sync
     - Python helper (write-quickshell-conf.py) for Unicode-safe powerline glyph writing
     - Live preview bar in settings UI reflecting shape and enabled modules
-  - Controls: color swatches with hex editor, sliders, text inputs, toggle switches, editable lists
+  - Controls: color swatches with hex editor, sliders, text inputs, toggle switches, editable lists, dropdown selectors
+  - DropdownSetting component: reusable Quill.Dropdown wrapper for settings pages
+  - Launcher terminal selector: dropdown with common terminals (kitty, alacritty, foot, wezterm, ghostty, etc.)
   - Theme presets: Catppuccin Mocha, Macchiato, Frappe, Latte (one-click switch)
   - Live preview: changes apply immediately via reactive property bindings
   - Persistence: settings.toml (gitignored, user-specific), defaults.toml (committed, reference)
@@ -152,6 +154,7 @@
   - zoxide (smart cd, `z` command)
   - Aliases: ls/ll/lt/la (eza), cat (bat), gs/gd/gl/gp (git)
   - Starship prompt: Arch icon → directory → git branch/status → cmd duration, vi mode indicator
+- xdg-open: kitty-nvim.desktop entry for opening text/code files in Neovim inside Kitty (set as default for text/plain)
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 
@@ -180,3 +183,4 @@ All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `claude/statusline-command.sh` -> `~/.claude/statusline-command.sh`
 - `tmux/` -> `~/.config/tmux` (tmux.conf)
 - `zsh/` -> `~/.zshrc`, `~/.zshenv`, `~/.config/starship.toml` (individual symlinks)
+- `applications/kitty-nvim.desktop` -> `~/.local/share/applications/kitty-nvim.desktop`
