@@ -6,6 +6,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
+import "quill" as Quill
 import "settings"
 import "icons"
 
@@ -253,11 +254,7 @@ Scope {
                     }
 
                     // Separator
-                    Rectangle {
-                        Layout.fillHeight: true
-                        Layout.preferredWidth: 1
-                        color: Config.surface0
-                    }
+                    Quill.Separator { orientation: Qt.Vertical; Layout.fillHeight: true }
 
                     // Content area
                     Item {
