@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import "icons"
+import "quill" as Quill
 
 Scope {
     id: root
@@ -163,42 +164,20 @@ Scope {
                     }
 
                     // Search box
-                    Rectangle {
+                    Quill.TextField {
                         id: searchBox
                         Layout.fillWidth: true
-                        height: Config.clipboardSearchHeight
-                        radius: Config.clipboardSearchRadius
-                        color: Theme.surface0
+                        variant: "filled"
+                        placeholder: "Search clipboard..."
+                        focus: root.visible
+                        onTextEdited: (val) => root.searchText = val
 
-                        TextInput {
-                            id: searchInput
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: Theme.text
-                            font.pixelSize: 14
-                            font.family: Theme.fontFamily
-                            clip: true
-                            focus: root.visible
-
-                            onTextChanged: root.searchText = text
-
-                            Text {
-                                anchors.fill: parent
-                                verticalAlignment: Text.AlignVCenter
-                                text: "Search clipboard..."
-                                color: Theme.overlay0
-                                font: searchInput.font
-                                visible: !searchInput.text
-                            }
-
-                            Keys.onEscapePressed: root.toggle()
-                            Keys.onDownPressed: clipList.forceActiveFocus()
-                            Keys.onReturnPressed: {
-                                if (root.filteredItems.length > 0)
-                                    root.paste(root.filteredItems[0]);
-                            }
+                        Component.onCompleted: {
+                            inputItem.Keys.escapePressed.connect(() => root.toggle());
+                            inputItem.Keys.downPressed.connect(() => clipList.forceActiveFocus());
+                            inputItem.Keys.returnPressed.connect(() => {
+                                if (root.filteredItems.length > 0) root.paste(root.filteredItems[0]);
+                            });
                         }
                     }
 
@@ -310,15 +289,15 @@ Scope {
                         Keys.onEscapePressed: root.toggle()
                         Keys.onUpPressed: {
                             if (currentIndex === 0)
-                                searchInput.forceActiveFocus();
+                                searchBox.inputItem.forceActiveFocus();
                             else
                                 currentIndex--;
                         }
                         Keys.onPressed: (event) => {
                             // Forward typing to search input
                             if (!event.modifiers && event.text && event.text.length > 0) {
-                                searchInput.forceActiveFocus();
-                                searchInput.text += event.text;
+                                searchBox.inputItem.forceActiveFocus();
+                                searchBox.text += event.text;
                                 event.accepted = true;
                             }
                         }
