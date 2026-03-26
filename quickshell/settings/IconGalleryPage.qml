@@ -21,7 +21,7 @@ ColumnLayout {
         "Power", "RefreshCw", "Rocket", "Settings", "SkipBack",
         "SkipForward", "SlidersH", "Sun", "Trash", "TriangleAlert",
         "Undo", "Unlink", "User", "Volume", "Volume1", "Volume2",
-        "VolumeX", "Wifi", "X", "Zap"
+        "VolumeX", "Wifi", "WifiSector", "X", "Zap"
     ]
 
     property var filteredIcons: {

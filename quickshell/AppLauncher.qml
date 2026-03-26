@@ -163,7 +163,7 @@ Scope {
                         Layout.fillWidth: true
                         variant: "filled"
                         placeholder: "Search apps..."
-                        focus: root.visible
+                        autoFocus: root.visible
                         onTextEdited: (val) => root.searchText = val
 
                         Component.onCompleted: {

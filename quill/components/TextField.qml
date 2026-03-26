@@ -9,8 +9,8 @@ Rectangle {
     property string icon: ""
     property string variant: "default"
     property bool enabled: true
-    property alias focus: input.focus
-    property alias activeFocus: input.activeFocus
+    property bool autoFocus: false
+    property bool hasActiveFocus: input.activeFocus
     property int echoMode: TextInput.Normal
     property alias inputItem: input
     signal textEdited(string text)
@@ -43,6 +43,7 @@ Rectangle {
                 id: input
                 anchors.fill: parent
                 verticalAlignment: TextInput.AlignVCenter
+                focus: root.autoFocus
                 color: Theme.textPrimary
                 font.pixelSize: Theme.fontSize
                 font.family: Theme.fontFamily

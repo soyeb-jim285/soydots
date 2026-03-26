@@ -18,7 +18,7 @@ Item {
     property string status: "disconnected"
     property string connectionName: ""
     property int signalStrength: 0
-    property color iconColor: status === "disconnected" ? Theme.red : Theme.green
+    property color iconColor: status === "disconnected" ? Theme.red : Theme.text
 
     Process {
         id: netProc
@@ -89,7 +89,7 @@ Item {
         width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
         anchors.centerIn: parent
 
-        IconWifiStrength {
+        IconWifiSector {
             visible: root.status === "wifi"
             size: Theme.fontSizeIcon
             signal: root.signalStrength

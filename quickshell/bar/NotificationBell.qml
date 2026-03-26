@@ -5,7 +5,6 @@ import Quickshell.Io
 import QtQuick
 import ".."
 import "../icons"
-import "../quill" as Quill
 
 Item {
     id: root
@@ -44,14 +43,26 @@ Item {
     }
 
     // Unread badge
-    Quill.Badge {
+    Rectangle {
         visible: root.unreadCount > 0
-        text: root.unreadCount > 99 ? "99+" : "" + root.unreadCount
-        variant: "error"
         anchors.top: bellIcon.top
         anchors.right: bellIcon.right
         anchors.topMargin: -2
         anchors.rightMargin: -4
+        width: Math.max(9, badgeText.implicitWidth + 3)
+        height: 9
+        radius: 4.5
+        color: Theme.red
+
+        Text {
+            id: badgeText
+            anchors.centerIn: parent
+            text: root.unreadCount > 99 ? "99+" : root.unreadCount
+            color: Theme.crust
+            font.pixelSize: 6
+            font.family: Theme.fontFamily
+            font.bold: true
+        }
     }
 
     MouseArea {
