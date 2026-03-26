@@ -212,10 +212,20 @@ Scope {
                                 spacing: 12
 
                                 Image {
-                                    source: Quickshell.iconPath(appItem.modelData.icon ?? "", "application-x-executable")
+                                    property string _icon: appItem.modelData.icon ?? ""
+                                    property string _primary: Quickshell.iconPath(_icon, "application-x-executable")
+                                    property string _svgFallback: "file:///usr/share/icons/hicolor/scalable/apps/" + _icon + ".svg"
+                                    property string _genericFallback: Quickshell.iconPath("application-x-executable", "")
+                                    source: _primary !== "" ? _primary : _svgFallback
                                     Layout.preferredWidth: Config.launcherIconSize
                                     Layout.preferredHeight: Config.launcherIconSize
                                     sourceSize: Qt.size(Config.launcherIconSize, Config.launcherIconSize)
+                                    onStatusChanged: {
+                                        if (status === Image.Error && source !== _svgFallback && source !== _genericFallback)
+                                            source = _svgFallback;
+                                        else if (status === Image.Error && source === _svgFallback)
+                                            source = _genericFallback;
+                                    }
                                 }
 
                                 Text {

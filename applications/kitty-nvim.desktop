@@ -6,4 +6,5 @@ Exec=kitty nvim %F
 Icon=nvim
 Terminal=false
 Categories=Utility;TextEditor;
+NoDisplay=true
 MimeType=text/plain;text/x-c;text/x-c++;text/x-python;text/x-java;text/x-shellscript;text/x-script.python;text/x-csrc;text/x-chdr;text/css;text/javascript;text/x-lua;text/x-makefile;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;text/xml;application/json;application/x-yaml;application/toml;application/x-shellscript;application/javascript;application/xml;
