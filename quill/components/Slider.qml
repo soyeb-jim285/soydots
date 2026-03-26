@@ -12,6 +12,7 @@ RowLayout {
     property bool showValue: false
     property int decimals: 0
     property bool enabled: true
+    property color trackColor: Theme.primary
     signal moved(real value)
     spacing: Theme.spacingMd
     opacity: enabled ? 1.0 : 0.5
@@ -37,13 +38,13 @@ RowLayout {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width * parent.ratio
             height: 4; radius: 2
-            color: Theme.primary
+            color: root.trackColor
         }
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             x: parent.width * parent.ratio - 7
             width: 14; height: 14; radius: 7
-            color: sliderMouse.pressed ? Theme.secondary : Theme.primary
+            color: sliderMouse.pressed ? Qt.lighter(root.trackColor, 1.2) : root.trackColor
             Behavior on color { ColorAnimation { duration: 80 } }
         }
         MouseArea {
