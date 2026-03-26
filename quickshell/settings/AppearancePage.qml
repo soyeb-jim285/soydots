@@ -312,55 +312,18 @@ ColumnLayout {
         }
     }
 
-    // Font sizes - use inline slider components
-    RowLayout {
-        Layout.fillWidth: true; spacing: 12
-        Text { text: "Small Font Size"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Item {
-            Layout.fillWidth: true; height: 24
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 4; radius: 2; color: Config.surface1 }
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width * ((Config.fontSizeSmall - 6) / 20); height: 4; radius: 2; color: Config.blue }
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; x: parent.width * ((Config.fontSizeSmall - 6) / 20) - 7; width: 14; height: 14; radius: 7; color: Config.blue }
-            MouseArea {
-                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                onPressed: (e) => Config.set("appearance", "fontSizeSmall", Math.round(6 + (e.x / width) * 20))
-                onPositionChanged: (e) => { if (pressed) Config.set("appearance", "fontSizeSmall", Math.round(6 + (e.x / width) * 20)) }
-            }
-        }
-        Rectangle { width: 36; height: 24; radius: 4; color: Config.surface0; Text { anchors.centerIn: parent; text: Config.fontSizeSmall; color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily } }
+    SliderSetting {
+        label: "Small Font Size"; section: "appearance"; key: "fontSizeSmall"
+        value: Config.fontSizeSmall; from: 6; to: 26; stepSize: 1
     }
 
-    RowLayout {
-        Layout.fillWidth: true; spacing: 12
-        Text { text: "Regular Font Size"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Item {
-            Layout.fillWidth: true; height: 24
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 4; radius: 2; color: Config.surface1 }
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width * ((Config.fontSize - 6) / 20); height: 4; radius: 2; color: Config.blue }
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; x: parent.width * ((Config.fontSize - 6) / 20) - 7; width: 14; height: 14; radius: 7; color: Config.blue }
-            MouseArea {
-                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                onPressed: (e) => Config.set("appearance", "fontSize", Math.round(6 + (e.x / width) * 20))
-                onPositionChanged: (e) => { if (pressed) Config.set("appearance", "fontSize", Math.round(6 + (e.x / width) * 20)) }
-            }
-        }
-        Rectangle { width: 36; height: 24; radius: 4; color: Config.surface0; Text { anchors.centerIn: parent; text: Config.fontSize; color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily } }
+    SliderSetting {
+        label: "Regular Font Size"; section: "appearance"; key: "fontSize"
+        value: Config.fontSize; from: 6; to: 26; stepSize: 1
     }
 
-    RowLayout {
-        Layout.fillWidth: true; spacing: 12
-        Text { text: "Icon Font Size"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Item {
-            Layout.fillWidth: true; height: 24
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 4; radius: 2; color: Config.surface1 }
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width * ((Config.fontSizeIcon - 6) / 20); height: 4; radius: 2; color: Config.blue }
-            Rectangle { anchors.verticalCenter: parent.verticalCenter; x: parent.width * ((Config.fontSizeIcon - 6) / 20) - 7; width: 14; height: 14; radius: 7; color: Config.blue }
-            MouseArea {
-                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                onPressed: (e) => Config.set("appearance", "fontSizeIcon", Math.round(6 + (e.x / width) * 20))
-                onPositionChanged: (e) => { if (pressed) Config.set("appearance", "fontSizeIcon", Math.round(6 + (e.x / width) * 20)) }
-            }
-        }
-        Rectangle { width: 36; height: 24; radius: 4; color: Config.surface0; Text { anchors.centerIn: parent; text: Config.fontSizeIcon; color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily } }
+    SliderSetting {
+        label: "Icon Font Size"; section: "appearance"; key: "fontSizeIcon"
+        value: Config.fontSizeIcon; from: 6; to: 26; stepSize: 1
     }
 }
