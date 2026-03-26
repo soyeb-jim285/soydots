@@ -184,9 +184,24 @@ Scope {
                         model: root.filteredApps
                         currentIndex: 0
 
-                        // Smooth scrolling
-                        displaced: Transition {
-                            NumberAnimation { properties: "y"; duration: 150; easing.type: Easing.OutCubic }
+                        highlightFollowsCurrentItem: false
+                        onCurrentIndexChanged: {
+                            if (currentItem)
+                                positionViewAtIndex(currentIndex, ListView.Contain);
+                        }
+                        highlight: Rectangle {
+                            width: resultsView.width
+                            height: Config.launcherItemHeight
+                            radius: Config.launcherItemRadius
+                            color: Config.surface1
+                            y: resultsView.currentItem ? resultsView.currentItem.y : 0
+                            z: 0
+                            Behavior on y {
+                                NumberAnimation {
+                                    duration: 150
+                                    easing.type: Easing.InOutCubic
+                                }
+                            }
                         }
 
                         delegate: Rectangle {
@@ -197,13 +212,8 @@ Scope {
                             width: resultsView.width
                             height: Config.launcherItemHeight
                             radius: Config.launcherItemRadius
-                            color: (resultsView.currentIndex === index)
-                                ? Config.surface1
-                                : appMouse.containsMouse ? Config.surface0 : "transparent"
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
+                            color: "transparent"
+                            z: 1
 
                             RowLayout {
                                 anchors.fill: parent

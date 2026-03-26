@@ -191,6 +191,32 @@ Scope {
                         model: root.filteredItems
                         currentIndex: 0
 
+                        highlightFollowsCurrentItem: false
+                        onCurrentIndexChanged: {
+                            if (currentItem)
+                                positionViewAtIndex(currentIndex, ListView.Contain);
+                        }
+                        highlight: Rectangle {
+                            width: clipList.width
+                            height: clipList.currentItem ? clipList.currentItem.height : Config.clipboardItemHeight
+                            radius: 8
+                            color: Config.surface1
+                            y: clipList.currentItem ? clipList.currentItem.y : 0
+                            z: 0
+                            Behavior on y {
+                                NumberAnimation {
+                                    duration: 150
+                                    easing.type: Easing.InOutCubic
+                                }
+                            }
+                            Behavior on height {
+                                NumberAnimation {
+                                    duration: 150
+                                    easing.type: Easing.InOutCubic
+                                }
+                            }
+                        }
+
                         delegate: Rectangle {
                             id: clipItem
                             required property var modelData
@@ -199,13 +225,8 @@ Scope {
                             width: clipList.width
                             height: clipItem.modelData.isImage ? Config.clipboardImageItemHeight : Config.clipboardItemHeight
                             radius: 8
-                            color: (clipList.currentIndex === index)
-                                ? Theme.surface1
-                                : clipMouse.containsMouse ? Theme.surface0 : "transparent"
-
-                            Behavior on color {
-                                ColorAnimation { duration: 100 }
-                            }
+                            color: "transparent"
+                            z: 1
 
                             // Image preview
                             Image {
