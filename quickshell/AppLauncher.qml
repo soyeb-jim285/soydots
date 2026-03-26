@@ -6,6 +6,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
+import "quill" as Quill
 
 Scope {
     id: root
@@ -157,42 +158,20 @@ Scope {
                     anchors.margins: 12
                     spacing: 8
 
-                    Rectangle {
+                    Quill.TextField {
                         id: searchBox
                         Layout.fillWidth: true
-                        height: Config.launcherSearchHeight
-                        radius: Config.launcherSearchRadius
-                        color: Config.surface0
+                        variant: "filled"
+                        placeholder: "Search apps..."
+                        focus: root.visible
+                        onTextEdited: (val) => root.searchText = val
 
-                        TextInput {
-                            id: searchInput
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: Config.text
-                            font.pixelSize: 16
-                            font.family: Config.fontFamily
-                            clip: true
-                            focus: root.visible
-
-                            onTextChanged: root.searchText = text
-
-                            Text {
-                                anchors.fill: parent
-                                verticalAlignment: Text.AlignVCenter
-                                text: "Search apps..."
-                                color: Config.overlay0
-                                font: searchInput.font
-                                visible: !searchInput.text
-                            }
-
-                            Keys.onEscapePressed: root.toggle()
-                            Keys.onDownPressed: resultsView.forceActiveFocus()
-                            Keys.onReturnPressed: {
-                                if (root.filteredApps.length > 0)
-                                    root.launch(root.filteredApps[0]);
-                            }
+                        Component.onCompleted: {
+                            inputItem.Keys.escapePressed.connect(() => root.toggle());
+                            inputItem.Keys.downPressed.connect(() => resultsView.forceActiveFocus());
+                            inputItem.Keys.returnPressed.connect(() => {
+                                if (root.filteredApps.length > 0) root.launch(root.filteredApps[0]);
+                            });
                         }
                     }
 
@@ -277,14 +256,14 @@ Scope {
                         Keys.onEscapePressed: root.toggle()
                         Keys.onUpPressed: {
                             if (currentIndex === 0)
-                                searchInput.forceActiveFocus();
+                                searchBox.inputItem.forceActiveFocus();
                             else
                                 currentIndex--;
                         }
                         Keys.onPressed: (event) => {
                             if (!event.modifiers && event.text && event.text.length > 0) {
-                                searchInput.forceActiveFocus();
-                                searchInput.text += event.text;
+                                searchBox.inputItem.forceActiveFocus();
+                                searchBox.text += event.text;
                                 event.accepted = true;
                             }
                         }
