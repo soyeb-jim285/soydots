@@ -17,6 +17,7 @@ Item {
 
     property string status: "disconnected"
     property string connectionName: ""
+    property int signalStrength: 0
     property color iconColor: status === "disconnected" ? Theme.red : Theme.green
 
     Process {
@@ -32,6 +33,7 @@ Item {
                         let type = parts[0].toLowerCase();
                         if (type.includes("wireless") || type.includes("wifi") || type === "802-11-wireless") {
                             root.status = "wifi";
+                            signalProc.running = true;
                         } else if (type.includes("ethernet") || type === "802-3-ethernet") {
                             root.status = "ethernet";
                         }
@@ -43,7 +45,26 @@ Item {
                 if (!found) {
                     root.status = "disconnected";
                     root.connectionName = "";
+                    root.signalStrength = 0;
                 }
+            }
+        }
+    }
+
+    Process {
+        id: signalProc
+        command: ["nmcli", "-t", "-f", "IN-USE,SIGNAL", "device", "wifi", "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let lines = this.text.trim().split("\n");
+                for (let line of lines) {
+                    let parts = line.split(":");
+                    if (parts.length >= 2 && parts[0] === "*") {
+                        root.signalStrength = parseInt(parts[1]) || 0;
+                        return;
+                    }
+                }
+                root.signalStrength = 0;
             }
         }
     }
@@ -68,9 +89,10 @@ Item {
         width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
         anchors.centerIn: parent
 
-        IconWifi {
+        IconWifiStrength {
             visible: root.status === "wifi"
             size: Theme.fontSizeIcon
+            signal: root.signalStrength
             color: root.iconColor
             anchors.centerIn: parent
             Behavior on color { ColorAnimation { duration: Theme.animDuration } }
@@ -82,7 +104,7 @@ Item {
             anchors.centerIn: parent
             Behavior on color { ColorAnimation { duration: Theme.animDuration } }
         }
-        IconTriangleAlert {
+        IconWifiOff {
             visible: root.status === "disconnected"
             size: Theme.fontSizeIcon
             color: root.iconColor

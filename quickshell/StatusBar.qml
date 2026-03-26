@@ -124,6 +124,8 @@ Scope {
             }
             if (name === "wifi") {
                 wifiScanProc.running = true;
+                wifiRescanProc.running = true;
+                rescanDelay.restart();
                 root.wifiError = "";
                 root.wifiPasswordSSID = "";
             }
@@ -188,13 +190,22 @@ Scope {
                     let parts = line.split(":");
                     if (parts.length >= 4 && parts[0] !== "") {
                         let ssid = parts[0];
-                        if (seen[ssid]) continue;
-                        seen[ssid] = true;
+                        let isActive = parts[parts.length - 1] === "*";
+                        let signal = parseInt(parts[parts.length - 3]) || 0;
+                        let security = parts[parts.length - 2];
+                        if (seen[ssid] !== undefined) {
+                            if (isActive) {
+                                networks[seen[ssid]].active = true;
+                                networks[seen[ssid]].signal = Math.max(networks[seen[ssid]].signal, signal);
+                            }
+                            continue;
+                        }
+                        seen[ssid] = networks.length;
                         networks.push({
                             ssid: ssid,
-                            signal: parseInt(parts[1]) || 0,
-                            security: parts[2],
-                            active: parts[3] === "*"
+                            signal: signal,
+                            security: security,
+                            active: isActive
                         });
                     }
                 }
@@ -309,7 +320,7 @@ Scope {
 
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: root.wifiPasswordSSID !== "" ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         anchors {
             top: true
@@ -570,9 +581,7 @@ Scope {
                                     required property int index
                                     Layout.fillWidth: true; height: Config.wifiItemHeight; radius: Config.wifiItemRadius
                                     property bool isConnecting: root.wifiConnectingSSID === modelData.ssid
-                                    color: netItemMouse.containsMouse ? Theme.surface0 : modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.08) : "transparent"
-                                    border.color: modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.3) : "transparent"
-                                    border.width: modelData.active ? 1 : 0
+                                    color: netItemMouse.containsMouse ? Theme.surface0 : modelData.active ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.15) : "transparent"
                                     Behavior on color { ColorAnimation { duration: 120 } }
 
                                     RowLayout {
@@ -584,11 +593,11 @@ Scope {
                                             color: modelData.active ? Theme.blue : Theme.surface0
                                             Behavior on color { ColorAnimation { duration: 200 } }
 
-                                            IconWifi {
+                                            IconWifiStrength {
                                                 anchors.centerIn: parent
                                                 size: 12
-                                                color: modelData.active ? Theme.crust : modelData.signal > 66 ? Theme.text : modelData.signal > 33 ? Theme.yellow : Theme.red
-                                                opacity: modelData.active ? 1 : Math.max(0.4, modelData.signal / 100)
+                                                signal: modelData.signal
+                                                color: modelData.active ? Theme.crust : Theme.text
                                             }
                                         }
 
@@ -730,7 +739,35 @@ Scope {
                     }
 
                     Text { visible: root.wifiError !== ""; text: root.wifiError; color: Theme.red; font.pixelSize: 10; font.family: Theme.fontFamily; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                    Item { height: 4; Layout.fillWidth: true }
+                }
+
+                // Scan line anchored to panel bottom
+                Rectangle {
+                    id: wifiScanLine
+                    visible: root.wifiScanning
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
+                    anchors.left: wifiContent.left
+                    anchors.right: wifiContent.right
+                    height: 3; radius: 1.5
+                    color: Qt.rgba(137/255, 180/255, 250/255, 0.15)
+                    clip: true
+                    property real bar1Pos: -0.6
+                    property real bar2Pos: -0.6
+                    SequentialAnimation {
+                        loops: Animation.Infinite; running: root.wifiScanning
+                        ParallelAnimation {
+                            NumberAnimation { target: wifiScanLine; property: "bar1Pos"; from: -0.6; to: 1.0; duration: 1980; easing.type: Easing.InOutCubic }
+                            NumberAnimation { target: wifiScanLine; property: "bar2Pos"; from: -0.6; to: -0.6; duration: 1980 }
+                        }
+                        ParallelAnimation {
+                            NumberAnimation { target: wifiScanLine; property: "bar2Pos"; from: -0.6; to: 1.0; duration: 1020; easing.type: Easing.InOutCubic }
+                            NumberAnimation { target: wifiScanLine; property: "bar1Pos"; from: 1.0; to: 1.0; duration: 1020 }
+                        }
+                        ScriptAction { script: { wifiScanLine.bar1Pos = -0.6; wifiScanLine.bar2Pos = -0.6; } }
+                    }
+                    Rectangle { x: wifiScanLine.bar1Pos * wifiScanLine.width; width: 0.6 * wifiScanLine.width; height: 3; radius: 1.5; color: Theme.blue }
+                    Rectangle { x: wifiScanLine.bar2Pos * wifiScanLine.width; width: 0.6 * wifiScanLine.width; height: 3; radius: 1.5; color: Theme.blue }
                 }
             }
         }
@@ -766,7 +803,7 @@ Scope {
                     width: parent.width - 24
                     spacing: 6
 
-                    // Header: title + power toggle
+                    // Header: title + rescan + power toggle
                     RowLayout {
                         Layout.fillWidth: true
 
@@ -775,6 +812,35 @@ Scope {
                             color: Theme.text
                             font.pixelSize: 14; font.family: Theme.fontFamily; font.bold: true
                             Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            width: 28; height: 28; radius: 14
+                            color: btRescanMouse.containsMouse ? Theme.surface1 : "transparent"
+                            visible: root.btPowered
+                            Behavior on color { ColorAnimation { duration: 100 } }
+                            IconRefreshCw {
+                                id: btRescanIcon
+                                anchors.centerIn: parent
+                                size: 12
+                                color: root.btScanning ? Theme.blue : Theme.subtext0
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
+                            RotationAnimator {
+                                target: btRescanIcon
+                                from: 0; to: 360; duration: 1000
+                                loops: Animation.Infinite; running: root.btScanning
+                            }
+                            MouseArea {
+                                id: btRescanMouse; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.btAdapter) {
+                                        if (root.btScanning) root.btAdapter.discovering = false;
+                                        else { root.btAdapter.discovering = true; }
+                                    }
+                                }
+                            }
                         }
 
                         Rectangle {
@@ -846,9 +912,7 @@ Scope {
 
                                     property bool showDevice: modelData.name !== "" && modelData.name !== modelData.address
                                     property bool isConnecting: modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
-                                    color: btDevMouse.containsMouse ? Theme.surface0 : modelData.connected ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.08) : "transparent"
-                                    border.color: modelData.connected ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.3) : "transparent"
-                                    border.width: modelData.connected ? 1 : 0
+                                    color: btDevMouse.containsMouse ? Theme.surface0 : modelData.connected ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.15) : "transparent"
 
                                     RowLayout {
                                         anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 10

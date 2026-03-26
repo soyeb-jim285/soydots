@@ -57,8 +57,8 @@
   - Media player (right, MPRIS, conditional visibility)
   - Volume (right, Pipewire, scroll to adjust, click to mute)
   - Battery (right, UPower, hidden on desktop, popup with stats)
-  - Bluetooth (right, Quickshell.Bluetooth native D-Bus API, hover to open panel with paired devices, connect/disconnect with arc spinner animation, power toggle, reactive scan)
-  - Network status (right, nmcli-based, hover to open WiFi panel with network list, signal strength, connect/password support, arc spinner connect animation)
+  - Bluetooth (right, Quickshell.Bluetooth native D-Bus API, hover to open panel with paired devices, connect/disconnect with arc spinner animation, power toggle, rescan button, scan line animation, reactive scan)
+  - Network status (right, nmcli-based, hover to open WiFi panel with network list, signal strength, connect/password support, arc spinner connect animation, scan line animation, bar icon shows signal-strength arcs via IconWifiStrength, IconWifiOff when disconnected, active network highlighted in panel)
   - Notification bell (right, unread badge, click to open notification center)
   - System tray (right)
 - quickshell OSD overlay — Catppuccin themed, blurred background, auto-hide:

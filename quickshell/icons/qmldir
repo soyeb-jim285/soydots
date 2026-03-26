@@ -50,5 +50,7 @@ IconVolume1 1.0 IconVolume1.qml
 IconVolume2 1.0 IconVolume2.qml
 IconVolumeX 1.0 IconVolumeX.qml
 IconWifi 1.0 IconWifi.qml
+IconWifiOff 1.0 IconWifiOff.qml
+IconWifiStrength 1.0 IconWifiStrength.qml
 IconX 1.0 IconX.qml
 IconZap 1.0 IconZap.qml
