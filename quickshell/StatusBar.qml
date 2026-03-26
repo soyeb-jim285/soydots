@@ -10,6 +10,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 import "bar"
 import "icons"
+import "quill" as Quill
 
 Scope {
     id: root
@@ -22,6 +23,7 @@ Scope {
     property var activeTrayMenu: null
     property real trayMenuCenterX: 0
     property int notifUnreadCount: 0
+    property bool dndEnabled: false
     property string lastPopup: ""
 
     onActivePopupChanged: {
@@ -163,7 +165,7 @@ Scope {
     Timer {
         id: focusTimer
         interval: 100
-        onTriggered: wifiPassInput.forceActiveFocus()
+        onTriggered: wifiPassInput.inputItem.forceActiveFocus()
     }
 
     Process {
@@ -556,7 +558,7 @@ Scope {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.surface1 }
+                    Quill.Separator { Layout.fillWidth: true }
 
                     Text {
                         visible: root.wifiNetworks.length === 0
@@ -593,7 +595,7 @@ Scope {
                                             color: modelData.active ? Theme.blue : Theme.surface0
                                             Behavior on color { ColorAnimation { duration: 200 } }
 
-                                            IconWifiStrength {
+                                            IconWifiSector {
                                                 anchors.centerIn: parent
                                                 size: 12
                                                 signal: modelData.signal
@@ -713,20 +715,17 @@ Scope {
                     ColumnLayout {
                         visible: root.wifiPasswordSSID !== ""
                         Layout.fillWidth: true; spacing: 4
-                        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.surface1 }
+                        Quill.Separator { Layout.fillWidth: true }
                         Text { text: "Password for " + root.wifiPasswordSSID; color: Theme.subtext0; font.pixelSize: 11; font.family: Theme.fontFamily }
                         RowLayout {
                             Layout.fillWidth: true; spacing: 4
-                            Rectangle {
-                                Layout.fillWidth: true; height: 30; radius: 6
-                                color: Theme.surface0; border.color: wifiPassInput.activeFocus ? Theme.blue : Theme.surface1; border.width: 1
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-                                TextInput {
-                                    id: wifiPassInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
-                                    verticalAlignment: TextInput.AlignVCenter; color: Theme.text
-                                    font.pixelSize: 12; font.family: Theme.fontFamily; echoMode: TextInput.Password; clip: true
-                                    onAccepted: root.submitWifiPassword()
-                                }
+                            Quill.TextField {
+                                id: wifiPassInput
+                                Layout.fillWidth: true
+                                variant: "filled"
+                                placeholder: "Password..."
+                                echoMode: TextInput.Password
+                                onSubmitted: root.submitWifiPassword()
                             }
                             Rectangle {
                                 width: 30; height: 30; radius: 6
@@ -843,31 +842,16 @@ Scope {
                             }
                         }
 
-                        Rectangle {
-                            width: 40; height: 22; radius: 11
-                            color: root.btPowered ? Theme.blue : Theme.surface1
-                            Behavior on color { ColorAnimation { duration: 150 } }
-
-                            Rectangle {
-                                width: 18; height: 18; radius: 9
-                                anchors.verticalCenter: parent.verticalCenter
-                                x: root.btPowered ? parent.width - width - 2 : 2
-                                color: Theme.text
-                                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (root.btAdapter)
-                                        root.btAdapter.enabled = !root.btPowered;
-                                }
+                        Quill.Toggle {
+                            checked: root.btPowered
+                            onToggled: (val) => {
+                                if (root.btAdapter)
+                                    root.btAdapter.enabled = val;
                             }
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.surface1 }
+                    Quill.Separator { Layout.fillWidth: true }
 
                     // Off state
                     Text {
@@ -1365,7 +1349,7 @@ Scope {
                     activePopup: root.activePopup
                     onTogglePopup: root.togglePopup("wifi")
                 }
-                NotificationBell { unreadCount: root.notifUnreadCount }
+                NotificationBell { unreadCount: root.notifUnreadCount; dndEnabled: root.dndEnabled }
             }
         }
     }
