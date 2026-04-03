@@ -12,16 +12,21 @@ ColumnLayout {
     property string searchText: ""
 
     property var iconNames: [
-        "AlertCircle", "Battery", "Bell", "BellOff", "Bluetooth",
-        "BluetoothConnected", "BluetoothOff", "Calendar", "Camera",
-        "Check", "ChevronLeft", "ChevronRight", "Clipboard", "Clock",
-        "Cloud", "Coffee", "Ethernet", "Eye", "EyeOff", "Image",
-        "Info", "Keyboard", "Link", "Lock", "LockOpen", "LogOut",
-        "Moon", "Palette", "PanelTop", "Pause", "Play", "Plus",
-        "Power", "RefreshCw", "Rocket", "Settings", "SkipBack",
-        "SkipForward", "SlidersH", "Sun", "Trash", "TriangleAlert",
-        "Undo", "Unlink", "User", "Volume", "Volume1", "Volume2",
-        "VolumeX", "Wifi", "WifiSector", "X", "Zap"
+        "AlertCircle", "AlignJustify", "Battery", "Bell", "BellOff",
+        "Bluetooth", "BluetoothConnected", "BluetoothOff", "Calendar",
+        "Camera", "Check", "ChevronDown", "ChevronLeft", "ChevronRight",
+        "ChevronUp", "Clipboard", "Clock", "Cloud", "Coffee", "Copy",
+        "CopyPath", "Download", "Ethernet", "ExternalLink", "Eye",
+        "EyeOff", "FileText", "Filter", "Folder", "FolderPen", "Grid",
+        "HardDrive", "HardDriveOff", "Home", "Image", "Info", "Keyboard",
+        "Link", "List", "Lock", "LockOpen", "LogOut", "Monitor", "Moon",
+        "Music", "Palette", "PanelLeft", "PanelTop", "Pause", "Pin",
+        "PinOff", "Play", "Plus", "Power", "RefreshCw", "Rocket",
+        "Scissors", "Search", "Settings", "SkipBack", "SkipForward",
+        "SlidersH", "Sun", "Terminal", "Trash", "TriangleAlert", "Undo",
+        "Unlink", "User", "Video", "Volume", "Volume1", "Volume2",
+        "VolumeX", "Wifi", "WifiOff", "WifiSector", "WifiStrength",
+        "X", "Zap"
     ]
 
     property var filteredIcons: {
