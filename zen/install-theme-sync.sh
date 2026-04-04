@@ -7,8 +7,8 @@ HOST_DIR="$SCRIPT_DIR/theme-sync/native-host"
 EXT_ID="quickshell-theme-sync@jimdots"
 
 # Find Zen browser paths
-# Zen uses ~/.zen for profiles (similar to ~/.mozilla/firefox)
-ZEN_PROFILE_DIR="$HOME/.zen"
+# Zen uses ~/.config/zen for profiles
+ZEN_PROFILE_DIR="$HOME/.config/zen"
 ZEN_NATIVE_MSG_DIR="$HOME/.mozilla/native-messaging-hosts"
 
 echo "=== Quickshell Theme Sync — Zen Browser Extension Installer ==="
@@ -38,7 +38,7 @@ if [ ! -d "$ZEN_PROFILE_DIR" ]; then
     echo "   You may need to install the extension manually."
 else
     # Find all profile directories
-    for profile in "$ZEN_PROFILE_DIR"/*.default* "$ZEN_PROFILE_DIR"/*.zen*; do
+    for profile in "$ZEN_PROFILE_DIR"/*.default* "$ZEN_PROFILE_DIR"/*.Default* "$ZEN_PROFILE_DIR"/*.zen*; do
         if [ -d "$profile" ]; then
             ext_install_dir="$profile/extensions"
             mkdir -p "$ext_install_dir"
@@ -54,6 +54,7 @@ echo "[3/3] Configuring extension permissions..."
 
 # Find Zen's distribution directory for policies
 ZEN_DIST_DIRS=(
+    "/opt/zen-browser-bin/distribution"
     "/usr/lib/zen-browser/distribution"
     "/usr/lib64/zen-browser/distribution"
     "/opt/zen-browser/distribution"
