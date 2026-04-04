@@ -6,6 +6,39 @@ import "../quill" as Quill
 ColumnLayout {
     spacing: 6
 
+    // Dark Mode Toggle
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.bottomMargin: 8
+        spacing: 12
+
+        Text {
+            text: "Dark Mode"
+            color: Config.text
+            font.pixelSize: 14; font.family: Config.fontFamily; font.bold: true
+        }
+
+        Item { Layout.fillWidth: true }
+
+        ToggleSetting {
+            label: ""
+            section: "appearance"
+            key: "darkMode"
+            value: Config.darkMode
+            onValueChanged: {
+                if (value !== Config.darkMode)
+                    Config.toggleDarkMode();
+            }
+        }
+    }
+
+    Rectangle {
+        Layout.fillWidth: true
+        height: 1
+        color: Config.surface1
+        Layout.bottomMargin: 8
+    }
+
     // Theme Presets
     Text {
         text: "Theme Presets"
