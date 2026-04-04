@@ -20,13 +20,11 @@ ColumnLayout {
 
         Item { Layout.fillWidth: true }
 
-        ToggleSetting {
+        Quill.Toggle {
             label: ""
-            section: "appearance"
-            key: "darkMode"
-            value: Config.darkMode
-            onValueChanged: {
-                if (value !== Config.darkMode)
+            checked: Config.darkMode
+            onToggled: (val) => {
+                if (val !== Config.darkMode)
                     Config.toggleDarkMode();
             }
         }
@@ -96,6 +94,8 @@ ColumnLayout {
                                       "red", "green", "yellow", "blue", "mauve", "pink", "teal", "peach", "lavender"];
                         for (let c of colors)
                             Config.set("appearance", c, modelData[c]);
+                        // Latte is light mode, all others are dark
+                        Config.set("appearance", "darkMode", modelData.name !== "Latte");
                     }
                 }
             }

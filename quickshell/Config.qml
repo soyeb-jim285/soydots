@@ -496,7 +496,8 @@ QtObject {
         let qtColorPath = _homeDir + "/jimdots/qt6ct/colors/" + qtColorFile;
 
         // Write Kvantum config
-        _qtKvWriteProc.command = ["bash", "-c", "echo '" + kvConf + "' > " + kvConfPath];
+        _qtKvWriteProc.command = ["bash", "-c",
+            "cat > " + kvConfPath + " << 'KVEOF'\n" + kvConf + "KVEOF"];
         _qtKvWriteProc.running = true;
 
         // Update qt6ct color_scheme_path using sed
@@ -738,6 +739,7 @@ width = 620
 base = "#1e1e2e"
 blue = "#89b4fa"
 crust = "#11111b"
+darkMode = true
 fontFamily = "Maple Mono"
 fontSize = 13
 fontSizeIcon = 16
