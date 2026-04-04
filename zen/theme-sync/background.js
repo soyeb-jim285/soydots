@@ -1,5 +1,10 @@
 function applyTheme(data) {
   const c = data.colors;
+
+  // Set website appearance to match theme mode
+  const colorScheme = data.mode === "dark" ? "dark" : "light";
+  browser.browserSettings.overrideContentColorScheme.set({ value: colorScheme });
+
   browser.theme.update({
     colors: {
       frame: c.crust,
