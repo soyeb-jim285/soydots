@@ -23,22 +23,10 @@
       --newtab-wordmark-color: #cdd6f4 !important;
       --newtab-primary-action-background: #89b4fa !important;
     }
-
-    .icon {
-      color: #89b4fa !important;
-    }
-
-    .card-outer:is(:hover, :focus, .active):not(.placeholder) .card-title {
-      color: #89b4fa !important;
-    }
-
-    .top-site-outer .search-topsite {
-      background-color: #89b4fa !important;
-    }
-
-    .compact-cards .card-outer .card-context .card-context-icon.icon-download {
-      fill: #a6e3a1 !important;
-    }
+    .icon { color: #89b4fa !important; }
+    .card-outer:is(:hover, :focus, .active):not(.placeholder) .card-title { color: #89b4fa !important; }
+    .top-site-outer .search-topsite { background-color: #89b4fa !important; }
+    .compact-cards .card-outer .card-context .card-context-icon.icon-download { fill: #a6e3a1 !important; }
   }
 
   @-moz-document url-prefix("about:preferences") {
@@ -51,21 +39,9 @@
       --in-content-box-background: #313244 !important;
       --zen-primary-color: #89b4fa !important;
     }
-
-    groupbox, moz-card {
-      background: #1e1e2e !important;
-    }
-
-    button,
-    groupbox menulist {
-      background: #313244 !important;
-      color: #cdd6f4 !important;
-    }
-
-    .main-content {
-      background-color: #11111b !important;
-    }
-
+    groupbox, moz-card { background: #1e1e2e !important; }
+    button, groupbox menulist { background: #313244 !important; color: #cdd6f4 !important; }
+    .main-content { background-color: #11111b !important; }
     .identity-color-blue { --identity-tab-color: #89b4fa !important; --identity-icon-color: #89b4fa !important; }
     .identity-color-turquoise { --identity-tab-color: #94e2d5 !important; --identity-icon-color: #94e2d5 !important; }
     .identity-color-green { --identity-tab-color: #a6e3a1 !important; --identity-icon-color: #a6e3a1 !important; }
@@ -96,10 +72,7 @@
       --in-content-primary-button-background: #45475a !important;
       --in-content-primary-button-text-color: #cdd6f4 !important;
     }
-
-    .card {
-      background-color: #313244 !important;
-    }
+    .card { background-color: #313244 !important; }
   }
 }
 
@@ -126,22 +99,10 @@
       --newtab-wordmark-color: #4c4f69 !important;
       --newtab-primary-action-background: #1e66f5 !important;
     }
-
-    .icon {
-      color: #1e66f5 !important;
-    }
-
-    .card-outer:is(:hover, :focus, .active):not(.placeholder) .card-title {
-      color: #1e66f5 !important;
-    }
-
-    .top-site-outer .search-topsite {
-      background-color: #1e66f5 !important;
-    }
-
-    .compact-cards .card-outer .card-context .card-context-icon.icon-download {
-      fill: #40a02b !important;
-    }
+    .icon { color: #1e66f5 !important; }
+    .card-outer:is(:hover, :focus, .active):not(.placeholder) .card-title { color: #1e66f5 !important; }
+    .top-site-outer .search-topsite { background-color: #1e66f5 !important; }
+    .compact-cards .card-outer .card-context .card-context-icon.icon-download { fill: #40a02b !important; }
   }
 
   @-moz-document url-prefix("about:preferences") {
@@ -154,21 +115,9 @@
       --in-content-box-background: #ccd0da !important;
       --zen-primary-color: #1e66f5 !important;
     }
-
-    groupbox, moz-card {
-      background: #eff1f5 !important;
-    }
-
-    button,
-    groupbox menulist {
-      background: #ccd0da !important;
-      color: #4c4f69 !important;
-    }
-
-    .main-content {
-      background-color: #dce0e8 !important;
-    }
-
+    groupbox, moz-card { background: #eff1f5 !important; }
+    button, groupbox menulist { background: #ccd0da !important; color: #4c4f69 !important; }
+    .main-content { background-color: #dce0e8 !important; }
     .identity-color-blue { --identity-tab-color: #1e66f5 !important; --identity-icon-color: #1e66f5 !important; }
     .identity-color-turquoise { --identity-tab-color: #179299 !important; --identity-icon-color: #179299 !important; }
     .identity-color-green { --identity-tab-color: #40a02b !important; --identity-icon-color: #40a02b !important; }
@@ -199,9 +148,6 @@
       --in-content-primary-button-background: #bcc0cc !important;
       --in-content-primary-button-text-color: #4c4f69 !important;
     }
-
-    .card {
-      background-color: #ccd0da !important;
-    }
+    .card { background-color: #ccd0da !important; }
   }
 }
