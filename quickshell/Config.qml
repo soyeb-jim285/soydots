@@ -478,6 +478,36 @@ QtObject {
         command: ["true"]
     }
 
+    // ===== Qt Sync =====
+
+    property var _qtSyncTimer: Timer {
+        interval: 100
+        onTriggered: config._doSyncQt()
+    }
+
+    function _syncQt() { _qtSyncTimer.restart(); }
+
+    function _doSyncQt() {
+        let kvTheme = darkMode ? "catppuccin-mocha-lavender" : "catppuccin-latte-lavender";
+        let qtColorFile = darkMode ? "catppuccin-mocha.conf" : "catppuccin-latte.conf";
+        let kvConf = "[General]\ntheme=" + kvTheme + "\n";
+        let qtConfPath = _homeDir + "/.config/qt6ct/qt6ct.conf";
+        let kvConfPath = _homeDir + "/.config/Kvantum/kvantum.kvconfig";
+        let qtColorPath = _homeDir + "/jimdots/qt6ct/colors/" + qtColorFile;
+
+        // Write Kvantum config
+        _qtKvWriteProc.command = ["bash", "-c", "echo '" + kvConf + "' > " + kvConfPath];
+        _qtKvWriteProc.running = true;
+
+        // Update qt6ct color_scheme_path using sed
+        _qtCtWriteProc.command = ["bash", "-c",
+            "sed -i 's|color_scheme_path=.*|color_scheme_path=" + qtColorPath + "|' " + qtConfPath];
+        _qtCtWriteProc.running = true;
+    }
+
+    property var _qtKvWriteProc: Process { command: ["true"] }
+    property var _qtCtWriteProc: Process { command: ["true"] }
+
     function _buildKittyTheme() {
         // Light mode (Latte) uses different mappings for color0/7/8/15 and cursor/selection
         let isLight = !darkMode;
