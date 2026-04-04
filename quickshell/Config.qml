@@ -347,7 +347,7 @@ QtObject {
     onPinkChanged: { _syncKitty(); _syncTmux(); }
     onTealChanged: { _syncKitty(); _syncTmux(); }
     onPeachChanged: { _syncKitty(); _syncTmux(); }
-    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); _syncZen(); }
+    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); }
     onMantleChanged: _syncTmux()
     onCrustChanged: _syncTmux()
     onSurface0Changed: _syncTmux()
@@ -508,37 +508,6 @@ QtObject {
 
     property var _qtKvWriteProc: Process { command: ["true"] }
     property var _qtCtWriteProc: Process { command: ["true"] }
-
-    // ===== Zen Browser Sync =====
-
-    property string _zenThemePath: _homeDir + "/.config/zen-theme.json"
-
-    property var _zenSyncTimer: Timer {
-        interval: 100
-        onTriggered: config._doSyncZen()
-    }
-
-    function _syncZen() { _zenSyncTimer.restart(); }
-
-    function _doSyncZen() {
-        let json = JSON.stringify({
-            mode: darkMode ? "dark" : "light",
-            colors: {
-                base: base, mantle: mantle, crust: crust,
-                surface0: surface0, surface1: surface1, surface2: surface2,
-                overlay0: overlay0, overlay1: overlay1,
-                text: text, subtext0: subtext0, subtext1: subtext1,
-                red: red, green: green, yellow: yellow,
-                blue: blue, mauve: mauve, pink: pink,
-                teal: teal, peach: peach, lavender: lavender
-            }
-        }, null, 2);
-        _zenWriteProc.command = ["bash", "-c",
-            "cat > " + _zenThemePath + " << 'ZENEOF'\n" + json + "\nZENEOF"];
-        _zenWriteProc.running = true;
-    }
-
-    property var _zenWriteProc: Process { command: ["true"] }
 
     function _buildKittyTheme() {
         // Light mode (Latte) uses different mappings for color0/7/8/15 and cursor/selection
