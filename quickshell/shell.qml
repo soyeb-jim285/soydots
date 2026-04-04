@@ -33,6 +33,13 @@ ShellRoot {
         Quill.Theme.transparencyLevel = Qt.binding(() => Config.transparencyLevel)
     }
 
+    IpcHandler {
+        target: "theme"
+        function toggle(): void {
+            Config.toggleDarkMode();
+        }
+    }
+
     AppLauncher {}
     StatusBar { notifUnreadCount: notifs.unreadCount; dndEnabled: notifCenter.dndEnabled }
     ClipboardHistory {}
