@@ -1,0 +1,47 @@
+/* Catppuccin Latte Blue — userContent.css */
+
+@-moz-document url-prefix("about:") {
+  :root {
+    --in-content-page-color: #4c4f69 !important;
+    --color-accent-primary: #1e66f5 !important;
+    --color-accent-primary-hover: rgb(56, 119, 246) !important;
+    --color-accent-primary-active: rgb(31, 49, 245) !important;
+    background-color: #eff1f5 !important;
+    --in-content-page-background: #eff1f5 !important;
+  }
+}
+
+@-moz-document url("about:newtab"), url("about:home") {
+  :root {
+    --newtab-background-color: #eff1f5 !important;
+    --newtab-background-color-secondary: #ccd0da !important;
+    --newtab-element-hover-color: #ccd0da !important;
+    --newtab-text-primary-color: #4c4f69 !important;
+    --newtab-wordmark-color: #4c4f69 !important;
+    --newtab-primary-action-background: #1e66f5 !important;
+  }
+  .icon { color: #1e66f5 !important; }
+  .card-outer:is(:hover, :focus, .active):not(.placeholder) .card-title { color: #1e66f5 !important; }
+  .top-site-outer .search-topsite { background-color: #1e66f5 !important; }
+}
+
+@-moz-document url-prefix("about:preferences") {
+  :root {
+    --zen-colors-tertiary: #e6e9ef !important;
+    --in-content-text-color: #4c4f69 !important;
+    --link-color: #1e66f5 !important;
+    --zen-colors-primary: #ccd0da !important;
+    --in-content-box-background: #ccd0da !important;
+    --zen-primary-color: #1e66f5 !important;
+  }
+  groupbox, moz-card { background: #eff1f5 !important; }
+  button, groupbox menulist { background: #ccd0da !important; color: #4c4f69 !important; }
+  .main-content { background-color: #dce0e8 !important; }
+}
+
+@-moz-document url-prefix("about:addons") {
+  :root {
+    --zen-dark-color-mix-base: #e6e9ef !important;
+    --background-color-box: #eff1f5 !important;
+  }
+}
