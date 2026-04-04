@@ -1,0 +1,7 @@
+{
+  "name": "quickshell_theme",
+  "description": "Quickshell theme sync native messaging host",
+  "path": "/home/jim/jimdots/zen/theme-sync/native-host/quickshell-theme-host.py",
+  "type": "stdio",
+  "allowed_extensions": ["quickshell-theme-sync@jimdots"]
+}
