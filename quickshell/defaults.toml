@@ -36,6 +36,7 @@ width = 620
 base = "#1e1e2e"
 blue = "#89b4fa"
 crust = "#11111b"
+darkMode = true
 fontFamily = "Maple Mono"
 fontSize = 13
 fontSizeIcon = 16

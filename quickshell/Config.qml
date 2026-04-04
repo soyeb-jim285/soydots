@@ -144,7 +144,8 @@ QtObject {
                 mauve: mauve, pink: pink, teal: teal, peach: peach, lavender: lavender,
                 fontFamily: fontFamily, iconFont: iconFont,
                 fontSizeSmall: fontSizeSmall, fontSize: fontSize, fontSizeIcon: fontSizeIcon,
-                transparencyEnabled: transparencyEnabled, transparencyLevel: transparencyLevel
+                transparencyEnabled: transparencyEnabled, transparencyLevel: transparencyLevel,
+                darkMode: darkMode
             },
             transparency: {
                 bar: _data?.transparency?.bar ?? -1,
@@ -832,6 +833,41 @@ unfocusedWidth = 10'
     property string teal: _data?.appearance?.teal ?? "#94e2d5"
     property string peach: _data?.appearance?.peach ?? "#fab387"
     property string lavender: _data?.appearance?.lavender ?? "#b4befe"
+
+    property bool darkMode: _data?.appearance?.darkMode ?? true
+
+    // Catppuccin Latte palette for light mode
+    readonly property var _lattePalette: ({
+        base: "#eff1f5", mantle: "#e6e9ef", crust: "#dce0e8",
+        surface0: "#ccd0da", surface1: "#bcc0cc", surface2: "#acb0be",
+        overlay0: "#9ca0b0", overlay1: "#8c8fa1",
+        text: "#4c4f69", subtext0: "#6c6f85", subtext1: "#5c5f77",
+        red: "#d20f39", green: "#40a02b", yellow: "#df8e1d",
+        blue: "#1e66f5", mauve: "#8839ef", pink: "#ea76cb",
+        teal: "#179299", peach: "#fe640b", lavender: "#7287fd"
+    })
+
+    // Catppuccin Mocha palette for dark mode
+    readonly property var _mochaPalette: ({
+        base: "#1e1e2e", mantle: "#181825", crust: "#11111b",
+        surface0: "#313244", surface1: "#45475a", surface2: "#585b70",
+        overlay0: "#6c7086", overlay1: "#7f849c",
+        text: "#cdd6f4", subtext0: "#a6adc8", subtext1: "#bac2de",
+        red: "#f38ba8", green: "#a6e3a1", yellow: "#f9e2af",
+        blue: "#89b4fa", mauve: "#cba6f7", pink: "#f5c2e7",
+        teal: "#94e2d5", peach: "#fab387", lavender: "#b4befe"
+    })
+
+    function toggleDarkMode() {
+        let newMode = !darkMode;
+        let palette = newMode ? _mochaPalette : _lattePalette;
+        let colors = ["base", "mantle", "crust", "surface0", "surface1", "surface2",
+                      "overlay0", "overlay1", "text", "subtext0", "subtext1",
+                      "red", "green", "yellow", "blue", "mauve", "pink", "teal", "peach", "lavender"];
+        for (let c of colors)
+            set("appearance", c, palette[c]);
+        set("appearance", "darkMode", newMode);
+    }
 
     property string fontFamily: _data?.appearance?.fontFamily ?? "Maple Mono"
     property string iconFont: _data?.appearance?.iconFont ?? "Maple Mono NF" // Legacy: only used by IntegrationsPage tmux preview
