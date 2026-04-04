@@ -449,7 +449,7 @@ QtObject {
             config._kittyApplyProc.command = ["bash", "-c",
                 "for sock in $(ss -lx 2>/dev/null | grep -oP '@kitty-\\d+'); do " +
                 "kitty @ --to unix:$sock set-colors --all --configured " + config._kittyThemePath + " 2>/dev/null; " +
-                "kitty @ --to unix:$sock set-background-opacity " + config.kittyOpacity + " 2>/dev/null; " +
+                "kitty @ --to unix:$sock set-background-opacity " + (config.darkMode ? config.kittyOpacity : 1.0) + " 2>/dev/null; " +
                 "done"];
             config._kittyApplyProc.running = true;
         }
