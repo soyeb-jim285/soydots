@@ -521,38 +521,25 @@ QtObject {
 
     function _syncZen() { _zenSyncTimer.restart(); }
 
-    property string _zenThemePath: _homeDir + "/.config/zen-theme.json"
-
     function _doSyncZen() {
         let mode = darkMode ? "mocha" : "latte";
-        // Copy the correct theme CSS into all Zen profile chrome dirs (takes effect on restart)
+        // 0=dark, 1=light for website appearance pref
+        let contentOverride = darkMode ? "0" : "1";
+
+        // Copy the correct theme CSS into all Zen profile chrome dirs (hot-reloads automatically)
+        // Also update the website appearance pref in user.js
         _zenCssWriteProc.command = ["bash", "-c",
             "for d in " + _zenProfileDir + "/*/chrome; do " +
             "[ -d \"$d\" ] && cp " + _zenChromeSource + "/userChrome-" + mode + ".css \"$d/userChrome.css\" && " +
             "cp " + _zenChromeSource + "/userContent-" + mode + ".css \"$d/userContent.css\"; " +
+            "done; " +
+            "for uj in " + _zenProfileDir + "/*/user.js; do " +
+            "[ -f \"$uj\" ] && sed -i 's/layout.css.prefers-color-scheme.content-override\", [0-9]*/layout.css.prefers-color-scheme.content-override\", " + contentOverride + "/' \"$uj\"; " +
             "done"];
         _zenCssWriteProc.running = true;
-
-        // Write JSON for native messaging host (extension applies theme in real-time)
-        let json = JSON.stringify({
-            mode: darkMode ? "dark" : "light",
-            colors: {
-                base: base, mantle: mantle, crust: crust,
-                surface0: surface0, surface1: surface1, surface2: surface2,
-                overlay0: overlay0, overlay1: overlay1,
-                text: text, subtext0: subtext0, subtext1: subtext1,
-                red: red, green: green, yellow: yellow,
-                blue: blue, mauve: mauve, pink: pink,
-                teal: teal, peach: peach, lavender: lavender
-            }
-        }, null, 2);
-        _zenJsonWriteProc.command = ["bash", "-c",
-            "cat > " + _zenThemePath + " << 'ZENEOF'\n" + json + "\nZENEOF"];
-        _zenJsonWriteProc.running = true;
     }
 
     property var _zenCssWriteProc: Process { command: ["true"] }
-    property var _zenJsonWriteProc: Process { command: ["true"] }
 
     function _buildKittyTheme() {
         // Light mode (Latte) uses different mappings for color0/7/8/15 and cursor/selection
