@@ -459,6 +459,25 @@ QtObject {
         command: ["true"]
     }
 
+    // ===== GTK Sync =====
+
+    property var _gtkSyncTimer: Timer {
+        interval: 100
+        onTriggered: config._doSyncGtk()
+    }
+
+    function _syncGtk() { _gtkSyncTimer.restart(); }
+
+    function _doSyncGtk() {
+        let scheme = darkMode ? "prefer-dark" : "prefer-light";
+        _gtkProc.command = ["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", scheme];
+        _gtkProc.running = true;
+    }
+
+    property var _gtkProc: Process {
+        command: ["true"]
+    }
+
     function _buildKittyTheme() {
         // Light mode (Latte) uses different mappings for color0/7/8/15 and cursor/selection
         let isLight = !darkMode;
