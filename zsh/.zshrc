@@ -29,6 +29,7 @@ bindkey '^K' kill-line
 bindkey '^Y' yank
 bindkey '^?' backward-delete-char   # backspace
 bindkey '^H' backward-delete-char
+bindkey '\e\x7f' backward-kill-word  # ctrl+backspace (via kitty remap)
 
 # ── Completion ───────────────────────────────────────────
 autoload -Uz compinit
@@ -85,7 +86,7 @@ export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-ran
 export FZF_ALT_C_OPTS="--preview 'eza --icons --color=always --tree --level=2 {}'"
 
 # ── zoxide ───────────────────────────────────────────────
-eval "$(zoxide init zsh)"
+eval "$(zoxide init zsh --cmd cd)"
 
 # ── Aliases ──────────────────────────────────────────────
 alias ls='eza --icons --color=always'
@@ -100,6 +101,7 @@ alias gs='git status'
 alias gd='git diff'
 alias gl='git log --oneline -20'
 alias gp='git push'
+alias pushfm='git push && ~/hyprfm/scripts/sync-aur.sh'
 
 # ── Starship Prompt ──────────────────────────────────────
 eval "$(starship init zsh)"
