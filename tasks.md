@@ -2,7 +2,7 @@
 
 ## Installed
 - yay
-- hyprpolkitagent (polkit authentication agent for Hyprland)
+- quillpolkit (custom polkit agent, fork of hyprpolkitagent with Catppuccin Mocha UI)
 - git
 - base-devel
 - zen-browser-bin
@@ -33,6 +33,10 @@
 - zsh (default shell)
 - zsh-autosuggestions, zsh-syntax-highlighting, zsh-completions (zsh plugins)
 - starship (cross-shell prompt)
+- python-gobject (Python GObject introspection bindings)
+- qt6ct (Qt6 Configuration Utility, for theming Qt apps)
+- kvantum (Qt theme engine)
+- kvantum-theme-catppuccin (Catppuccin Mocha Kvantum theme)
 - zoxide (smart cd)
 - eza (modern ls with icons)
 - bat (cat with syntax highlighting)
@@ -143,6 +147,12 @@
   - LayoutSection showcase: Card variants (with/without header, nested content), Separator orientations, Tabs with content switching, Collapsible nesting, ScrollableList with items and empty state
   - FeedbackSection showcase: Tooltip on IconButtons, Badge text/dot variants, ProgressBar fixed/interactive/indeterminate/variants, Spinner sizes and colors
   - DisplaySection showcase: Icon grid (3 sizes, 5 colors), Label variants (heading/body/caption/overline), Avatar sizes and rounded/square
+- quill-polkit — custom polkit authentication agent:
+  - Python D-Bus daemon (PolkitAgent.Listener + PolkitAgent.Session)
+  - Quickshell QML overlay (PanelWindow, Quill components, blur)
+  - Catppuccin Mocha themed, matches desktop shell
+  - Unix socket IPC for secure password transfer
+  - Max 3 retry attempts with shake animation on failure
 - zsh — Catppuccin Mocha themed with:
   - Vi mode with restored emacs insert-mode bindings (Ctrl+A/E/W/U/K)
   - Shared history (50k entries, deduped, ignore space-prefixed)
@@ -156,6 +166,9 @@
   - Starship prompt: Arch icon → directory → git branch/status → cmd duration, vi mode indicator
 - xdg-open: kitty-nvim.desktop entry for opening text/code files in Neovim inside Kitty (set as default for text/plain)
 - hyprland layer rules for blur on all quickshell namespaces
+- qt6ct — Kvantum style, Catppuccin Mocha palette, Maple Mono font
+- Kvantum — catppuccin-mocha-lavender theme
+- hyprpolkitagent — dark Catppuccin Mocha theme via qt6ct + Kvantum + application-style.conf (roundness=3, border_width=1), systemd override for QT_QPA_PLATFORMTHEME=qt6ct (replaced by quill-polkit)
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
 - Zen Browser — live theme sync from Quickshell appearance:
   - Switches between Catppuccin Latte and Mocha when theme is toggled from `Meta+Shift+T` or Quickshell settings
@@ -193,3 +206,6 @@ All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `tmux/` -> `~/.config/tmux` (tmux.conf)
 - `zsh/` -> `~/.zshrc`, `~/.zshenv`, `~/.config/starship.toml` (individual symlinks)
 - `applications/kitty-nvim.desktop` -> `~/.local/share/applications/kitty-nvim.desktop`
+- `qt6ct/` -> `~/.config/qt6ct` (qt6ct.conf, colors/catppuccin-mocha.conf)
+- `Kvantum/` -> `~/.config/Kvantum` (kvantum.kvconfig)
+- `quickshell/quill-polkit/` — git submodule (polkit agent repo)

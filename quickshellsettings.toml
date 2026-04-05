@@ -33,6 +33,7 @@ popupSlideDuration = 250
 base = "#1e1e2e"
 blue = "#89b4fa"
 crust = "#11111b"
+darkMode = true
 fontFamily = "Maple Mono"
 fontSize = 13
 fontSizeIcon = 16
@@ -115,6 +116,18 @@ gapsIn = 5
 gapsOut = 8
 rounding = 8
 syncColors = true
+
+[idle]
+dimEnabled = true
+dimTimeout = 180
+dpmsEnabled = true
+dpmsTimeout = 330
+hibernateDelay = 7200
+hibernateEnabled = true
+lockEnabled = true
+lockTimeout = 300
+suspendEnabled = true
+suspendTimeout = 1200
 
 [kitty]
 opacity = 0.45
