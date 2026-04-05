@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Quickshell Theme Sync",
-  "version": "1.0",
+  "version": "2.0",
   "description": "Syncs Catppuccin theme from quickshell dotfiles",
   "permissions": ["theme", "nativeMessaging", "browserSettings"],
   "background": {
@@ -10,6 +10,16 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "quickshell-theme-sync@jimdots"
+    }
+  },
+  "experiment_apis": {
+    "themeHelper": {
+      "schema": "schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "api.js",
+        "paths": [["themeHelper"]]
+      }
     }
   }
 }

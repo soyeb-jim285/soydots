@@ -19,6 +19,7 @@ EOF
 sudo tee "$ZEN_DIR/autoconfig.cfg" > /dev/null << 'EOF'
 // First line must be a comment
 defaultPref("xpinstall.signatures.required", false);
+defaultPref("extensions.experiments.enabled", true);
 EOF
 
 echo "   Done"
@@ -26,7 +27,7 @@ echo "   Done"
 # 2. Build extension
 echo "[2/5] Building extension..."
 cd "$SCRIPT_DIR/theme-sync"
-zip -j "$SCRIPT_DIR/theme-sync.xpi" manifest.json background.js
+zip -j "$SCRIPT_DIR/theme-sync.xpi" manifest.json background.js api.js schema.json
 echo "   Built theme-sync.xpi"
 
 # 3. Install extension into profiles

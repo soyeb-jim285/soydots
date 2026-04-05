@@ -1,0 +1,18 @@
+[
+  {
+    "namespace": "themeHelper",
+    "functions": [
+      {
+        "name": "applyCSS",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "cssText",
+            "type": "string"
+          }
+        ]
+      }
+    ]
+  }
+]
