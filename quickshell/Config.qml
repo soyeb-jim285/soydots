@@ -124,6 +124,7 @@ QtObject {
     function _reload() {
         let text = _fileView.text();
         _data = parseTOML(text);
+        Qt.callLater(function() { config._syncZen(); });
     }
 
     // Debounced save
@@ -292,6 +293,7 @@ QtObject {
         let keys = Object.keys(_data);
         for (let k of keys) copy[k] = _data[k];
         _data = copy;
+        if (section === "appearance") _syncZen();
         save();
     }
 
@@ -508,6 +510,85 @@ QtObject {
 
     property var _qtKvWriteProc: Process { command: ["true"] }
     property var _qtCtWriteProc: Process { command: ["true"] }
+
+    // ===== Zen Sync =====
+
+    property string _zenThemePath: _homeDir + "/.config/zen-live-theme.json"
+
+    property var _zenSyncTimer: Timer {
+        interval: 100
+        onTriggered: config._doSyncZen()
+    }
+
+    function _syncZen() { _zenSyncTimer.restart(); }
+
+    function _buildZenThemePayload() {
+        let mode = darkMode ? "dark" : "light";
+        let selectedText = base;
+        return JSON.stringify({
+            mode: mode,
+            palette: {
+                base: base, mantle: mantle, crust: crust,
+                surface0: surface0, surface1: surface1, surface2: surface2,
+                overlay0: overlay0, overlay1: overlay1,
+                text: text, subtext0: subtext0, subtext1: subtext1,
+                red: red, green: green, yellow: yellow,
+                blue: blue, mauve: mauve, pink: pink,
+                teal: teal, peach: peach, lavender: lavender
+            },
+            theme: {
+                colors: {
+                    frame: crust,
+                    frame_inactive: mantle,
+                    tab_background_text: text,
+                    toolbar: surface0,
+                    toolbar_text: text,
+                    bookmark_text: text,
+                    icons: blue,
+                    icons_attention: peach,
+                    tab_selected: base,
+                    tab_text: text,
+                    tab_line: blue,
+                    tab_loading: blue,
+                    toolbar_field: base,
+                    toolbar_field_text: text,
+                    toolbar_field_border: surface1,
+                    toolbar_field_focus: surface0,
+                    toolbar_field_text_focus: text,
+                    toolbar_top_separator: crust,
+                    toolbar_bottom_separator: crust,
+                    button_background_hover: surface1,
+                    button_background_active: surface2,
+                    popup: surface0,
+                    popup_text: text,
+                    popup_border: surface1,
+                    popup_highlight: blue,
+                    popup_highlight_text: selectedText,
+                    ntp_background: base,
+                    ntp_card_background: surface0,
+                    ntp_text: text,
+                    sidebar: mantle,
+                    sidebar_text: text,
+                    sidebar_border: surface0,
+                    sidebar_highlight: blue,
+                    sidebar_highlight_text: selectedText
+                },
+                properties: {
+                    color_scheme: mode,
+                    content_color_scheme: mode
+                }
+            }
+        }, null, 2);
+    }
+
+    function _doSyncZen() {
+        let payload = _buildZenThemePayload();
+        _zenWriteProc.command = ["bash", "-c",
+            "cat > " + _zenThemePath + " << 'ZENEOF'\n" + payload + "\nZENEOF"];
+        _zenWriteProc.running = true;
+    }
+
+    property var _zenWriteProc: Process { command: ["true"] }
 
     function _buildKittyTheme() {
         // Light mode (Latte) uses different mappings for color0/7/8/15 and cursor/selection

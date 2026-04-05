@@ -157,6 +157,10 @@
 - xdg-open: kitty-nvim.desktop entry for opening text/code files in Neovim inside Kitty (set as default for text/plain)
 - hyprland layer rules for blur on all quickshell namespaces
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
+- Zen Browser — live theme sync from Quickshell appearance:
+  - Switches between Catppuccin Latte and Mocha when theme is toggled from `Meta+Shift+T` or Quickshell settings
+  - Syncs Zen light/dark mode, built-in light/dark theme selection, accent color, and browser/sidebar colors
+  - Hot-reloads from `~/.config/zen-live-theme.json` after the one-time autoconfig setup
 
 ## System Setup Required
 These commands must be run manually for full functionality (not managed by dotfiles):
@@ -173,6 +177,11 @@ These commands must be run manually for full functionality (not managed by dotfi
 - `~/.zshrc` → `~/jimdots/zsh/.zshrc`
 - `~/.zshenv` → `~/jimdots/zsh/.zshenv`
 - `~/.config/starship.toml` → `~/jimdots/zsh/starship.toml`
+
+### Zen Browser Theme Sync
+- Run `~/jimdots/zen/setup-live-theme-sync.sh`
+- Restart Zen once after installing the autoconfig bootstrap
+- Re-run the setup script if `~/jimdots` moves to a different path
 
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
