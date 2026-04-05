@@ -347,7 +347,7 @@ QtObject {
     onPinkChanged: { _syncKitty(); _syncTmux(); }
     onTealChanged: { _syncKitty(); _syncTmux(); }
     onPeachChanged: { _syncKitty(); _syncTmux(); }
-    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); _syncZen(); }
+    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); }
     onMantleChanged: _syncTmux()
     onCrustChanged: _syncTmux()
     onSurface0Changed: _syncTmux()
@@ -508,51 +508,6 @@ QtObject {
 
     property var _qtKvWriteProc: Process { command: ["true"] }
     property var _qtCtWriteProc: Process { command: ["true"] }
-
-    // ===== Zen Browser Sync =====
-
-    property string _zenProfileDir: _homeDir + "/.config/zen"
-    property string _zenChromeSource: _homeDir + "/jimdots/zen/chrome"
-
-    property var _zenSyncTimer: Timer {
-        interval: 200
-        onTriggered: config._doSyncZen()
-    }
-
-    function _syncZen() { _zenSyncTimer.restart(); }
-
-    property string _zenThemePath: _homeDir + "/.config/zen-theme.json"
-
-    function _doSyncZen() {
-        let mode = darkMode ? "mocha" : "latte";
-        // Copy the correct theme CSS into all Zen profile chrome dirs (takes effect on restart)
-        _zenCssWriteProc.command = ["bash", "-c",
-            "for d in " + _zenProfileDir + "/*/chrome; do " +
-            "[ -d \"$d\" ] && cp " + _zenChromeSource + "/userChrome-" + mode + ".css \"$d/userChrome.css\" && " +
-            "cp " + _zenChromeSource + "/userContent-" + mode + ".css \"$d/userContent.css\"; " +
-            "done"];
-        _zenCssWriteProc.running = true;
-
-        // Write JSON for native messaging host → extension applies in real-time
-        let json = JSON.stringify({
-            mode: darkMode ? "dark" : "light",
-            colors: {
-                base: base, mantle: mantle, crust: crust,
-                surface0: surface0, surface1: surface1, surface2: surface2,
-                overlay0: overlay0, overlay1: overlay1,
-                text: text, subtext0: subtext0, subtext1: subtext1,
-                red: red, green: green, yellow: yellow,
-                blue: blue, mauve: mauve, pink: pink,
-                teal: teal, peach: peach, lavender: lavender
-            }
-        }, null, 2);
-        _zenJsonWriteProc.command = ["bash", "-c",
-            "cat > " + _zenThemePath + " << 'ZENEOF'\n" + json + "\nZENEOF"];
-        _zenJsonWriteProc.running = true;
-    }
-
-    property var _zenCssWriteProc: Process { command: ["true"] }
-    property var _zenJsonWriteProc: Process { command: ["true"] }
 
     function _buildKittyTheme() {
         // Light mode (Latte) uses different mappings for color0/7/8/15 and cursor/selection
