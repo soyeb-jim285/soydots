@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "=== Zen Browser Theme Setup ==="
 
 # 1. Autoconfig for unsigned extensions
-echo "[1/4] Setting up autoconfig..."
+echo "[1/5] Setting up autoconfig..."
 sudo mkdir -p "$ZEN_DIR/defaults/pref"
 
 sudo tee "$ZEN_DIR/defaults/pref/autoconfig.js" > /dev/null << 'EOF'
@@ -24,33 +24,60 @@ EOF
 echo "   Done"
 
 # 2. Build extension
-echo "[2/4] Building extension..."
+echo "[2/5] Building extension..."
 cd "$SCRIPT_DIR/theme-sync"
 zip -j "$SCRIPT_DIR/theme-sync.xpi" manifest.json background.js
 echo "   Built theme-sync.xpi"
 
-# 3. Install into profiles
-echo "[3/4] Installing into Zen profiles..."
+# 3. Install extension into profiles
+echo "[3/5] Installing extension into Zen profiles..."
 for profile in "$ZEN_PROFILE_DIR"/*.default* "$ZEN_PROFILE_DIR"/*.Default*; do
     if [ -d "$profile" ]; then
         mkdir -p "$profile/extensions"
         cp "$SCRIPT_DIR/theme-sync.xpi" "$profile/extensions/quickshell-theme-sync@jimdots.xpi"
+        echo "   Extension installed to: $(basename "$profile")"
+    fi
+done
+
+# 4. Install CSS theme files into profiles
+echo "[4/5] Installing CSS theme files..."
+for profile in "$ZEN_PROFILE_DIR"/*.default* "$ZEN_PROFILE_DIR"/*.Default*; do
+    if [ -d "$profile" ]; then
+        target="$profile/chrome"
+        mkdir -p "$target"
+
+        # Copy all variants
+        cp "$SCRIPT_DIR/chrome/userChrome-mocha.css" "$target/"
+        cp "$SCRIPT_DIR/chrome/userChrome-latte.css" "$target/"
+        cp "$SCRIPT_DIR/chrome/userContent-mocha.css" "$target/"
+        cp "$SCRIPT_DIR/chrome/userContent-latte.css" "$target/"
+
+        # Default to mocha (dark)
+        cp "$SCRIPT_DIR/chrome/userChrome-mocha.css" "$target/userChrome.css"
+        cp "$SCRIPT_DIR/chrome/userContent-mocha.css" "$target/userContent.css"
 
         # Set up user.js prefs
         user_js="$profile/user.js"
         touch "$user_js"
 
-        # Website appearance = automatic (follows system)
-        grep -q "prefers-color-scheme.content-override" "$user_js" 2>/dev/null && \
-            sed -i 's/.*prefers-color-scheme.content-override.*/user_pref("layout.css.prefers-color-scheme.content-override", 2);/' "$user_js" || \
-            echo 'user_pref("layout.css.prefers-color-scheme.content-override", 2);' >> "$user_js"
+        # Enable legacy stylesheets (for userChrome/userContent CSS)
+        pref="toolkit.legacyUserProfileCustomizations.stylesheets"
+        grep -q "$pref" "$user_js" 2>/dev/null && \
+            sed -i "s/.*$pref.*/user_pref(\"$pref\", true);/" "$user_js" || \
+            echo "user_pref(\"$pref\", true);" >> "$user_js"
 
-        echo "   Installed to: $(basename "$profile")"
+        # Website appearance = automatic (follows system)
+        pref="layout.css.prefers-color-scheme.content-override"
+        grep -q "$pref" "$user_js" 2>/dev/null && \
+            sed -i "s/.*$pref.*/user_pref(\"$pref\", 2);/" "$user_js" || \
+            echo "user_pref(\"$pref\", 2);" >> "$user_js"
+
+        echo "   CSS + prefs installed to: $(basename "$profile")"
     fi
 done
 
-# 4. Set up native messaging host
-echo "[4/4] Setting up native messaging host..."
+# 5. Set up native messaging host
+echo "[5/5] Setting up native messaging host..."
 mkdir -p "$HOME/.mozilla/native-messaging-hosts"
 cat > "$HOME/.mozilla/native-messaging-hosts/quickshell_theme.json" << EOF
 {
@@ -66,4 +93,12 @@ echo "   Done"
 
 echo ""
 echo "=== All done! Restart Zen browser. ==="
-echo "    Check about:addons to verify the extension loaded."
+echo ""
+echo "What switches in real-time (via extension):"
+echo "  - Toolbar, sidebar, tabs, popup colors"
+echo "  - Website appearance (dark/light)"
+echo ""
+echo "What needs Zen restart (via CSS):"
+echo "  - Settings page styling"
+echo "  - Internal page (about:) styling"
+echo "  - Zen-specific UI elements"
