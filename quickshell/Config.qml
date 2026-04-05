@@ -523,18 +523,13 @@ QtObject {
 
     function _doSyncZen() {
         let mode = darkMode ? "mocha" : "latte";
-        // 0=dark, 1=light for website appearance pref
-        let contentOverride = darkMode ? "0" : "1";
-
-        // Copy the correct theme CSS into all Zen profile chrome dirs (hot-reloads automatically)
-        // Also update the website appearance pref in user.js
+        // Copy the correct theme CSS into all Zen profile chrome dirs
+        // Website appearance is handled by gsettings (prefer-dark/prefer-light)
+        // with layout.css.prefers-color-scheme.content-override set to 2 (automatic)
         _zenCssWriteProc.command = ["bash", "-c",
             "for d in " + _zenProfileDir + "/*/chrome; do " +
             "[ -d \"$d\" ] && cp " + _zenChromeSource + "/userChrome-" + mode + ".css \"$d/userChrome.css\" && " +
             "cp " + _zenChromeSource + "/userContent-" + mode + ".css \"$d/userContent.css\"; " +
-            "done; " +
-            "for uj in " + _zenProfileDir + "/*/user.js; do " +
-            "[ -f \"$uj\" ] && sed -i 's/layout.css.prefers-color-scheme.content-override\", [0-9]*/layout.css.prefers-color-scheme.content-override\", " + contentOverride + "/' \"$uj\"; " +
             "done"];
         _zenCssWriteProc.running = true;
     }
