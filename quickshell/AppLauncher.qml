@@ -17,6 +17,69 @@ Scope {
     // Filter out system/network tools that shouldn't appear in a launcher
     property var hiddenApps: Config.launcherHiddenApps
 
+    // Sequential match score: chars in query appear in order in target
+    // Returns 0-1 score, 0 means no match
+    function sequentialScore(query, target) {
+        if (query.length === 0) return 0;
+        let qi = 0;
+        let score = 0;
+        let consecutive = 0;
+        let firstMatch = -1;
+
+        for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+            if (target[ti] === query[qi]) {
+                if (firstMatch < 0) firstMatch = ti;
+                consecutive++;
+                score += consecutive;
+                if (ti === 0 || target[ti - 1] === ' ' || target[ti - 1] === '-')
+                    score += 3;
+                qi++;
+            } else {
+                consecutive = 0;
+            }
+        }
+        if (qi < query.length) return 0;
+        let maxScore = query.length * (query.length + 1) / 2 + 3 * query.length;
+        return score / maxScore;
+    }
+
+    function ngrams(str, n) {
+        let set = new Set();
+        for (let i = 0; i <= str.length - n; i++)
+            set.add(str.substring(i, i + n));
+        return set;
+    }
+
+    function ngramSimilarity(query, target) {
+        let n = query.length <= 3 ? 2 : 3;
+        if (query.length < n || target.length < n) return 0;
+        let qSet = ngrams(query, n);
+        let tSet = ngrams(target, n);
+        let intersection = 0;
+        qSet.forEach(g => { if (tSet.has(g)) intersection++; });
+        let union = qSet.size + tSet.size - intersection;
+        return union === 0 ? 0 : intersection / union;
+    }
+
+    function fuzzyScore(query, target) {
+        let seq = sequentialScore(query, target);
+        let ngram = ngramSimilarity(query, target);
+        return seq * 0.7 + ngram * 0.3;
+    }
+
+    function scoreApp(app, query) {
+        let name = (app.name ?? "").toLowerCase();
+        let generic = (app.genericName ?? "").toLowerCase();
+        let comment = (app.comment ?? "").toLowerCase();
+        let keywords = (app.keywords ?? []).join(" ").toLowerCase();
+        return Math.max(
+            fuzzyScore(query, name),
+            fuzzyScore(query, generic),
+            fuzzyScore(query, comment),
+            fuzzyScore(query, keywords)
+        );
+    }
+
     property list<DesktopEntry> allApps: {
         let apps = Array.from(DesktopEntries.applications.values);
         let filtered = apps.filter(app => {
@@ -39,14 +102,10 @@ Scope {
     property var filteredApps: {
         let query = searchText.toLowerCase().trim();
         if (query === "") return allApps;
-        return allApps.filter(app => {
-            let name = (app.name ?? "").toLowerCase();
-            let generic = (app.genericName ?? "").toLowerCase();
-            let comment = (app.comment ?? "").toLowerCase();
-            let keywords = (app.keywords ?? []).join(" ").toLowerCase();
-            return name.includes(query) || generic.includes(query) ||
-                   comment.includes(query) || keywords.includes(query);
-        });
+        let scored = allApps.map(app => ({ app: app, score: scoreApp(app, query) }));
+        scored = scored.filter(item => item.score >= 0.1);
+        scored.sort((a, b) => b.score - a.score);
+        return scored.map(item => item.app);
     }
 
     function toggle() {
