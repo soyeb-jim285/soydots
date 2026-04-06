@@ -30,8 +30,12 @@ Scope {
     }
 
     function paste(item) {
-        decodeProc.itemId = item.id;
-        decodeProc.running = true;
+        if (decodeProc.running) {
+            decodeProc.pendingId = item.id;
+        } else {
+            decodeProc.itemId = item.id;
+            decodeProc.running = true;
+        }
         root.visible = false;
     }
 
@@ -71,6 +75,14 @@ Scope {
         id: decodeProc
         property string itemId: ""
         command: ["bash", "-c", "cliphist decode " + itemId + " | wl-copy"]
+        onRunningChanged: {
+            if (!running && pendingId !== "") {
+                itemId = pendingId;
+                pendingId = "";
+                running = true;
+            }
+        }
+        property string pendingId: ""
     }
 
     LazyLoader {
@@ -190,9 +202,13 @@ Scope {
                         spacing: 2
                         model: root.filteredItems
                         currentIndex: 0
+                        property bool keyboardNav: false
+                        property real lastMouseX: -1
+                        property real lastMouseY: -1
 
                         highlightFollowsCurrentItem: false
                         onCurrentIndexChanged: {
+                            console.log("[CLIP LIST] currentIndex changed to " + currentIndex + " keyboardNav=" + keyboardNav);
                             if (currentItem)
                                 positionViewAtIndex(currentIndex, ListView.Contain);
                         }
@@ -228,17 +244,33 @@ Scope {
                             color: "transparent"
                             z: 1
 
+                            // Item number
+                            Text {
+                                id: itemNumber
+                                anchors.left: parent.left
+                                anchors.leftMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 20
+                                horizontalAlignment: Text.AlignRight
+                                text: clipItem.index + 1
+                                color: Theme.overlay0
+                                font.pixelSize: 10
+                                font.family: Theme.fontFamily
+                            }
+
                             // Image preview
                             Image {
+                                id: thumbImage
                                 visible: clipItem.modelData.isImage
-                                anchors.left: parent.left
-                                anchors.leftMargin: 12
+                                anchors.left: itemNumber.right
+                                anchors.leftMargin: 8
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 60
                                 height: 60
                                 fillMode: Image.PreserveAspectFit
-                                source: clipItem.modelData.isImage ? "file:///tmp/cliphist-thumb-" + clipItem.modelData.id + ".png" : ""
+                                source: ""
                                 sourceSize: Qt.size(120, 120)
+                                cache: false
 
                                 Component.onCompleted: {
                                     if (clipItem.modelData.isImage) {
@@ -251,14 +283,19 @@ Scope {
                                     id: thumbProc
                                     property string itemId
                                     command: ["bash", "-c", "cliphist decode " + itemId + " > /tmp/cliphist-thumb-" + itemId + ".png"]
+                                    onRunningChanged: {
+                                        if (!running && itemId !== "") {
+                                            thumbImage.source = "file:///tmp/cliphist-thumb-" + itemId + ".png";
+                                        }
+                                    }
                                 }
                             }
 
                             // Image label
                             Row {
                                 visible: clipItem.modelData.isImage
-                                anchors.left: parent.left
-                                anchors.leftMargin: 84
+                                anchors.left: itemNumber.right
+                                anchors.leftMargin: 76
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 6
 
@@ -279,9 +316,12 @@ Scope {
                             // Text content
                             Text {
                                 visible: !clipItem.modelData.isImage
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
+                                anchors.left: itemNumber.right
+                                anchors.leftMargin: 8
+                                anchors.right: parent.right
                                 anchors.rightMargin: 12
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
                                 verticalAlignment: Text.AlignVCenter
                                 text: clipItem.modelData.text
                                 color: Theme.text
@@ -296,9 +336,22 @@ Scope {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 onClicked: root.paste(clipItem.modelData)
-                                onContainsMouseChanged: {
-                                    if (containsMouse)
+                                onPositionChanged: (mouse) => {
+                                    let screenX = clipItem.mapToItem(null, mouse.x, mouse.y).x;
+                                    let screenY = clipItem.mapToItem(null, mouse.x, mouse.y).y;
+                                    if (Math.abs(screenX - clipList.lastMouseX) > 1 || Math.abs(screenY - clipList.lastMouseY) > 1) {
+                                        clipList.lastMouseX = screenX;
+                                        clipList.lastMouseY = screenY;
+                                        console.log("[CLIP MOUSE] real move idx=" + clipItem.index);
+                                        clipList.keyboardNav = false;
                                         clipList.currentIndex = clipItem.index;
+                                    }
+                                }
+                                onContainsMouseChanged: {
+                                    if (containsMouse && !clipList.keyboardNav) {
+                                        console.log("[CLIP MOUSE] hover enter idx=" + clipItem.index);
+                                        clipList.currentIndex = clipItem.index;
+                                    }
                                 }
                             }
                         }
@@ -309,10 +362,18 @@ Scope {
                         }
                         Keys.onEscapePressed: root.toggle()
                         Keys.onUpPressed: {
+                            keyboardNav = true;
+                            console.log("[CLIP KEY] Up pressed, currentIndex=" + currentIndex + " -> " + (currentIndex - 1));
                             if (currentIndex === 0)
                                 searchBox.inputItem.forceActiveFocus();
                             else
                                 currentIndex--;
+                        }
+                        Keys.onDownPressed: {
+                            keyboardNav = true;
+                            console.log("[CLIP KEY] Down pressed, currentIndex=" + currentIndex + " -> " + (currentIndex + 1));
+                            if (currentIndex < count - 1)
+                                currentIndex++;
                         }
                         Keys.onPressed: (event) => {
                             // Forward typing to search input

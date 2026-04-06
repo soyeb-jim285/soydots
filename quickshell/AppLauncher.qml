@@ -183,6 +183,9 @@ Scope {
                         spacing: 2
                         model: root.filteredApps
                         currentIndex: 0
+                        property bool keyboardNav: false
+                        property real lastMouseX: -1
+                        property real lastMouseY: -1
 
                         highlightFollowsCurrentItem: false
                         onCurrentIndexChanged: {
@@ -262,8 +265,18 @@ Scope {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 onClicked: root.launch(appItem.modelData)
+                                onPositionChanged: (mouse) => {
+                                    let screenX = appItem.mapToItem(null, mouse.x, mouse.y).x;
+                                    let screenY = appItem.mapToItem(null, mouse.x, mouse.y).y;
+                                    if (Math.abs(screenX - resultsView.lastMouseX) > 1 || Math.abs(screenY - resultsView.lastMouseY) > 1) {
+                                        resultsView.lastMouseX = screenX;
+                                        resultsView.lastMouseY = screenY;
+                                        resultsView.keyboardNav = false;
+                                        resultsView.currentIndex = appItem.index;
+                                    }
+                                }
                                 onContainsMouseChanged: {
-                                    if (containsMouse)
+                                    if (containsMouse && !resultsView.keyboardNav)
                                         resultsView.currentIndex = appItem.index;
                                 }
                             }
@@ -275,10 +288,16 @@ Scope {
                         }
                         Keys.onEscapePressed: root.toggle()
                         Keys.onUpPressed: {
+                            keyboardNav = true;
                             if (currentIndex === 0)
                                 searchBox.inputItem.forceActiveFocus();
                             else
                                 currentIndex--;
+                        }
+                        Keys.onDownPressed: {
+                            keyboardNav = true;
+                            if (currentIndex < count - 1)
+                                currentIndex++;
                         }
                         Keys.onPressed: (event) => {
                             if (!event.modifiers && event.text && event.text.length > 0) {
