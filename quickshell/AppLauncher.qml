@@ -98,7 +98,7 @@ Scope {
                 id: backdrop
                 anchors.fill: parent
                 property real fadeIn: 0
-                color: Qt.rgba(0, 0, 0, fadeIn * 0.25)
+                color: Qt.rgba(0, 0, 0, fadeIn * Config.launcherBackdropOpacity)
 
                 MouseArea {
                     anchors.fill: parent
