@@ -80,6 +80,36 @@ Scope {
         );
     }
 
+    function getFrecencyData() {
+        try {
+            return JSON.parse(Config.launcherFrecencyData);
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function recordLaunch(appId) {
+        let data = getFrecencyData();
+        let now = Math.floor(Date.now() / 1000);
+        let entry = data[appId] || { score: 0, lastLaunch: now };
+        let daysSince = (now - entry.lastLaunch) / 86400;
+        let decay = Math.pow(0.5, daysSince / 7);
+        entry.score = entry.score * decay + 100;
+        entry.lastLaunch = now;
+        data[appId] = entry;
+        Config.set("launcher", "frecencyData", JSON.stringify(data));
+    }
+
+    function getFrecencyScore(appId) {
+        let data = getFrecencyData();
+        let entry = data[appId];
+        if (!entry) return 0;
+        let now = Math.floor(Date.now() / 1000);
+        let daysSince = (now - entry.lastLaunch) / 86400;
+        let decay = Math.pow(0.5, daysSince / 7);
+        return entry.score * decay;
+    }
+
     property list<DesktopEntry> allApps: {
         let apps = Array.from(DesktopEntries.applications.values);
         let filtered = apps.filter(app => {
@@ -92,6 +122,9 @@ Scope {
             return true;
         });
         filtered.sort((a, b) => {
+            let scoreA = getFrecencyScore(a.id ?? a.name ?? "");
+            let scoreB = getFrecencyScore(b.id ?? b.name ?? "");
+            if (scoreA !== scoreB) return scoreB - scoreA;
             let nameA = (a.name ?? "").toLowerCase();
             let nameB = (b.name ?? "").toLowerCase();
             return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
@@ -104,7 +137,12 @@ Scope {
         if (query === "") return allApps;
         let scored = allApps.map(app => ({ app: app, score: scoreApp(app, query) }));
         scored = scored.filter(item => item.score >= 0.1);
-        scored.sort((a, b) => b.score - a.score);
+        scored.sort((a, b) => {
+            if (Math.abs(a.score - b.score) > 0.01) return b.score - a.score;
+            let freqA = getFrecencyScore(a.app.id ?? a.app.name ?? "");
+            let freqB = getFrecencyScore(b.app.id ?? b.app.name ?? "");
+            return freqB - freqA;
+        });
         return scored.map(item => item.app);
     }
 
@@ -116,6 +154,7 @@ Scope {
     }
 
     function launch(app) {
+        recordLaunch(app.id ?? app.name ?? "");
         if (app.runInTerminal) {
             Quickshell.execDetached([Config.launcherTerminal].concat(app.command));
         } else {
