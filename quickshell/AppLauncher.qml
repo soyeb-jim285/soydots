@@ -110,6 +110,20 @@ Scope {
         return entry.score * decay;
     }
 
+    function isPinned(appId) {
+        return Config.launcherPinnedApps.indexOf(appId) >= 0;
+    }
+
+    function togglePin(appId) {
+        let apps = Config.launcherPinnedApps.slice();
+        let idx = apps.indexOf(appId);
+        if (idx >= 0)
+            apps.splice(idx, 1);
+        else
+            apps.push(appId);
+        Config.set("launcher", "pinnedApps", apps);
+    }
+
     property list<DesktopEntry> allApps: {
         let apps = Array.from(DesktopEntries.applications.values);
         let filtered = apps.filter(app => {
@@ -122,6 +136,14 @@ Scope {
             return true;
         });
         filtered.sort((a, b) => {
+            let pinA = isPinned(a.id ?? "") ? 1 : 0;
+            let pinB = isPinned(b.id ?? "") ? 1 : 0;
+            if (pinA !== pinB) return pinB - pinA;
+            if (pinA && pinB) {
+                let nameA = (a.name ?? "").toLowerCase();
+                let nameB = (b.name ?? "").toLowerCase();
+                return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+            }
             let scoreA = getFrecencyScore(a.id ?? a.name ?? "");
             let scoreB = getFrecencyScore(b.id ?? b.name ?? "");
             if (scoreA !== scoreB) return scoreB - scoreA;
@@ -362,13 +384,27 @@ Scope {
                                     elide: Text.ElideRight
                                     Layout.maximumWidth: 180
                                 }
+
+                                IconStar {
+                                    visible: root.isPinned(appItem.modelData.id ?? "")
+                                    size: 14
+                                    color: Config.yellow
+                                    Layout.preferredWidth: visible ? 14 : 0
+                                    Layout.preferredHeight: 14
+                                }
                             }
 
                             MouseArea {
                                 id: appMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onClicked: root.launch(appItem.modelData)
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: (mouse) => {
+                                    if (mouse.button === Qt.RightButton)
+                                        root.togglePin(appItem.modelData.id ?? "");
+                                    else
+                                        root.launch(appItem.modelData);
+                                }
                                 onPositionChanged: (mouse) => {
                                     let screenX = appItem.mapToItem(null, mouse.x, mouse.y).x;
                                     let screenY = appItem.mapToItem(null, mouse.x, mouse.y).y;
@@ -386,9 +422,13 @@ Scope {
                             }
                         }
 
-                        Keys.onReturnPressed: {
-                            if (currentIndex >= 0 && currentIndex < root.filteredApps.length)
-                                root.launch(root.filteredApps[currentIndex]);
+                        Keys.onReturnPressed: (event) => {
+                            if (currentIndex >= 0 && currentIndex < root.filteredApps.length) {
+                                if (event.modifiers & Qt.ControlModifier)
+                                    root.togglePin(root.filteredApps[currentIndex].id ?? "");
+                                else
+                                    root.launch(root.filteredApps[currentIndex]);
+                            }
                         }
                         Keys.onEscapePressed: root.toggle()
                         Keys.onUpPressed: {

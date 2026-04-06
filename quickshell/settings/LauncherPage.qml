@@ -109,4 +109,85 @@ ColumnLayout {
             }
         }
     }
+
+    Text { text: "Pinned Apps"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "These apps will appear at the top of the launcher with a star icon."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    Repeater {
+        model: Config.launcherPinnedApps
+
+        RowLayout {
+            required property string modelData
+            required property int index
+            Layout.fillWidth: true; spacing: 6
+
+            Rectangle {
+                Layout.fillWidth: true; height: 26; radius: 4
+                color: Config.surface0
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8
+                    text: modelData; color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily
+                }
+            }
+
+            Rectangle {
+                width: 26; height: 26; radius: 4
+                color: pinRmMouse.containsMouse ? Config.red : Config.surface0
+                Behavior on color { ColorAnimation { duration: 80 } }
+                IconX { anchors.centerIn: parent; size: 10; color: Config.text }
+                MouseArea {
+                    id: pinRmMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        let apps = Config.launcherPinnedApps.slice();
+                        apps.splice(index, 1);
+                        Config.set("launcher", "pinnedApps", apps);
+                    }
+                }
+            }
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true; spacing: 6
+
+        Rectangle {
+            Layout.fillWidth: true; height: 26; radius: 4
+            color: Config.surface0; border.color: pinAddInput.activeFocus ? Config.blue : Config.surface1; border.width: 1
+            TextInput {
+                id: pinAddInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
+                verticalAlignment: TextInput.AlignVCenter; color: Config.text
+                font.pixelSize: 11; font.family: Config.fontFamily; clip: true
+                onAccepted: {
+                    if (text.trim() !== "") {
+                        let apps = Config.launcherPinnedApps.slice();
+                        apps.push(text.trim());
+                        Config.set("launcher", "pinnedApps", apps);
+                        text = "";
+                    }
+                }
+
+                Text {
+                    anchors.fill: parent; verticalAlignment: Text.AlignVCenter
+                    text: "Add app ID..."; color: Config.overlay0
+                    font: pinAddInput.font; visible: !pinAddInput.text
+                }
+            }
+        }
+
+        Rectangle {
+            width: 26; height: 26; radius: 4
+            color: pinAddBtnMouse.containsMouse ? Config.blue : Config.surface0
+            Behavior on color { ColorAnimation { duration: 80 } }
+            IconPlus { anchors.centerIn: parent; size: 10; color: Config.text }
+            MouseArea {
+                id: pinAddBtnMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                onClicked: pinAddInput.accepted()
+            }
+        }
+    }
 }
