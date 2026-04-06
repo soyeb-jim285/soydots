@@ -74,6 +74,40 @@ Scope {
         return seq * 0.7 + ngram * 0.3;
     }
 
+    // Levenshtein edit distance between two strings
+    function editDistance(a, b) {
+        let m = a.length, n = b.length;
+        let prev = new Array(n + 1);
+        let curr = new Array(n + 1);
+        for (let j = 0; j <= n; j++) prev[j] = j;
+        for (let i = 1; i <= m; i++) {
+            curr[0] = i;
+            for (let j = 1; j <= n; j++) {
+                if (a[i - 1] === b[j - 1])
+                    curr[j] = prev[j - 1];
+                else
+                    curr[j] = 1 + Math.min(prev[j - 1], prev[j], curr[j - 1]);
+            }
+            let tmp = prev; prev = curr; curr = tmp;
+        }
+        return prev[n];
+    }
+
+    // Edit distance score: check query against each word in target
+    // Returns 0-1 score, higher = closer match
+    function editDistanceScore(query, target) {
+        let words = target.split(/[\s\-]+/);
+        let bestScore = 0;
+        for (let word of words) {
+            if (word.length === 0) continue;
+            let dist = editDistance(query, word);
+            let maxLen = Math.max(query.length, word.length);
+            let score = 1 - dist / maxLen;
+            if (score > bestScore) bestScore = score;
+        }
+        return bestScore;
+    }
+
     function scoreApp(app, query) {
         let name = (app.name ?? "").toLowerCase();
         let generic = (app.genericName ?? "").toLowerCase();
@@ -85,6 +119,12 @@ Scope {
             fuzzyScore(query, comment),
             fuzzyScore(query, keywords)
         );
+    }
+
+    // Fallback: score app by edit distance against name only
+    function scoreAppTypo(app, query) {
+        let name = (app.name ?? "").toLowerCase();
+        return editDistanceScore(query, name);
     }
 
     function getFrecencyData() {
@@ -164,8 +204,17 @@ Scope {
     property var filteredApps: {
         let query = searchText.toLowerCase().trim();
         if (query === "") return allApps;
+        // Primary: sequential + trigram
         let scored = allApps.map(app => ({ app: app, score: scoreApp(app, query) }));
         scored = scored.filter(item => item.score >= 0.1);
+        if (scored.length === 0 && query.length >= 3) {
+            // Fallback: Levenshtein edit distance against app names
+            // Max distance threshold: 2 for short queries, 3 for longer
+            let maxDist = query.length <= 4 ? 2 : 3;
+            let threshold = 1 - maxDist / Math.max(query.length, 3);
+            scored = allApps.map(app => ({ app: app, score: scoreAppTypo(app, query) }));
+            scored = scored.filter(item => item.score >= threshold);
+        }
         scored.sort((a, b) => {
             if (Math.abs(a.score - b.score) > 0.01) return b.score - a.score;
             let freqA = getFrecencyScore(a.app.id ?? a.app.name ?? "");
