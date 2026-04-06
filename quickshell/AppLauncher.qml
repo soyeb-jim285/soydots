@@ -19,7 +19,7 @@ Scope {
 
     property list<DesktopEntry> allApps: {
         let apps = Array.from(DesktopEntries.applications.values);
-        return apps.filter(app => {
+        let filtered = apps.filter(app => {
             let id = (app.id ?? "").toLowerCase();
             let name = (app.name ?? "").toLowerCase();
             for (let hidden of hiddenApps) {
@@ -28,6 +28,12 @@ Scope {
             }
             return true;
         });
+        filtered.sort((a, b) => {
+            let nameA = (a.name ?? "").toLowerCase();
+            let nameB = (b.name ?? "").toLowerCase();
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+        });
+        return filtered;
     }
 
     property var filteredApps: {
