@@ -26,15 +26,20 @@ Scope {
         let qi = 0;
         let score = 0;
         let consecutive = 0;
-        let firstMatch = -1;
+        let lastMatchPos = -1;
 
         for (let ti = 0; ti < target.length && qi < query.length; ti++) {
             if (target[ti] === query[qi]) {
-                if (firstMatch < 0) firstMatch = ti;
                 consecutive++;
                 score += consecutive;
                 if (ti === 0 || target[ti - 1] === ' ' || target[ti - 1] === '-')
                     score += 3;
+                // Gap penalty: penalize large distances between matched chars
+                if (lastMatchPos >= 0) {
+                    let gap = ti - lastMatchPos - 1;
+                    if (gap > 0) score -= gap * 0.5;
+                }
+                lastMatchPos = ti;
                 qi++;
             } else {
                 consecutive = 0;
@@ -42,7 +47,7 @@ Scope {
         }
         if (qi < query.length) return 0;
         let maxScore = query.length * (query.length + 1) / 2 + 3 * query.length;
-        return score / maxScore;
+        return Math.max(0, score / maxScore);
     }
 
     function ngrams(str, n) {
