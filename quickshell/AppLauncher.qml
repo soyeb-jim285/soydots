@@ -12,6 +12,7 @@ Scope {
     id: root
 
     property bool visible: false
+    property bool closing: false
     property string searchText: ""
 
     // Filter out system/network tools that shouldn't appear in a launcher
@@ -169,8 +170,11 @@ Scope {
     }
 
     function toggle() {
-        root.visible = !root.visible;
-        if (root.visible) {
+        if (root.visible && !root.closing) {
+            root.closing = true;
+        } else if (!root.visible) {
+            root.closing = false;
+            root.visible = true;
             root.searchText = "";
         }
     }
@@ -182,7 +186,7 @@ Scope {
         } else {
             app.execute();
         }
-        root.visible = false;
+        root.closing = true;
     }
 
     IpcHandler {
@@ -226,16 +230,22 @@ Scope {
                 property real fadeIn: 0
                 color: Qt.rgba(0, 0, 0, fadeIn * Config.launcherBackdropOpacity)
 
+                Behavior on fadeIn {
+                    NumberAnimation {
+                        duration: Config.animLauncherFadeDuration
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
                 MouseArea {
                     anchors.fill: parent
                     onClicked: root.toggle()
                 }
 
-                NumberAnimation on fadeIn {
-                    from: 0; to: 1
-                    duration: Config.animLauncherFadeDuration
-                    easing.type: Easing.OutCubic
-                    running: true
+                Component.onCompleted: {
+                    Qt.callLater(() => {
+                        backdrop.fadeIn = Qt.binding(() => root.closing ? 0 : 1);
+                    });
                 }
             }
 
@@ -250,21 +260,35 @@ Scope {
                 border.color: Config.surface1
                 border.width: 1
 
-                // Entry animation
                 scale: Config.animLauncherScaleFrom
                 opacity: 0
-                NumberAnimation on scale {
-                    from: Config.animLauncherScaleFrom; to: 1.0
-                    duration: Config.animLauncherScaleDuration
-                    easing.type: Easing.OutBack
-                    easing.overshoot: Config.animLauncherOvershoot
-                    running: true
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: Config.animLauncherScaleDuration
+                        easing.type: root.closing ? Easing.InBack : Easing.OutBack
+                        easing.overshoot: Config.animLauncherOvershoot
+                    }
                 }
-                NumberAnimation on opacity {
-                    from: 0; to: 1.0
-                    duration: Config.animLauncherFadeDuration
-                    easing.type: Easing.OutCubic
-                    running: true
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Config.animLauncherFadeDuration
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                onOpacityChanged: {
+                    if (root.closing && opacity === 0) {
+                        root.visible = false;
+                        root.closing = false;
+                    }
+                }
+
+                Component.onCompleted: {
+                    Qt.callLater(() => {
+                        container.scale = Qt.binding(() => root.closing ? Config.animLauncherScaleFrom : 1.0);
+                        container.opacity = Qt.binding(() => root.closing ? 0 : 1.0);
+                    });
                 }
 
                 Behavior on height {
