@@ -208,7 +208,8 @@ QtObject {
                 itemHeight: launcherItemHeight, itemRadius: launcherItemRadius,
                 iconSize: launcherIconSize,
                 backdropOpacity: launcherBackdropOpacity,
-                hiddenApps: launcherHiddenApps, terminal: launcherTerminal
+                hiddenApps: launcherHiddenApps, terminal: launcherTerminal,
+                pinnedApps: launcherPinnedApps, frecencyData: launcherFrecencyData
             },
             clipboard: {
                 width: clipboardWidth, height: clipboardHeight, radius: clipboardRadius,
@@ -1141,6 +1142,8 @@ unfocusedWidth = 10'
     property real launcherBackdropOpacity: _data?.launcher?.backdropOpacity ?? 0.4
     property var launcherHiddenApps: _data?.launcher?.hiddenApps ?? ["avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap", "electron", "cmake-gui"]
     property string launcherTerminal: _data?.launcher?.terminal ?? "kitty"
+    property var launcherPinnedApps: _data?.launcher?.pinnedApps ?? []
+    property string launcherFrecencyData: _data?.launcher?.frecencyData ?? "{}"
 
     // ===== CLIPBOARD =====
 

@@ -118,6 +118,8 @@ searchHeight = 48
 searchRadius = 12
 terminal = "kitty"
 width = 600
+pinnedApps = []
+frecencyData = "{}"
 
 [media]
 maxWidth = 200
