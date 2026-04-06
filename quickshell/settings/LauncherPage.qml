@@ -17,7 +17,7 @@ ColumnLayout {
     SliderSetting { label: "Item Height"; section: "launcher"; key: "itemHeight"; value: Config.launcherItemHeight; from: 28; to: 64 }
     SliderSetting { label: "Item Radius"; section: "launcher"; key: "itemRadius"; value: Config.launcherItemRadius; from: 0; to: 20 }
     SliderSetting { label: "Icon Size"; section: "launcher"; key: "iconSize"; value: Config.launcherIconSize; from: 16; to: 48 }
-    SliderSetting { label: "Backdrop Opacity"; section: "launcher"; key: "backdropOpacity"; value: Config.launcherBackdropOpacity; from: 0; to: 1.0; decimals: 2; stepSize: 0.05 }
+    SliderSetting { label: "Backdrop Opacity"; section: "launcher"; key: "backdropOpacity"; value: Config.launcherBackdropOpacity; from: 0; to: 0.25; decimals: 2; stepSize: 0.01 }
 
     Text { text: "Behavior"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
