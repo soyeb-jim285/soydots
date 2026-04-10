@@ -40,6 +40,8 @@
 - zoxide (smart cd)
 - eza (modern ls with icons)
 - bat (cat with syntax highlighting)
+- awww (swww successor, Wayland wallpaper daemon with animated transitions)
+- python-pillow (image processing, used for wallpaper light variant generation)
 
 ## Configured
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
@@ -170,6 +172,27 @@
 - Kvantum — catppuccin-mocha-lavender theme
 - hyprpolkitagent — dark Catppuccin Mocha theme via qt6ct + Kvantum + application-style.conf (roundness=3, border_width=1), systemd override for QT_QPA_PLATFORMTHEME=qt6ct (replaced by quill-polkit)
 - nvidia: open kernel driver (nvidia-open-dkms), nouveau blacklisted, DRM modeset via modprobe, PRIME offload ready, power management udev rules, Hyprland env vars configured
+- awww wallpaper system — dynamic wallpaper switching on theme toggle:
+  - awww-daemon autostart in hyprland.conf
+  - end-4 dots-hyprland wallpaper (dark) + generated Catppuccin Latte light variant
+  - gen-wallpaper.sh reads darkMode from settings.toml, applies correct wallpaper with fade transition
+  - Synced from Config.qml on darkModeChanged
+  - Wallpapers stored in `wallpapers/` (end4-dark.png, end4-light.png)
+  - Keybind: Super+Alt+W (manual re-apply)
+- neovim (LazyVim) — Catppuccin theme with auto light/dark sync:
+  - catppuccin/nvim plugin: mocha (dark) / latte (light) based on vim.o.background
+  - theme-sync.lua watches ~/.cache/nvim-background file (updated by Config.qml)
+  - Polls every 5s + syncs on FocusGained for responsive switching
+- starship prompt — auto light/dark sync:
+  - Both catppuccin_mocha and catppuccin_latte palettes defined
+  - Config.qml rewrites starship.toml palette selector on darkModeChanged
+- zsh syntax highlighting — ANSI color names (follows kitty theme automatically)
+- btop — Catppuccin theme sync:
+  - catppuccin_mocha.theme and catppuccin_latte.theme in btop/themes/
+  - Config.qml rewrites btop.conf color_theme path on darkModeChanged
+- Claude Code — theme sync:
+  - Config.qml writes theme to ~/.claude.json on darkModeChanged
+  - Takes effect on next Claude Code launch (no hot-reload support)
 - Zen Browser — live theme sync from Quickshell appearance:
   - Switches between Catppuccin Latte and Mocha when theme is toggled from `Meta+Shift+T` or Quickshell settings
   - Syncs Zen light/dark mode, built-in light/dark theme selection, accent color, and browser/sidebar colors
@@ -196,6 +219,11 @@ These commands must be run manually for full functionality (not managed by dotfi
 - Restart Zen once after installing the autoconfig bootstrap
 - Re-run the setup script if `~/jimdots` moves to a different path
 
+### Firefox Browser Theme Sync
+- If Firefox is installed, run `~/jimdots/firefox/setup-live-theme-sync.sh`
+- Restart Firefox once after installing the autoconfig bootstrap
+- Firefox reads the shared Quickshell theme payload from `~/.config/zen-live-theme.json`
+
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `kitty/` -> `~/.config/kitty` (kitty.conf, current-theme.conf)
@@ -205,7 +233,10 @@ All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `claude/statusline-command.sh` -> `~/.claude/statusline-command.sh`
 - `tmux/` -> `~/.config/tmux` (tmux.conf)
 - `zsh/` -> `~/.zshrc`, `~/.zshenv`, `~/.config/starship.toml` (individual symlinks)
+- `nvim/` -> `~/.config/nvim` (LazyVim + Catppuccin + theme-sync)
 - `applications/kitty-nvim.desktop` -> `~/.local/share/applications/kitty-nvim.desktop`
 - `qt6ct/` -> `~/.config/qt6ct` (qt6ct.conf, colors/catppuccin-mocha.conf)
 - `Kvantum/` -> `~/.config/Kvantum` (kvantum.kvconfig)
+- `wallpapers/` — end4 dark/light wallpaper pair (referenced by gen-wallpaper.sh)
+- `btop/themes/` — Catppuccin Mocha/Latte btop themes (referenced by Config.qml sync)
 - `quickshell/quill-polkit/` — git submodule (polkit agent repo)

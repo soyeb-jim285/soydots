@@ -350,7 +350,7 @@ QtObject {
     onPinkChanged: { _syncKitty(); _syncTmux(); }
     onTealChanged: { _syncKitty(); _syncTmux(); }
     onPeachChanged: { _syncKitty(); _syncTmux(); }
-    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); }
+    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); _syncWallpaper(); _syncStarship(); _syncBtop(); _syncClaude(); _syncNvim(); }
     onMantleChanged: _syncTmux()
     onCrustChanged: _syncTmux()
     onSurface0Changed: _syncTmux()
@@ -421,6 +421,22 @@ QtObject {
     property var _hyprWriteProc: Process { command: ["true"] }
     property var _hyprProc: Process { command: ["true"] }
 
+    // ===== Wallpaper Sync =====
+
+    property var _wallpaperSyncTimer: Timer {
+        interval: 0
+        onTriggered: config._doSyncWallpaper()
+    }
+
+    function _syncWallpaper() { _wallpaperSyncTimer.restart(); }
+
+    function _doSyncWallpaper() {
+        _wallpaperProc.command = ["bash", "-c", _homeDir + "/jimdots/hypr/gen-wallpaper.sh " + (darkMode ? "dark" : "light")];
+        _wallpaperProc.running = true;
+    }
+
+    property var _wallpaperProc: Process { command: ["true"] }
+
     // ===== Kitty Sync =====
 
     property bool kittySyncColors: _data?.kitty?.syncColors ?? true
@@ -461,6 +477,122 @@ QtObject {
     property var _kittyApplyProc: Process {
         command: ["true"]
     }
+
+    // ===== Starship Sync =====
+
+    property string _starshipPath: _homeDir + "/jimdots/zsh/starship.toml"
+
+    property var _starshipSyncTimer: Timer {
+        interval: 300
+        onTriggered: config._doSyncStarship()
+    }
+
+    function _syncStarship() { _starshipSyncTimer.restart(); }
+
+    function _doSyncStarship() {
+        let paletteName = darkMode ? "catppuccin_mocha" : "catppuccin_latte";
+        let content = '# Starship prompt — Catppuccin, clean style\n\n' +
+            'palette = "' + paletteName + '"\n\n' +
+            'format = """\n' +
+            '$directory\\\n' +
+            '$git_branch\\\n' +
+            '$git_status\\\n' +
+            '$cmd_duration\\\n' +
+            '$jobs\\\n' +
+            '$status\\\n' +
+            '$line_break\\\n' +
+            '$character"""\n\n' +
+            '[directory]\nstyle = "bold lavender"\ntruncation_length = 4\ntruncation_symbol = "…/"\n\n' +
+            '[git_branch]\nsymbol = " "\nstyle = "bold blue"\nformat = "on [$symbol$branch]($style) "\n\n' +
+            '[git_status]\nstyle = "red"\nformat = "[$all_status$ahead_behind]($style)"\n\n' +
+            '[cmd_duration]\nmin_time = 2000\nstyle = "yellow"\nformat = "took [$duration]($style) "\n\n' +
+            '[jobs]\nsymbol = "󰒓 "\nstyle = "yellow"\n\n' +
+            '[status]\ndisabled = false\nsymbol = "✘"\nstyle = "red"\n\n' +
+            '[character]\nsuccess_symbol = "[❯](lavender)"\nerror_symbol = "[❯](red)"\nvimcmd_symbol = "[❮](green)"\n\n' +
+            '[palettes.catppuccin_mocha]\n' +
+            'rosewater = "#f5e0dc"\nflamingo = "#f2cdcd"\npink = "#f5c2e7"\nmauve = "#cba6f7"\n' +
+            'red = "#f38ba8"\nmaroon = "#eba0ac"\npeach = "#fab387"\nyellow = "#f9e2af"\n' +
+            'green = "#a6e3a1"\nteal = "#94e2d5"\nsky = "#89dceb"\nsapphire = "#74c7ec"\n' +
+            'blue = "#89b4fa"\nlavender = "#b4befe"\ntext = "#cdd6f4"\nsubtext1 = "#bac2de"\n' +
+            'subtext0 = "#a6adc8"\noverlay2 = "#9399b2"\noverlay1 = "#7f849c"\noverlay0 = "#6c7086"\n' +
+            'surface2 = "#585b70"\nsurface1 = "#45475a"\nsurface0 = "#313244"\n' +
+            'base = "#1e1e2e"\nmantle = "#181825"\ncrust = "#11111b"\n\n' +
+            '[palettes.catppuccin_latte]\n' +
+            'rosewater = "#dc8a78"\nflamingo = "#dd7878"\npink = "#ea76cb"\nmauve = "#8839ef"\n' +
+            'red = "#d20f39"\nmaroon = "#e64553"\npeach = "#fe640b"\nyellow = "#df8e1d"\n' +
+            'green = "#40a02b"\nteal = "#179299"\nsky = "#04a5e5"\nsapphire = "#209fb5"\n' +
+            'blue = "#1e66f5"\nlavender = "#7287fd"\ntext = "#4c4f69"\nsubtext1 = "#5c5f77"\n' +
+            'subtext0 = "#6c6f85"\noverlay2 = "#7c7f93"\noverlay1 = "#8c8fa1"\noverlay0 = "#9ca0b0"\n' +
+            'surface2 = "#acb0be"\nsurface1 = "#bcc0cc"\nsurface0 = "#ccd0da"\n' +
+            'base = "#eff1f5"\nmantle = "#e6e9ef"\ncrust = "#dce0e8"\n';
+        _starshipWriteProc.command = ["bash", "-c",
+            "cat > " + _starshipPath + " << 'STAREOF'\n" + content + "STAREOF"];
+        _starshipWriteProc.running = true;
+    }
+
+    property var _starshipWriteProc: Process { command: ["true"] }
+
+    // ===== Btop Sync =====
+
+    property var _btopSyncTimer: Timer {
+        interval: 200
+        onTriggered: config._doSyncBtop()
+    }
+
+    function _syncBtop() { _btopSyncTimer.restart(); }
+
+    function _doSyncBtop() {
+        let theme = darkMode
+            ? _homeDir + "/jimdots/btop/themes/catppuccin_mocha.theme"
+            : _homeDir + "/jimdots/btop/themes/catppuccin_latte.theme";
+        _btopProc.command = ["bash", "-c",
+            "sed -i 's|^color_theme = .*|color_theme = \"" + theme + "\"|' " +
+            _homeDir + "/.config/btop/btop.conf"];
+        _btopProc.running = true;
+    }
+
+    property var _btopProc: Process { command: ["true"] }
+
+    // ===== Claude Code Sync =====
+
+    property string _claudeJsonPath: _homeDir + "/.claude.json"
+
+    property var _claudeSyncTimer: Timer {
+        interval: 200
+        onTriggered: config._doSyncClaude()
+    }
+
+    function _syncClaude() { _claudeSyncTimer.restart(); }
+
+    function _doSyncClaude() {
+        let theme = darkMode ? "dark" : "light";
+        _claudeProc.command = ["bash", "-c",
+            "python3 -c \"" +
+            "import json; " +
+            "f=open('" + _claudeJsonPath + "','r'); d=json.load(f); f.close(); " +
+            "d['theme']='" + theme + "'; " +
+            "f=open('" + _claudeJsonPath + "','w'); json.dump(d,f,indent=2); f.write('\\\\n'); f.close()\""];
+        _claudeProc.running = true;
+    }
+
+    property var _claudeProc: Process { command: ["true"] }
+
+    // ===== Neovim Sync =====
+
+    property var _nvimSyncTimer: Timer {
+        interval: 100
+        onTriggered: config._doSyncNvim()
+    }
+
+    function _syncNvim() { _nvimSyncTimer.restart(); }
+
+    function _doSyncNvim() {
+        let bg = darkMode ? "dark" : "light";
+        _nvimProc.command = ["bash", "-c", "echo " + bg + " > " + _homeDir + "/.cache/nvim-background"];
+        _nvimProc.running = true;
+    }
+
+    property var _nvimProc: Process { command: ["true"] }
 
     // ===== GTK Sync =====
 

@@ -52,24 +52,24 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 bindkey '^F' autosuggest-accept  # Ctrl+F to accept suggestion
 
-# ── Catppuccin Syntax Highlighting ───────────────────────
+# ── Syntax Highlighting (uses ANSI colors so it follows kitty theme) ──
 typeset -A ZSH_HIGHLIGHT_STYLES
-ZSH_HIGHLIGHT_STYLES[command]='fg=#89b4fa'          # blue
-ZSH_HIGHLIGHT_STYLES[builtin]='fg=#89b4fa'          # blue
-ZSH_HIGHLIGHT_STYLES[alias]='fg=#89b4fa'            # blue
-ZSH_HIGHLIGHT_STYLES[function]='fg=#89b4fa'         # blue
-ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=#f38ba8'    # red
-ZSH_HIGHLIGHT_STYLES[path]='fg=#f9e2af,underline'   # yellow
-ZSH_HIGHLIGHT_STYLES[globbing]='fg=#f5c2e7'         # pink
-ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=#a6e3a1'  # green
-ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=#a6e3a1'  # green
-ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=#a6e3a1'  # green
-ZSH_HIGHLIGHT_STYLES[comment]='fg=#6c7086'          # overlay0
-ZSH_HIGHLIGHT_STYLES[arg0]='fg=#89b4fa'             # blue
-ZSH_HIGHLIGHT_STYLES[redirection]='fg=#f5c2e7'      # pink
-ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=#f5c2e7' # pink
-ZSH_HIGHLIGHT_STYLES[precommand]='fg=#a6e3a1'       # green
-ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=#a6e3a1'     # green
+ZSH_HIGHLIGHT_STYLES[command]='fg=blue'
+ZSH_HIGHLIGHT_STYLES[builtin]='fg=blue'
+ZSH_HIGHLIGHT_STYLES[alias]='fg=blue'
+ZSH_HIGHLIGHT_STYLES[function]='fg=blue'
+ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=red'
+ZSH_HIGHLIGHT_STYLES[path]='fg=yellow,underline'
+ZSH_HIGHLIGHT_STYLES[globbing]='fg=magenta'
+ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=green'
+ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=green'
+ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=green'
+ZSH_HIGHLIGHT_STYLES[comment]='fg=8'
+ZSH_HIGHLIGHT_STYLES[arg0]='fg=blue'
+ZSH_HIGHLIGHT_STYLES[redirection]='fg=magenta'
+ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=magenta'
+ZSH_HIGHLIGHT_STYLES[precommand]='fg=green'
+ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=green'
 
 # ── fzf ──────────────────────────────────────────────────
 source <(fzf --zsh)

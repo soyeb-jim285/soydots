@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2400">
+  <defs>
+    <!-- Subtle grain texture -->
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" mode="soft-light" result="grain"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.08"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="overlay"/>
+    </filter>
+
+    <!-- Soft glow for accent shapes -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="60" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="softblur">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+
+    <!-- Radial gradient for depth -->
+    <radialGradient id="centerGlow" cx="0.55" cy="0.45" r="0.7">
+      <stop offset="0%" stop-color="{{surface0}}" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="{{crust}}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="3840" height="2400" fill="{{base}}"/>
+
+  <!-- Subtle center glow -->
+  <rect width="3840" height="2400" fill="url(#centerGlow)"/>
+
+  <!-- Deep layer — large sweeping wave -->
+  <path d="M0 1800 C400 1500, 900 1650, 1400 1550 S2200 1300, 2800 1480 S3500 1600, 3840 1450 L3840 2400 L0 2400 Z"
+        fill="{{crust}}" opacity="0.7"/>
+
+  <!-- Mid layer — flowing curve -->
+  <path d="M0 1900 C500 1700, 1000 1850, 1600 1750 S2400 1550, 3000 1700 S3600 1800, 3840 1650 L3840 2400 L0 2400 Z"
+        fill="{{mantle}}" opacity="0.85"/>
+
+  <!-- Upper accent wave -->
+  <path d="M0 2050 C600 1850, 1200 2000, 1800 1900 S2600 1750, 3200 1880 S3700 1950, 3840 1850 L3840 2400 L0 2400 Z"
+        fill="{{surface0}}" opacity="0.6"/>
+
+  <!-- Foreground wave -->
+  <path d="M0 2150 C700 2000, 1400 2100, 2000 2050 S2800 1950, 3400 2050 S3750 2100, 3840 2000 L3840 2400 L0 2400 Z"
+        fill="{{surface1}}" opacity="0.4"/>
+
+  <!-- Accent blobs — soft glowing shapes -->
+  <g filter="url(#softblur)">
+    <!-- Large teal blob upper-right -->
+    <ellipse cx="2900" cy="600" rx="400" ry="350" fill="{{teal}}" opacity="0.07"/>
+    <!-- Mauve blob center-left -->
+    <ellipse cx="800" cy="900" rx="350" ry="300" fill="{{mauve}}" opacity="0.06"/>
+    <!-- Blue blob lower-center -->
+    <ellipse cx="2000" cy="1400" rx="500" ry="300" fill="{{blue}}" opacity="0.05"/>
+    <!-- Pink accent top-center -->
+    <ellipse cx="1800" cy="350" rx="250" ry="200" fill="{{pink}}" opacity="0.05"/>
+    <!-- Peach warm glow -->
+    <ellipse cx="3300" cy="1100" rx="300" ry="250" fill="{{peach}}" opacity="0.04"/>
+  </g>
+
+  <!-- Subtle geometric lines -->
+  <g stroke="{{overlay0}}" stroke-width="1" fill="none" opacity="0.08">
+    <line x1="600" y1="0" x2="1200" y2="2400"/>
+    <line x1="1800" y1="0" x2="2400" y2="2400"/>
+    <line x1="3000" y1="0" x2="3600" y2="2400"/>
+  </g>
+
+  <!-- Small accent dots -->
+  <g fill="{{lavender}}" opacity="0.12">
+    <circle cx="1200" cy="500" r="4"/>
+    <circle cx="2600" cy="800" r="3"/>
+    <circle cx="900" cy="1200" r="5"/>
+    <circle cx="3100" cy="400" r="3"/>
+    <circle cx="1600" cy="1600" r="4"/>
+    <circle cx="3400" cy="1500" r="3"/>
+    <circle cx="500" cy="600" r="3"/>
+    <circle cx="2200" cy="300" r="4"/>
+  </g>
+
+  <!-- Grain overlay -->
+  <rect width="3840" height="2400" filter="url(#grain)" opacity="0.4"/>
+</svg>

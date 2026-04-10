@@ -96,7 +96,7 @@ Scope {
                 height: 560
                 color: Theme.settingsBg
                 radius: 20
-                border.color: Config.surface1
+                border.color: Theme.surface1
                 border.width: 1
 
                 scale: 0.92
@@ -129,7 +129,7 @@ Scope {
                     Rectangle {
                         Layout.fillHeight: true
                         Layout.preferredWidth: 180
-                        color: Config.crust
+                        color: Theme.crust
                         radius: 20
 
                         // Cover right-side radius
@@ -152,8 +152,8 @@ Scope {
                                 Layout.leftMargin: 12
                                 Layout.bottomMargin: 12
                                 spacing: 6
-                                IconSettings { size: 16; color: Config.text }
-                                Text { text: "Settings"; color: Config.text; font.pixelSize: 14; font.family: Config.fontFamily; font.bold: true }
+                                IconSettings { size: 16; color: Theme.text }
+                                Text { text: "Settings"; color: Theme.text; font.pixelSize: 14; font.family: Config.fontFamily; font.bold: true }
                             }
 
                             // Scrollable nav items
@@ -180,8 +180,8 @@ Scope {
                                             height: 36
                                             radius: 8
                                             color: root.activePage === index
-                                                ? Qt.rgba(Config.blue.r, Config.blue.g, Config.blue.b, 0.15)
-                                                : navMouse.containsMouse ? Config.surface0 : "transparent"
+                                                ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.15)
+                                                : navMouse.containsMouse ? Theme.surface0 : "transparent"
                                             Behavior on color { ColorAnimation { duration: 80 } }
 
                                             Row {
@@ -197,13 +197,13 @@ Scope {
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     onLoaded: {
                                                         item.size = 14;
-                                                        item.color = Qt.binding(() => root.activePage === sidebarIconLoader.pageIndex ? Config.blue : Config.overlay0);
+                                                        item.color = Qt.binding(() => root.activePage === sidebarIconLoader.pageIndex ? Theme.blue : Theme.overlay0);
                                                     }
                                                 }
 
                                                 Text {
                                                     text: modelData.name
-                                                    color: root.activePage === index ? Config.blue : Config.text
+                                                    color: root.activePage === index ? Theme.blue : Theme.text
                                                     font.pixelSize: 12
                                                     font.family: Config.fontFamily
                                                     font.bold: root.activePage === index
@@ -228,16 +228,16 @@ Scope {
                                 Layout.fillWidth: true
                                 height: 32
                                 radius: 8
-                                color: resetAllMouse.containsMouse ? Qt.rgba(Config.red.r, Config.red.g, Config.red.b, 0.15) : "transparent"
+                                color: resetAllMouse.containsMouse ? Qt.rgba(Theme.red.r, Theme.red.g, Theme.red.b, 0.15) : "transparent"
                                 Behavior on color { ColorAnimation { duration: 80 } }
 
                                 Row {
                                     anchors.centerIn: parent
                                     spacing: 6
-                                    IconUndo { size: 12; color: resetAllMouse.containsMouse ? Config.red : Config.overlay0 }
+                                    IconUndo { size: 12; color: resetAllMouse.containsMouse ? Theme.red : Theme.overlay0 }
                                     Text {
                                         text: "Reset All"
-                                        color: resetAllMouse.containsMouse ? Config.red : Config.subtext0
+                                        color: resetAllMouse.containsMouse ? Theme.red : Theme.subtext0
                                         font.pixelSize: 11; font.family: Config.fontFamily
                                     }
                                 }
@@ -272,7 +272,7 @@ Scope {
 
                             Text {
                                 text: root.pages[root.activePage].name
-                                color: Config.text
+                                color: Theme.text
                                 font.pixelSize: 18
                                 font.family: Config.fontFamily
                                 font.bold: true
@@ -284,17 +284,17 @@ Scope {
                                 width: resetRow.implicitWidth + 16
                                 height: 28
                                 radius: 6
-                                color: resetMouse.containsMouse ? Config.surface0 : "transparent"
+                                color: resetMouse.containsMouse ? Theme.surface0 : "transparent"
                                 Behavior on color { ColorAnimation { duration: 80 } }
 
                                 Row {
                                     id: resetRow
                                     anchors.centerIn: parent
                                     spacing: 4
-                                    IconUndo { size: 10; color: Config.overlay0 }
+                                    IconUndo { size: 10; color: Theme.overlay0 }
                                     Text {
                                         text: "Reset Section"
-                                        color: Config.subtext0
+                                        color: Theme.subtext0
                                         font.pixelSize: 10; font.family: Config.fontFamily
                                     }
                                 }
