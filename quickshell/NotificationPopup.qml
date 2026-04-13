@@ -164,6 +164,8 @@ Scope {
             summary: entry.summary || "",
             body: entry.body || "",
             appName: entry.appName || "",
+            appIcon: notification ? (notification.appIcon || "") : "",
+            image: notification ? (notification.image || "") : "",
             urgency: entry.urgency,
             timeout: entry.timeout,
             elapsed: 0,
@@ -282,6 +284,8 @@ Scope {
                     required property string summary
                     required property string body
                     required property string appName
+                    required property string appIcon
+                    required property string image
                     required property int urgency
                     required property int timeout
                     required property int elapsed
