@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Screenshot wrapper — runs hyprshot, sends actionable notification
 
-set -euo pipefail
+set -uo pipefail
 
 MODE="${1:-region}"
 OUTPUT_DIR="$HOME/Pictures/Screenshots"
@@ -11,7 +11,8 @@ mkdir -p "$OUTPUT_DIR"
 BEFORE=$(date +%s%N)
 
 # Run hyprshot silently (we'll send our own notification)
-hyprshot -m "$MODE" --freeze -s -o "$OUTPUT_DIR" || exit 0
+# Ignore exit code — hyprshot may return non-zero even on success
+hyprshot -m "$MODE" --freeze -s -o "$OUTPUT_DIR" || true
 
 # Find the newest file created after our timestamp
 SCREENSHOT=""
