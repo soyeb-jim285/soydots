@@ -351,18 +351,24 @@ Scope {
                                 width: toastIconHasImage ? 32 : 14
                                 height: toastIconHasImage ? 32 : 14
 
+                                function resolveIcon(src) {
+                                    if (src === "") return "";
+                                    // Quickshell wraps -i paths as image://icon/path — extract and use file:// instead
+                                    if (src.startsWith("image://icon/"))
+                                        return "file://" + src.substring("image://icon/".length);
+                                    if (src.startsWith("file://"))
+                                        return src;
+                                    if (src.startsWith("/"))
+                                        return "file://" + src;
+                                    return Quickshell.iconPath(src, true);
+                                }
                                 property string iconSource: {
-                                    if (toast.image !== "")
-                                        return toast.image;
-                                    let icon = toast.appIcon || toast.appName;
-                                    if (icon !== "") {
-                                        if (icon.startsWith("file://"))
-                                            return icon;
-                                        if (icon.startsWith("/"))
-                                            return "file://" + icon;
-                                        return Quickshell.iconPath(icon, true);
+                                    if (toast.image !== "") {
+                                        let resolved = resolveIcon(toast.image);
+                                        if (resolved !== "") return resolved;
                                     }
-                                    return "";
+                                    let icon = toast.appIcon || toast.appName;
+                                    return resolveIcon(icon);
                                 }
                                 property bool toastIconHasImage: iconSource !== ""
 

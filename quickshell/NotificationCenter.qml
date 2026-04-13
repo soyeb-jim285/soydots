@@ -773,19 +773,24 @@ Scope {
                                         width: histIconHasImage ? 28 : 6
                                         height: histIconHasImage ? 28 : 6
 
+                                        function resolveIcon(src) {
+                                            if (src === "") return "";
+                                            if (src.startsWith("image://icon/"))
+                                                return "file://" + src.substring("image://icon/".length);
+                                            if (src.startsWith("file://"))
+                                                return src;
+                                            if (src.startsWith("/"))
+                                                return "file://" + src;
+                                            return Quickshell.iconPath(src, true);
+                                        }
                                         property string iconSource: {
                                             let md = histItem.modelData;
-                                            if ((md.image || "") !== "")
-                                                return md.image;
-                                            let icon = (md.appIcon || "") !== "" ? md.appIcon : (md.appName || "");
-                                            if (icon !== "") {
-                                                if (icon.startsWith("file://"))
-                                                    return icon;
-                                                if (icon.startsWith("/"))
-                                                    return "file://" + icon;
-                                                return Quickshell.iconPath(icon, true);
+                                            if ((md.image || "") !== "") {
+                                                let resolved = resolveIcon(md.image);
+                                                if (resolved !== "") return resolved;
                                             }
-                                            return "";
+                                            let icon = (md.appIcon || "") !== "" ? md.appIcon : (md.appName || "");
+                                            return resolveIcon(icon);
                                         }
                                         property bool histIconHasImage: iconSource !== ""
 
