@@ -38,6 +38,7 @@ Scope {
 
         onNotification: notification => {
             notification.tracked = true;
+            console.log("[NOTIF] appName=" + notification.appName + " actions=" + (notification.actions ? notification.actions.length : "null") + " hasActionIcons=" + notification.hasActionIcons);
             let timeout = notification.expireTimeout > 0 ? notification.expireTimeout : Config.notifDefaultTimeout;
 
             let entry = {
@@ -356,8 +357,10 @@ Scope {
                                         return toast.image;
                                     let icon = toast.appIcon || toast.appName;
                                     if (icon !== "") {
-                                        if (icon.startsWith("/") || icon.startsWith("file://"))
+                                        if (icon.startsWith("file://"))
                                             return icon;
+                                        if (icon.startsWith("/"))
+                                            return "file://" + icon;
                                         return Quickshell.iconPath(icon, true);
                                     }
                                     return "";
