@@ -128,28 +128,11 @@ ColumnLayout {
     }
 
     Text {
-        text: "Per-Component Opacity"
-        color: Config.blue
-        font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true
-        Layout.topMargin: 8; Layout.bottomMargin: 2
-        visible: Config.transparencyEnabled
-    }
-
-    Text {
-        text: "Set to -1 to use global opacity. Values 0.1\u20131.0 override per component."
+        text: "Override per-component opacity from each section's own settings page. Set any override to -1 to fall back to the global value above."
         color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
         wrapMode: Text.Wrap; Layout.fillWidth: true
         visible: Config.transparencyEnabled
     }
-
-    SliderSetting { label: "Status Bar"; section: "transparency"; key: "bar"; value: Config._data?.transparency?.bar ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "App Launcher"; section: "transparency"; key: "launcher"; value: Config._data?.transparency?.launcher ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "Clipboard"; section: "transparency"; key: "clipboard"; value: Config._data?.transparency?.clipboard ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "Notif Center"; section: "transparency"; key: "notifCenter"; value: Config._data?.transparency?.notifCenter ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "Notif Popup"; section: "transparency"; key: "notifPopup"; value: Config._data?.transparency?.notifPopup ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "OSD"; section: "transparency"; key: "osd"; value: Config._data?.transparency?.osd ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "Settings"; section: "transparency"; key: "settings"; value: Config._data?.transparency?.settings ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
-    SliderSetting { label: "Anim Picker"; section: "transparency"; key: "animPicker"; value: Config._data?.transparency?.animPicker ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 
     // Base Colors
     Text {
@@ -306,28 +289,17 @@ ColumnLayout {
         Layout.topMargin: 16; Layout.bottomMargin: 4
     }
 
-    RowLayout {
-        Layout.fillWidth: true; spacing: 12
-        Text { text: "Font Family"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Quill.TextField {
-            Layout.fillWidth: true
-            variant: "filled"
-            text: Config.fontFamily
-            placeholder: "Font family..."
-            onSubmitted: (val) => Config.set("appearance", "fontFamily", val)
-        }
+    FontPicker {
+        label: "Font Family"
+        section: "appearance"; key: "fontFamily"
+        value: Config.fontFamily
     }
 
-    RowLayout {
-        Layout.fillWidth: true; spacing: 12
-        Text { text: "Icon Font"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.preferredWidth: 140 }
-        Quill.TextField {
-            Layout.fillWidth: true
-            variant: "filled"
-            text: Config.iconFont
-            placeholder: "Icon font..."
-            onSubmitted: (val) => Config.set("appearance", "iconFont", val)
-        }
+    FontPicker {
+        label: "Icon Font"
+        section: "appearance"; key: "iconFont"
+        value: Config.iconFont
+        previewFonts: false
     }
 
     SliderSetting {
@@ -343,5 +315,31 @@ ColumnLayout {
     SliderSetting {
         label: "Icon Font Size"; section: "appearance"; key: "fontSizeIcon"
         value: Config.fontSizeIcon; from: 6; to: 26; stepSize: 1
+    }
+
+    // Cursor
+    Text {
+        text: "Cursor"
+        color: Config.blue
+        font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true
+        Layout.topMargin: 16; Layout.bottomMargin: 4
+    }
+
+    Text {
+        text: "Applies live to Hyprland, GTK and Qt apps. Also updates hyprland.conf env vars so it persists across reboots."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    DropdownSetting {
+        label: "Cursor Theme"
+        section: "cursor"; key: "theme"
+        value: Config.cursorTheme
+        model: Config.cursorThemes
+    }
+
+    SliderSetting {
+        label: "Cursor Size"; section: "cursor"; key: "size"
+        value: Config.cursorSize; from: 16; to: 64; stepSize: 2
     }
 }

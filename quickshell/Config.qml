@@ -276,6 +276,10 @@ QtObject {
                 showCpu: tmuxShowCpu,
                 showGpu: tmuxShowGpu,
                 showTemp: tmuxShowTemp
+            },
+            cursor: {
+                theme: cursorTheme,
+                size: cursorSize
             }
         };
         _fileView.setText(writeTOML(d));
@@ -290,6 +294,7 @@ QtObject {
         if (section === "hyprland") _syncHyprland();
         if (section === "kitty") _syncKitty();
         if (section === "tmux") _syncTmux();
+        if (section === "cursor") _syncCursor();
         let copy = {};
         let keys = Object.keys(_data);
         for (let k of keys) copy[k] = _data[k];
@@ -350,7 +355,7 @@ QtObject {
     onPinkChanged: { _syncKitty(); _syncTmux(); }
     onTealChanged: { _syncKitty(); _syncTmux(); }
     onPeachChanged: { _syncKitty(); _syncTmux(); }
-    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); _syncWallpaper(); _syncStarship(); _syncBtop(); _syncClaude(); _syncNvim(); }
+    onDarkModeChanged: { _syncKitty(); _syncGtk(); _syncQt(); _syncWallpaper(); _syncStarship(); _syncBtop(); _syncHyprFM(); _syncClaude(); _syncNvim(); }
     onMantleChanged: _syncTmux()
     onCrustChanged: _syncTmux()
     onSurface0Changed: _syncTmux()
@@ -552,6 +557,25 @@ QtObject {
     }
 
     property var _btopProc: Process { command: ["true"] }
+
+    // ===== HyprFM Sync =====
+
+    property var _hyprfmSyncTimer: Timer {
+        interval: 0
+        onTriggered: config._doSyncHyprFM()
+    }
+
+    function _syncHyprFM() { _hyprfmSyncTimer.restart(); }
+
+    function _doSyncHyprFM() {
+        let theme = darkMode ? "catppuccin-mocha" : "catppuccin-latte";
+        _hyprfmProc.command = ["sed", "-i",
+            "s|^theme = .*|theme = '" + theme + "'|",
+            _homeDir + "/.config/hyprfm/config.toml"];
+        _hyprfmProc.running = true;
+    }
+
+    property var _hyprfmProc: Process { command: ["true"] }
 
     // ===== Claude Code Sync =====
 
@@ -923,7 +947,7 @@ base = "#1e1e2e"
 blue = "#89b4fa"
 crust = "#11111b"
 darkMode = true
-fontFamily = "Maple Mono"
+fontFamily = ""
 fontSize = 13
 fontSizeIcon = 16
 fontSizeSmall = 11
@@ -1144,8 +1168,19 @@ unfocusedWidth = 10'
         set("appearance", "darkMode", newMode);
     }
 
-    property string fontFamily: _data?.appearance?.fontFamily ?? "Maple Mono"
+    property string fontFamily: _data?.appearance?.fontFamily ?? ""
     property string iconFont: _data?.appearance?.iconFont ?? "Maple Mono NF" // Legacy: only used by IntegrationsPage tmux preview
+    property var systemFonts: []
+    property var _fontListProc: Process {
+        command: ["bash", "-c", "fc-list : family | sed 's/,/\\n/g' | sort -uf"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let lines = this.text.trim().split("\n");
+                config.systemFonts = lines.filter(l => l.length > 0);
+            }
+        }
+    }
+    Component.onCompleted: _fontListProc.running = true
     property int fontSizeSmall: _data?.appearance?.fontSizeSmall ?? 11
     property int fontSize: _data?.appearance?.fontSize ?? 13
     property int fontSizeIcon: _data?.appearance?.fontSizeIcon ?? 16
@@ -1374,9 +1409,78 @@ unfocusedWidth = 10'
     property bool idleHibernateEnabled: _data?.idle?.hibernateEnabled ?? true
     property int idleHibernateDelay: _data?.idle?.hibernateDelay ?? 7200
 
+    // ===== CURSOR =====
+
+    property string cursorTheme: _data?.cursor?.theme ?? "Dracula-cursors"
+    property int cursorSize: _data?.cursor?.size ?? 24
+    property var cursorThemes: ["Dracula-cursors"]
+
+    onCursorThemeChanged: _syncCursor()
+    onCursorSizeChanged: _syncCursor()
+
+    property var _cursorSyncTimer: Timer {
+        interval: 200
+        onTriggered: config._doSyncCursor()
+    }
+
+    function _syncCursor() { _cursorSyncTimer.restart(); }
+
+    function _doSyncCursor() {
+        let theme = cursorTheme;
+        let size = cursorSize;
+        let gtk3Path = _homeDir + "/jimdots/gtk-3.0/settings.ini";
+        let gtk4Path = _homeDir + "/jimdots/gtk-4.0/settings.ini";
+        let hyprConf = _homeDir + "/jimdots/hypr/hyprland.conf";
+
+        let gtkBody = "[Settings]\\ngtk-cursor-theme-name=" + theme +
+                      "\\ngtk-cursor-theme-size=" + size + "\\n";
+
+        // One bash script:
+        //  1. write GTK 3/4 settings.ini (source of truth, symlinked into ~/.config)
+        //  2. update gsettings for GNOME/GTK live
+        //  3. hyprctl setcursor for live Hyprland/Qt/Electron
+        //  4. sed the env = XCURSOR_*, HYPRCURSOR_* and exec-once hyprctl setcursor
+        //     lines in hyprland.conf so they persist across reboots
+        let script =
+            "printf '" + gtkBody + "' > " + gtk3Path + " && " +
+            "printf '" + gtkBody + "' > " + gtk4Path + " && " +
+            "gsettings set org.gnome.desktop.interface cursor-theme '" + theme + "' && " +
+            "gsettings set org.gnome.desktop.interface cursor-size " + size + " && " +
+            "hyprctl setcursor '" + theme + "' " + size + " && " +
+            "sed -i " +
+                "-e 's|^env = XCURSOR_THEME,.*|env = XCURSOR_THEME," + theme + "|' " +
+                "-e 's|^env = XCURSOR_SIZE,.*|env = XCURSOR_SIZE," + size + "|' " +
+                "-e 's|^env = HYPRCURSOR_THEME,.*|env = HYPRCURSOR_THEME," + theme + "|' " +
+                "-e 's|^env = HYPRCURSOR_SIZE,.*|env = HYPRCURSOR_SIZE," + size + "|' " +
+                "-e 's|^exec-once = hyprctl setcursor .*|exec-once = hyprctl setcursor " + theme + " " + size + "|' " +
+                hyprConf;
+        _cursorProc.command = ["bash", "-c", script];
+        _cursorProc.running = true;
+    }
+
+    property var _cursorProc: Process { command: ["true"] }
+
+    // Discover installed cursor themes at startup (dirs containing a cursors/ subdir)
+    property var _cursorListProc: Process {
+        command: ["bash", "-c",
+            "for base in /usr/share/icons \"$HOME/.local/share/icons\" \"$HOME/.icons\"; do " +
+            "  [ -d \"$base\" ] || continue; " +
+            "  for t in \"$base\"/*/cursors; do " +
+            "    [ -d \"$t\" ] && basename \"$(dirname \"$t\")\"; " +
+            "  done; " +
+            "done | sort -u"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let list = this.text.trim().split("\n").filter(x => x.length > 0);
+                if (list.length > 0) config.cursorThemes = list;
+            }
+        }
+    }
+
     // ===== Convenience: all section names =====
 
-    property var sectionNames: ["appearance", "bar", "workspaces", "clock", "volume", "battery",
+    property var sectionNames: ["appearance", "bar", "workspaces", "clock", "cursor", "volume", "battery",
         "media", "systray", "network", "wifi", "bluetooth", "calendar", "notifications",
         "launcher", "clipboard", "osd", "animations", "nightlight", "animationPicker",
         "batteryPopup", "mediaPopup", "lockscreen", "idle"]

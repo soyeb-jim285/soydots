@@ -2,6 +2,7 @@ DropdownSetting 1.0 DropdownSetting.qml
 SliderSetting 1.0 SliderSetting.qml
 ToggleSetting 1.0 ToggleSetting.qml
 TextSetting 1.0 TextSetting.qml
+FontPicker 1.0 FontPicker.qml
 SettingsSidebar 1.0 SettingsSidebar.qml
 AppearancePage 1.0 AppearancePage.qml
 BarPage 1.0 BarPage.qml
