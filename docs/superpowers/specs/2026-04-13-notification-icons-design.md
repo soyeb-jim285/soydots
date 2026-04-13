@@ -9,8 +9,9 @@ Show app icons and notification images in both toast popups and the notification
 Each notification's icon slot resolves in this order:
 
 1. **`notification.image`** — inline image provided by the app (chat avatar, screenshot preview, etc.)
-2. **`notification.appIcon`** — freedesktop icon name, resolved via `Quickshell.iconPath(iconName, true)` which performs theme lookup and returns `""` if not found. Quickshell auto-populates this from the app's desktop entry if the app doesn't provide one.
-3. **Fallback** — the existing urgency indicator (colored dot in history, urgency icon in toasts)
+2. **`notification.appIcon`** — freedesktop icon name or file path. File paths (starting with `/` or `file://`) are used directly; icon names are resolved via `Quickshell.iconPath(iconName, true)`.
+3. **`notification.appName`** — if appIcon is empty, the app name is tried as an icon theme name (most apps name their icon after themselves).
+4. **Fallback** — the existing urgency indicator (colored dot in history, urgency icon in toasts)
 
 ## Icon Slot Layout
 
