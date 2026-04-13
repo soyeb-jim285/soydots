@@ -159,7 +159,7 @@ Scope {
     Process {
         id: brightnessSetProc
         property int pct: 50
-        command: ["brightnessctl", "set", pct + "%"]
+        command: ["/home/jim/jimdots/hypr/brightness-sync.sh", "set", pct + "%"]
     }
 
     LazyLoader {

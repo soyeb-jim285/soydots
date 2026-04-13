@@ -21,6 +21,7 @@
 - fuzzel (app launcher/picker)
 - bluez, bluez-utils (Bluetooth stack and utilities)
 - brightnessctl (backlight brightness control)
+- ddcutil (DDC/CI monitor control for external display brightness)
 - hyprsunset (night light / warm color filter)
 - hyprlock (Hyprland lock screen)
 - hypridle (idle daemon, screen sleep management)
@@ -47,7 +48,7 @@
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
 - hyprland keybindings:
   - Meta+Return: terminal, Meta+Q: close, Meta+W: browser, Meta+R: app launcher
-  - Meta+F5/F6: brightness down/up
+  - Meta+F5/F6: brightness down/up (brightnessctl for laptop panel, ddcutil for HDMI monitor)
   - Meta+Shift+P: region screenshot to clipboard, Meta+Shift+F: fullscreen to clipboard
   - Meta+Shift+A: region screenshot to file, Meta+Shift+W: window screenshot to clipboard
   - Meta+V: clipboard history, Meta+Alt+V: toggle floating, Meta+Shift+B: animation picker, Meta+Comma: settings, Meta+M: power menu
@@ -207,6 +208,16 @@ These commands must be run manually for full functionality (not managed by dotfi
 - Rebuild initramfs: `sudo mkinitcpio -P`
 - Create `/etc/systemd/sleep.conf.d/hibernate.conf` with `[Sleep]\nHibernateDelaySec=2h`
 - Reboot for kernel parameter to take effect
+
+### External Monitor Brightness (DDC/CI)
+- Install `ddcutil`
+- Enable DDC/CI in the monitor's OSD if the monitor exposes that setting
+- Load the kernel module: `sudo modprobe i2c-dev`
+- Create the group if needed: `sudo groupadd -f i2c`
+- Add your user to it: `sudo usermod -aG i2c "$USER"`
+- Log out and back in so new group membership takes effect
+- Verify the monitor is reachable: `ddcutil detect`
+- Confirm brightness control works: `ddcutil --bus 4 getvcp 10`
 
 ### Symlinks
 - `~/.config/hypr/hypridle.conf` → `~/jimdots/hypr/hypridle.conf`
