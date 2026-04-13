@@ -448,7 +448,12 @@ Scope {
 
                                 Rectangle {
                                     required property var modelData
-                                    width: (parent.width - (parent.children.length - 1) * 6) / parent.children.length
+                                    required property int index
+                                    property int actionCount: {
+                                        let notif = root.toastNotifs[toast.toastId];
+                                        return notif && notif.actions ? Math.min(notif.actions.length, 3) : 0;
+                                    }
+                                    width: actionCount > 0 ? (parent.width - (actionCount - 1) * 6) / actionCount : parent.width
                                     height: 24
                                     radius: 6
                                     color: actionMouse.containsMouse ? Theme.surface1 : Theme.surface0
