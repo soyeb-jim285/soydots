@@ -21,6 +21,9 @@ for _ in $(seq 1 20); do
 done
 [[ ! -f "$SCREENSHOT" ]] && exit 0
 
+# Wait for the file to be fully written (grim may still be flushing)
+sleep 0.5
+
 # Send actionable notification
 ACTION=$(notify-send "Screenshot saved" "$FILENAME" \
     -a "Hyprshot" \

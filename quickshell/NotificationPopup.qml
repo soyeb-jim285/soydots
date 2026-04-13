@@ -38,7 +38,6 @@ Scope {
 
         onNotification: notification => {
             notification.tracked = true;
-            console.log("[NOTIF] appName=" + notification.appName + " actions=" + (notification.actions ? notification.actions.length : "null") + " hasActionIcons=" + notification.hasActionIcons);
             let timeout = notification.expireTimeout > 0 ? notification.expireTimeout : Config.notifDefaultTimeout;
 
             let entry = {
@@ -456,7 +455,7 @@ Scope {
                                         let notif = root.toastNotifs[toast.toastId];
                                         return notif && notif.actions ? Math.min(notif.actions.length, 3) : 0;
                                     }
-                                    width: actionCount > 0 ? (parent.width - (actionCount - 1) * 6) / actionCount : parent.width
+                                    width: actionCount > 0 ? ((parent?.width ?? 0) - (actionCount - 1) * 6) / actionCount : (parent?.width ?? 0)
                                     height: 24
                                     radius: 6
                                     color: actionMouse.containsMouse ? Theme.surface1 : Theme.surface0
