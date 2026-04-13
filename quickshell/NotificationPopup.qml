@@ -339,18 +339,57 @@ Scope {
                         anchors.rightMargin: 4
                         spacing: 8
 
-                        Loader {
-                            id: urgencyIconLoader
+                        // Icon/image slot with urgency fallback
+                        Item {
+                            id: toastIconSlot
                             anchors.verticalCenter: parent.verticalCenter
-                            source: root.urgencyIconSource(toast.urgency)
-                            onLoaded: {
-                                item.size = 14;
-                                item.color = Qt.binding(() => root.urgencyColor(toast.urgency));
+                            width: toastIconHasImage ? 32 : 14
+                            height: toastIconHasImage ? 32 : 14
+
+                            property string iconSource: {
+                                if (toast.image !== "")
+                                    return toast.image;
+                                if (toast.appIcon !== "")
+                                    return Quickshell.iconPath(toast.appIcon, true);
+                                return "";
+                            }
+                            property bool toastIconHasImage: iconSource !== ""
+
+                            // App icon / notification image
+                            Rectangle {
+                                visible: toastIconSlot.toastIconHasImage
+                                anchors.fill: parent
+                                radius: 8
+                                color: Theme.crust
+                                border.color: Theme.surface1
+                                border.width: 1
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    source: toastIconSlot.iconSource
+                                    sourceSize.width: 32
+                                    sourceSize.height: 32
+                                    fillMode: Image.PreserveAspectCrop
+                                    smooth: true
+                                }
+                            }
+
+                            // Urgency icon fallback
+                            Loader {
+                                visible: !toastIconSlot.toastIconHasImage
+                                anchors.centerIn: parent
+                                source: root.urgencyIconSource(toast.urgency)
+                                onLoaded: {
+                                    item.size = 14;
+                                    item.color = Qt.binding(() => root.urgencyColor(toast.urgency));
+                                }
                             }
                         }
 
                         Column {
-                            width: parent.width - 26
+                            width: parent.width - toastIconSlot.width - 8
                             spacing: 1
 
                             Row {
