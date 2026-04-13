@@ -684,7 +684,8 @@ Scope {
                                 required property int index
 
                                 Layout.fillWidth: true
-                                implicitHeight: histRow.implicitHeight + 16
+                                implicitHeight: histCol.implicitHeight + 16
+                                Behavior on implicitHeight { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                 radius: 8
                                 color: histMouse.containsMouse ? Theme.surface0 : "transparent"
                                 Behavior on color { ColorAnimation { duration: 80 } }
@@ -750,15 +751,20 @@ Scope {
                                     }
                                 }
 
-                                // Left side: icon + text content
-                                Row {
-                                    id: histRow
+                                // Left side: icon + text content + action buttons
+                                Column {
+                                    id: histCol
                                     anchors.left: parent.left
                                     anchors.right: histRight.left
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.leftMargin: 8
                                     anchors.rightMargin: 4
-                                    spacing: 8
+                                    spacing: 4
+
+                                    Row {
+                                        id: histRow
+                                        width: parent.width
+                                        spacing: 8
 
                                     // Icon/image slot with urgency dot fallback
                                     Item {
@@ -830,6 +836,60 @@ Scope {
                                             font.pixelSize: 10; font.family: Theme.fontFamily
                                             width: parent.width
                                             elide: Text.ElideRight; maximumLineCount: 1
+                                        }
+                                    }
+                                    }
+
+                                    // Action buttons (hover reveal)
+                                    Row {
+                                        visible: histMouse.containsMouse && histItem.modelData.actions && histItem.modelData.actions.length > 0
+                                        width: parent.width
+                                        spacing: 6
+
+                                        Repeater {
+                                            model: {
+                                                let acts = histItem.modelData.actions;
+                                                if (!acts) return [];
+                                                let result = [];
+                                                for (let i = 0; i < Math.min(acts.length, 3); i++)
+                                                    result.push({ text: acts[i].text, idx: i });
+                                                return result;
+                                            }
+
+                                            Rectangle {
+                                                required property var modelData
+                                                required property int index
+                                                property int actionCount: {
+                                                    let acts = histItem.modelData.actions;
+                                                    return acts ? Math.min(acts.length, 3) : 0;
+                                                }
+                                                width: actionCount > 0 ? (parent.width - (actionCount - 1) * 6) / actionCount : parent.width
+                                                height: 22
+                                                radius: 6
+                                                color: histActionMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                                                Behavior on color { ColorAnimation { duration: 80 } }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: modelData.text
+                                                    color: histActionMouse.containsMouse ? Theme.text : Theme.subtext0
+                                                    font.pixelSize: 10; font.family: Theme.fontFamily
+                                                    Behavior on color { ColorAnimation { duration: 80 } }
+                                                }
+
+                                                MouseArea {
+                                                    id: histActionMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        let acts = histItem.modelData.actions;
+                                                        if (acts && acts.length > modelData.idx)
+                                                            acts[modelData.idx].invoke();
+                                                        histItem.dismiss();
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
