@@ -378,7 +378,8 @@ Scope {
 
                             // Urgency icon fallback
                             Loader {
-                                visible: !toastIconSlot.toastIconHasImage
+                                active: !toastIconSlot.toastIconHasImage
+                                visible: active
                                 anchors.centerIn: parent
                                 source: root.urgencyIconSource(toast.urgency)
                                 onLoaded: {
