@@ -292,7 +292,7 @@ Scope {
                     required property bool hasActions
 
                     width: toastContainer.width
-                    height: root.itemHeight
+                    height: toast.hasActions ? toastContent.implicitHeight + 16 : root.itemHeight
                     radius: Config.notifPopupRadius
                     color: Theme.notifPopupBg
                     border.color: urgency === NotificationUrgency.Critical ? Theme.red : Theme.surface1
@@ -330,97 +330,151 @@ Scope {
                     }
 
 
-                    Row {
-                        id: toastRow
+                    Column {
+                        id: toastContent
                         anchors.left: parent.left
                         anchors.right: closeBtn.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 10
                         anchors.rightMargin: 4
-                        spacing: 8
+                        spacing: 6
 
-                        // Icon/image slot with urgency fallback
-                        Item {
-                            id: toastIconSlot
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: toastIconHasImage ? 32 : 14
-                            height: toastIconHasImage ? 32 : 14
+                        Row {
+                            id: toastRow
+                            width: parent.width
+                            spacing: 8
 
-                            property string iconSource: {
-                                if (toast.image !== "")
-                                    return toast.image;
-                                let icon = toast.appIcon || toast.appName;
-                                if (icon !== "") {
-                                    if (icon.startsWith("/") || icon.startsWith("file://"))
-                                        return icon;
-                                    return Quickshell.iconPath(icon, true);
+                            // Icon/image slot with urgency fallback
+                            Item {
+                                id: toastIconSlot
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: toastIconHasImage ? 32 : 14
+                                height: toastIconHasImage ? 32 : 14
+
+                                property string iconSource: {
+                                    if (toast.image !== "")
+                                        return toast.image;
+                                    let icon = toast.appIcon || toast.appName;
+                                    if (icon !== "") {
+                                        if (icon.startsWith("/") || icon.startsWith("file://"))
+                                            return icon;
+                                        return Quickshell.iconPath(icon, true);
+                                    }
+                                    return "";
                                 }
-                                return "";
-                            }
-                            property bool toastIconHasImage: iconSource !== ""
+                                property bool toastIconHasImage: iconSource !== ""
 
-                            // App icon / notification image
-                            Rectangle {
-                                visible: toastIconSlot.toastIconHasImage
-                                anchors.fill: parent
-                                radius: 8
-                                color: Theme.crust
-                                border.color: Theme.surface1
-                                border.width: 1
-                                clip: true
-
-                                Image {
+                                // App icon / notification image
+                                Rectangle {
+                                    visible: toastIconSlot.toastIconHasImage
                                     anchors.fill: parent
-                                    anchors.margins: 1
-                                    source: toastIconSlot.iconSource
-                                    sourceSize.width: 32
-                                    sourceSize.height: 32
-                                    fillMode: Image.PreserveAspectCrop
-                                    smooth: true
+                                    radius: 8
+                                    color: Theme.crust
+                                    border.color: Theme.surface1
+                                    border.width: 1
+                                    clip: true
+
+                                    Image {
+                                        anchors.fill: parent
+                                        anchors.margins: 1
+                                        source: toastIconSlot.iconSource
+                                        sourceSize.width: 32
+                                        sourceSize.height: 32
+                                        fillMode: Image.PreserveAspectCrop
+                                        smooth: true
+                                    }
+                                }
+
+                                // Urgency icon fallback
+                                Loader {
+                                    active: !toastIconSlot.toastIconHasImage
+                                    visible: active
+                                    anchors.centerIn: parent
+                                    source: root.urgencyIconSource(toast.urgency)
+                                    onLoaded: {
+                                        item.size = 14;
+                                        item.color = Qt.binding(() => root.urgencyColor(toast.urgency));
+                                    }
                                 }
                             }
 
-                            // Urgency icon fallback
-                            Loader {
-                                active: !toastIconSlot.toastIconHasImage
-                                visible: active
-                                anchors.centerIn: parent
-                                source: root.urgencyIconSource(toast.urgency)
-                                onLoaded: {
-                                    item.size = 14;
-                                    item.color = Qt.binding(() => root.urgencyColor(toast.urgency));
+                            Column {
+                                width: parent.width - toastIconSlot.width - 8
+                                spacing: 1
+
+                                Row {
+                                    width: parent.width; spacing: 4
+                                    Text {
+                                        text: toast.appName ? toast.appName + " \u2022 " : ""
+                                        color: Theme.overlay0
+                                        font.pixelSize: 10; font.family: Theme.fontFamily
+                                        visible: text !== ""
+                                    }
+                                    Text {
+                                        text: toast.summary
+                                        color: Theme.text
+                                        font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
+                                        elide: Text.ElideRight
+                                        width: parent.width - (parent.children[0].visible ? parent.children[0].implicitWidth : 0)
+                                    }
+                                }
+
+                                Text {
+                                    visible: text !== ""
+                                    text: toast.body
+                                    color: Theme.subtext0
+                                    font.pixelSize: 10; font.family: Theme.fontFamily
+                                    width: parent.width
+                                    elide: Text.ElideRight; maximumLineCount: 1
                                 }
                             }
                         }
 
-                        Column {
-                            width: parent.width - toastIconSlot.width - 8
-                            spacing: 1
+                        // Action buttons
+                        Row {
+                            visible: toast.hasActions
+                            width: parent.width
+                            spacing: 6
 
-                            Row {
-                                width: parent.width; spacing: 4
-                                Text {
-                                    text: toast.appName ? toast.appName + " \u2022 " : ""
-                                    color: Theme.overlay0
-                                    font.pixelSize: 10; font.family: Theme.fontFamily
-                                    visible: text !== ""
+                            Repeater {
+                                model: {
+                                    let notif = root.toastNotifs[toast.toastId];
+                                    if (!notif || !notif.actions) return [];
+                                    let acts = [];
+                                    for (let i = 0; i < Math.min(notif.actions.length, 3); i++)
+                                        acts.push({ text: notif.actions[i].text, idx: i });
+                                    return acts;
                                 }
-                                Text {
-                                    text: toast.summary
-                                    color: Theme.text
-                                    font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
-                                    elide: Text.ElideRight
-                                    width: parent.width - (parent.children[0].visible ? parent.children[0].implicitWidth : 0)
-                                }
-                            }
 
-                            Text {
-                                visible: text !== ""
-                                text: toast.body
-                                color: Theme.subtext0
-                                font.pixelSize: 10; font.family: Theme.fontFamily
-                                width: parent.width
-                                elide: Text.ElideRight; maximumLineCount: 1
+                                Rectangle {
+                                    required property var modelData
+                                    width: (parent.width - (parent.children.length - 1) * 6) / parent.children.length
+                                    height: 24
+                                    radius: 6
+                                    color: actionMouse.containsMouse ? Theme.surface1 : Theme.surface0
+                                    Behavior on color { ColorAnimation { duration: 80 } }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.text
+                                        color: actionMouse.containsMouse ? Theme.text : Theme.subtext0
+                                        font.pixelSize: 10; font.family: Theme.fontFamily
+                                        Behavior on color { ColorAnimation { duration: 80 } }
+                                    }
+
+                                    MouseArea {
+                                        id: actionMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            let notif = root.toastNotifs[toast.toastId];
+                                            if (notif && notif.actions && notif.actions.length > modelData.idx)
+                                                notif.actions[modelData.idx].invoke();
+                                            root.removeToastById(toast.toastId);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
