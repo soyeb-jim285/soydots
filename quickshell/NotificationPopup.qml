@@ -349,10 +349,11 @@ Scope {
                             property string iconSource: {
                                 if (toast.image !== "")
                                     return toast.image;
-                                if (toast.appIcon !== "") {
-                                    if (toast.appIcon.startsWith("/") || toast.appIcon.startsWith("file://"))
-                                        return toast.appIcon;
-                                    return Quickshell.iconPath(toast.appIcon, true);
+                                let icon = toast.appIcon || toast.appName;
+                                if (icon !== "") {
+                                    if (icon.startsWith("/") || icon.startsWith("file://"))
+                                        return icon;
+                                    return Quickshell.iconPath(icon, true);
                                 }
                                 return "";
                             }

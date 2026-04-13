@@ -771,7 +771,7 @@ Scope {
                                             let md = histItem.modelData;
                                             if ((md.image || "") !== "")
                                                 return md.image;
-                                            let icon = md.appIcon || "";
+                                            let icon = (md.appIcon || "") !== "" ? md.appIcon : (md.appName || "");
                                             if (icon !== "") {
                                                 if (icon.startsWith("/") || icon.startsWith("file://"))
                                                     return icon;
