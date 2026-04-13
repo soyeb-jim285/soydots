@@ -14,7 +14,11 @@ SCREENSHOT="$OUTPUT_DIR/$FILENAME"
 # Run hyprshot silently (we'll send our own notification)
 hyprshot -m "$MODE" --freeze -s -o "$OUTPUT_DIR" -f "$FILENAME" || true
 
-# Check if the file was actually created
+# Wait for hyprshot to finish writing the file (it forks internally)
+for _ in $(seq 1 20); do
+    [[ -f "$SCREENSHOT" ]] && break
+    sleep 0.1
+done
 [[ ! -f "$SCREENSHOT" ]] && exit 0
 
 # Send actionable notification
