@@ -792,7 +792,8 @@ Scope {
                                             let icon = (md.appIcon || "") !== "" ? md.appIcon : (md.appName || "");
                                             return resolveIcon(icon);
                                         }
-                                        property bool histIconHasImage: iconSource !== ""
+                                        property bool iconError: false
+                                        property bool histIconHasImage: iconSource !== "" && !iconError
 
                                         // App icon / notification image
                                         Rectangle {
@@ -815,7 +816,7 @@ Scope {
                                                 asynchronous: true
                                                 onStatusChanged: {
                                                     if (status === Image.Error)
-                                                        histIconSlot.histIconHasImage = false;
+                                                        histIconSlot.iconError = true;
                                                 }
                                             }
                                         }
@@ -875,7 +876,7 @@ Scope {
                                                     let acts = histItem.modelData.actions;
                                                     return acts ? Math.min(acts.length, 3) : 0;
                                                 }
-                                                width: actionCount > 0 ? (parent.width - (actionCount - 1) * 6) / actionCount : parent.width
+                                                width: actionCount > 0 ? ((parent?.width ?? 0) - (actionCount - 1) * 6) / actionCount : (parent?.width ?? 0)
                                                 height: 22
                                                 radius: 6
                                                 color: histActionMouse.containsMouse ? Theme.surface1 : Theme.surface0

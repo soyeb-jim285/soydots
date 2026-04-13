@@ -370,7 +370,8 @@ Scope {
                                     let icon = toast.appIcon || toast.appName;
                                     return resolveIcon(icon);
                                 }
-                                property bool toastIconHasImage: iconSource !== ""
+                                property bool iconError: false
+                                property bool toastIconHasImage: iconSource !== "" && !iconError
 
                                 // App icon / notification image
                                 Rectangle {
@@ -383,7 +384,6 @@ Scope {
                                     clip: true
 
                                     Image {
-                                        id: toastIconImage
                                         anchors.fill: parent
                                         anchors.margins: 1
                                         source: toastIconSlot.iconSource
@@ -394,7 +394,7 @@ Scope {
                                         asynchronous: true
                                         onStatusChanged: {
                                             if (status === Image.Error)
-                                                toastIconSlot.toastIconHasImage = false;
+                                                toastIconSlot.iconError = true;
                                         }
                                     }
                                 }
