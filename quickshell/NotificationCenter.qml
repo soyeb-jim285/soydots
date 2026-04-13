@@ -147,11 +147,11 @@ Scope {
     Process { id: btOffProc; command: ["bluetoothctl", "power", "off"]; onRunningChanged: if (!running) btProc.running = true }
     Process { id: nightLightOnProc; command: ["bash", "-c", "pkill hyprsunset; hyprsunset -t " + Config.nightLightTemp + " &"] }
     Process { id: nightLightOffProc; command: ["pkill", "hyprsunset"] }
-    Process { id: caffeineOnProc; command: ["bash", "-c", "pkill hypridle; notify-send 'Caffeine' 'Screen will stay awake'"] }
-    Process { id: caffeineOffProc; command: ["bash", "-c", "hypridle & notify-send 'Caffeine' 'Screen sleep restored'"] }
+    Process { id: caffeineOnProc; command: ["bash", "-c", "systemctl --user stop hypridle; notify-send 'Caffeine' 'Screen will stay awake'"] }
+    Process { id: caffeineOffProc; command: ["bash", "-c", "systemctl --user start hypridle; notify-send 'Caffeine' 'Screen sleep restored'"] }
     Process { id: lockProc; command: ["quickshell", "msg", "lockscreen", "lock"] }
     Process { id: ssProc; command: ["bash", "-c", "sleep 0.3 && hyprshot -m region --freeze --clipboard-only"] }
-    Process { id: reloadProc; command: ["hyprctl", "dispatch", "exec", "bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; pkill -x hypridle; sleep 0.2; hypridle & systemctl --user restart quill-polkit-agent; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"'"] }
+    Process { id: reloadProc; command: ["hyprctl", "dispatch", "exec", "bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; systemctl --user restart hypridle quill-polkit-agent; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"'"] }
     Process { id: settingsOpenProc; command: ["quickshell", "msg", "settings", "toggle"] }
     Process { id: powerMenuProc; command: ["quickshell", "msg", "powermenu", "toggle"] }
 
@@ -200,11 +200,14 @@ Scope {
                 border.color: Theme.surface1
                 border.width: 1
 
-                NumberAnimation on anchors.rightMargin {
-                    from: Config.notifCenterSlideFrom; to: Config.notifCenterSlideTo; duration: 300
+                // Slide in from the right
+                transform: Translate { id: panelSlide; x: Config.notifCenterWidth + 16 }
+                NumberAnimation {
+                    target: panelSlide; property: "x"
+                    from: Config.notifCenterWidth + 16; to: 0; duration: 300
                     easing.type: Easing.OutCubic; running: true
                 }
-                opacity: 1
+                opacity: 0
                 NumberAnimation on opacity {
                     from: 0; to: 1; duration: 200
                     easing.type: Easing.OutCubic; running: true
@@ -747,7 +750,7 @@ Scope {
                                     }
                                 }
 
-                                // Left side: dot + text content
+                                // Left side: icon + text content
                                 Row {
                                     id: histRow
                                     anchors.left: parent.left
@@ -757,14 +760,55 @@ Scope {
                                     anchors.rightMargin: 4
                                     spacing: 8
 
-                                    Rectangle {
+                                    // Icon/image slot with urgency dot fallback
+                                    Item {
+                                        id: histIconSlot
                                         anchors.verticalCenter: parent.verticalCenter
-                                        width: 6; height: 6; radius: 3
-                                        color: root.notifSource.urgencyColor(histItem.modelData.urgency)
+                                        width: histIconHasImage ? 28 : 6
+                                        height: histIconHasImage ? 28 : 6
+
+                                        property string iconSource: {
+                                            let md = histItem.modelData;
+                                            if ((md.image || "") !== "")
+                                                return md.image;
+                                            if ((md.appIcon || "") !== "")
+                                                return Quickshell.iconPath(md.appIcon, true);
+                                            return "";
+                                        }
+                                        property bool histIconHasImage: iconSource !== ""
+
+                                        // App icon / notification image
+                                        Rectangle {
+                                            visible: histIconSlot.histIconHasImage
+                                            anchors.fill: parent
+                                            radius: 6
+                                            color: Theme.crust
+                                            border.color: Theme.surface1
+                                            border.width: 1
+                                            clip: true
+
+                                            Image {
+                                                anchors.fill: parent
+                                                anchors.margins: 1
+                                                source: histIconSlot.iconSource
+                                                sourceSize.width: 28
+                                                sourceSize.height: 28
+                                                fillMode: Image.PreserveAspectCrop
+                                                smooth: true
+                                            }
+                                        }
+
+                                        // Urgency dot fallback
+                                        Rectangle {
+                                            visible: !histIconSlot.histIconHasImage
+                                            anchors.centerIn: parent
+                                            width: 6; height: 6; radius: 3
+                                            color: root.notifSource.urgencyColor(histItem.modelData.urgency)
+                                        }
                                     }
 
                                     Column {
-                                        width: parent.width - 18
+                                        width: parent.width - histIconSlot.width - 8
                                         spacing: 1
 
                                         Text {
