@@ -812,6 +812,11 @@ Scope {
                                                 sourceSize.height: 28
                                                 fillMode: Image.PreserveAspectCrop
                                                 smooth: true
+                                                asynchronous: true
+                                                onStatusChanged: {
+                                                    if (status === Image.Error)
+                                                        histIconSlot.histIconHasImage = false;
+                                                }
                                             }
                                         }
 

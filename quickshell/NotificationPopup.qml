@@ -383,6 +383,7 @@ Scope {
                                     clip: true
 
                                     Image {
+                                        id: toastIconImage
                                         anchors.fill: parent
                                         anchors.margins: 1
                                         source: toastIconSlot.iconSource
@@ -390,6 +391,11 @@ Scope {
                                         sourceSize.height: 32
                                         fillMode: Image.PreserveAspectCrop
                                         smooth: true
+                                        asynchronous: true
+                                        onStatusChanged: {
+                                            if (status === Image.Error)
+                                                toastIconSlot.toastIconHasImage = false;
+                                        }
                                     }
                                 }
 

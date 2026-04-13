@@ -22,7 +22,14 @@ done
 [[ ! -f "$SCREENSHOT" ]] && exit 0
 
 # Wait for the file to be fully written (grim may still be flushing)
-sleep 0.5
+# Check that file size stabilizes
+PREV_SIZE=0
+for _ in $(seq 1 20); do
+    sleep 0.2
+    CUR_SIZE=$(stat -c %s "$SCREENSHOT" 2>/dev/null || echo 0)
+    [[ "$CUR_SIZE" -gt 0 && "$CUR_SIZE" == "$PREV_SIZE" ]] && break
+    PREV_SIZE="$CUR_SIZE"
+done
 
 # Send actionable notification
 ACTION=$(notify-send "Screenshot saved" "$FILENAME" \
