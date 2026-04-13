@@ -771,8 +771,12 @@ Scope {
                                             let md = histItem.modelData;
                                             if ((md.image || "") !== "")
                                                 return md.image;
-                                            if ((md.appIcon || "") !== "")
-                                                return Quickshell.iconPath(md.appIcon, true);
+                                            let icon = md.appIcon || "";
+                                            if (icon !== "") {
+                                                if (icon.startsWith("/") || icon.startsWith("file://"))
+                                                    return icon;
+                                                return Quickshell.iconPath(icon, true);
+                                            }
                                             return "";
                                         }
                                         property bool histIconHasImage: iconSource !== ""
