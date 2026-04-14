@@ -1,0 +1,17 @@
+[Unit]
+Description=Apply Catppuccin Mocha palette to TTY
+DefaultDependencies=no
+After=systemd-vconsole-setup.service
+Before=greetd.service getty@tty1.service
+ConditionPathExists=/dev/tty1
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+ExecStart=/bin/sh -c '/usr/bin/setvtrgb /etc/tty-colors.pal'
+
+[Install]
+WantedBy=multi-user.target
