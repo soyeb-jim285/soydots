@@ -1,0 +1,76 @@
+# --- base toolchain ---
+base-devel
+git
+jq
+zip
+unzip
+wl-clipboard
+
+# --- shell + prompt ---
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+zsh-completions
+starship
+zoxide
+eza
+bat
+fzf
+
+# --- terminal + editor ---
+kitty
+neovim
+tmux
+
+# --- fonts ---
+ttf-maplemono-nf
+
+# --- wayland / hyprland stack ---
+hyprland
+hyprlock
+hypridle
+hyprsunset
+hyprshot
+qt6-wayland
+xdg-desktop-portal-hyprland
+uwsm
+
+# --- shell ui / quickshell deps ---
+quickshell
+python-gobject
+python-pillow
+
+# --- display manager ---
+greetd
+greetd-tuigreet
+terminus-font
+
+# --- audio ---
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+
+# --- bluetooth ---
+bluez
+bluez-utils
+
+# --- screen / brightness / misc ---
+brightnessctl
+ddcutil
+grim
+slurp
+swappy
+cliphist
+fuzzel
+upower
+
+# --- theming (qt/gtk) ---
+qt6ct
+kvantum
+
+# --- monitoring ---
+btop
+
+# --- nvidia (installed only if nvidia machine; harmless on others) ---
+linux-headers

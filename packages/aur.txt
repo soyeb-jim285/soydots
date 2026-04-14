@@ -1,0 +1,7 @@
+# AUR packages (installed via yay)
+yay
+dracula-cursors-git
+zen-browser-bin
+kvantum-theme-catppuccin
+awww
+hyprpolkitagent
