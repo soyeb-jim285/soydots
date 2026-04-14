@@ -682,7 +682,7 @@ Scope {
                                 id: histItem
                                 required property var modelData
                                 required property int index
-                                property bool hasActions: modelData.actions && modelData.actions.length > 0
+                                property bool hasActions: modelData.actionLabels && modelData.actionLabels.length > 0
                                 property bool hovering: histHover.hovered
 
                                 Layout.fillWidth: true
@@ -879,22 +879,12 @@ Scope {
                                             spacing: 6
 
                                             Repeater {
-                                                model: {
-                                                    let acts = histItem.modelData.actions;
-                                                    if (!acts) return [];
-                                                    let result = [];
-                                                    for (let i = 0; i < Math.min(acts.length, 3); i++)
-                                                        result.push({ text: acts[i].text, idx: i });
-                                                    return result;
-                                                }
+                                                model: histItem.modelData.actionLabels || []
 
                                                 Rectangle {
                                                     required property var modelData
                                                     required property int index
-                                                    property int actionCount: {
-                                                        let acts = histItem.modelData.actions;
-                                                        return acts ? Math.min(acts.length, 3) : 0;
-                                                    }
+                                                    property int actionCount: histItem.modelData.actionLabels ? histItem.modelData.actionLabels.length : 0
                                                     width: actionCount > 0 ? ((parent?.width ?? 0) - (actionCount - 1) * 6) / actionCount : (parent?.width ?? 0)
                                                     height: 22
                                                     radius: 6
@@ -915,9 +905,7 @@ Scope {
                                                         hoverEnabled: true
                                                         cursorShape: Qt.PointingHandCursor
                                                         onClicked: {
-                                                            let acts = histItem.modelData.actions;
-                                                            if (acts && acts.length > modelData.idx)
-                                                                acts[modelData.idx].invoke();
+                                                            root.notifSource.invokeHistoryAction(histItem.modelData.historyId, index);
                                                             histItem.dismiss();
                                                         }
                                                     }
@@ -934,8 +922,8 @@ Scope {
                                     onClicked: {
                                         // Invoke default action if available
                                         let md = histItem.modelData;
-                                        if (md.notif && md.actions && md.actions.length > 0)
-                                            md.actions[0].invoke();
+                                        if (md.actionLabels && md.actionLabels.length > 0)
+                                            root.notifSource.invokeHistoryAction(md.historyId, 0);
                                         // Focus the app's window (searches clients by class/title)
                                         if (md.appName !== "") {
                                             focusAppProc.appName = md.appName;

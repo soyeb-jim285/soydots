@@ -13,8 +13,10 @@ Scope {
     id: root
 
     property var history: []
+    property var historyRefs: ({})
     property int unreadCount: 0
     property bool dndEnabled: false
+    property int historyIdCounter: 0
 
 
     function urgencyIconSource(urgency: int): string {
@@ -39,6 +41,13 @@ Scope {
         onNotification: notification => {
             notification.tracked = true;
             let timeout = notification.expireTimeout > 0 ? notification.expireTimeout : Config.notifDefaultTimeout;
+            let historyId = historyIdCounter++;
+            let actionLabels = [];
+
+            if (notification.actions) {
+                for (let i = 0; i < Math.min(notification.actions.length, 3); i++)
+                    actionLabels.push({ text: notification.actions[i].text || "Action" });
+            }
 
             let entry = {
                 summary: notification.summary || "",
@@ -55,19 +64,30 @@ Scope {
 
             // Add to history
             let hist = root.history.slice();
-            hist.unshift({
+            let refs = Object.assign({}, root.historyRefs);
+            refs[historyId] = {
                 notif: notification,
+                actions: notification.actions || []
+            };
+            root.historyRefs = refs;
+            hist.unshift({
+                historyId: historyId,
                 summary: entry.summary,
                 body: entry.body,
                 appName: entry.appName,
                 appIcon: notification.appIcon || "",
                 image: notification.image || "",
                 urgency: entry.urgency,
-                actions: notification.actions,
+                actionLabels: actionLabels,
                 time: new Date(),
                 timeout: timeout
             });
-            if (hist.length > Config.notifMaxHistory) hist.pop();
+            if (hist.length > Config.notifMaxHistory) {
+                let removed = hist.pop();
+                let nextRefs = Object.assign({}, root.historyRefs);
+                delete nextRefs[removed.historyId];
+                root.historyRefs = nextRefs;
+            }
             root.history = hist;
             root.unreadCount++;
         }
@@ -81,21 +101,36 @@ Scope {
     function dismissHistory(index: int) {
         let hist = root.history.slice();
         if (index >= 0 && index < hist.length) {
-            if (hist[index].notif) hist[index].notif.dismiss();
+            let historyId = hist[index].historyId;
+            let ref = root.historyRefs[historyId];
+            if (ref && ref.notif) ref.notif.dismiss();
+            let refs = Object.assign({}, root.historyRefs);
+            delete refs[historyId];
+            root.historyRefs = refs;
             hist.splice(index, 1);
             root.history = hist;
         }
     }
 
     function clearAll() {
-        for (let entry of root.history)
-            if (entry.notif) entry.notif.dismiss();
+        for (let entry of root.history) {
+            let ref = root.historyRefs[entry.historyId];
+            if (ref && ref.notif)
+                ref.notif.dismiss();
+        }
         root.history = [];
+        root.historyRefs = ({});
         toastModel.clear();
         root.unreadCount = 0;
     }
 
     function resetUnread() { root.unreadCount = 0; }
+
+    function invokeHistoryAction(historyId: int, actionIndex: int) {
+        let ref = root.historyRefs[historyId];
+        if (ref && ref.actions && actionIndex >= 0 && actionIndex < ref.actions.length)
+            ref.actions[actionIndex].invoke();
+    }
 
     function timeAgo(date: var): string {
         let s = Math.floor((new Date() - date) / 1000);
