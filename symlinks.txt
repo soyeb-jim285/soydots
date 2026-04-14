@@ -1,0 +1,20 @@
+# source (relative to repo root) | dest (relative to $HOME)
+hypr|.config/hypr
+kitty|.config/kitty
+quickshell|.config/quickshell
+nvim|.config/nvim
+# tmux/btop/gtk dirs hold per-machine state alongside repo configs,
+# so we link specific files rather than whole directories.
+tmux/tmux.conf|.config/tmux/tmux.conf
+qt6ct|.config/qt6ct
+Kvantum|.config/Kvantum
+gtk-3.0/settings.ini|.config/gtk-3.0/settings.ini
+gtk-4.0/settings.ini|.config/gtk-4.0/settings.ini
+btop/themes|.config/btop/themes
+zsh/.zshrc|.zshrc
+zsh/.zshenv|.zshenv
+zsh/starship.toml|.config/starship.toml
+claude/settings.json|.claude/settings.json
+claude/statusline-command.sh|.claude/statusline-command.sh
+applications/kitty-nvim.desktop|.local/share/applications/kitty-nvim.desktop
+quickshellsettings.toml|.config/quickshellsettings.toml
