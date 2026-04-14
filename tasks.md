@@ -1,5 +1,10 @@
 # Arch Hyprland Setup
 
+## Reinstalling from scratch
+Run `./setup.sh` from the repo root. Use `--dry-run` first on unfamiliar machines.
+See `docs/superpowers/specs/2026-04-15-setup-script-design.md` for design details
+and `docs/superpowers/plans/2026-04-15-setup-script.md` for the implementation plan.
+
 ## Installed
 - dracula-cursors-git (AUR — Dracula theme cursor set, XCursor format)
 - yay
