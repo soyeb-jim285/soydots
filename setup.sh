@@ -59,7 +59,8 @@ should_run() {
     return 1
 }
 
-info "jimdots setup — repo: $REPO"
+banner "jimdots setup"
+info "repo: $REPO"
 dry && warn "DRY RUN — no changes will be made"
 
 for phase in "${PHASES[@]}"; do
@@ -68,7 +69,7 @@ for phase in "${PHASES[@]}"; do
         continue
     fi
     script="$REPO/scripts/${PHASE_SCRIPT[$phase]}"
-    info "==== phase: $phase ($script) ===="
+    banner "phase: $phase"
     if ! bash "$script"; then
         die "phase '$phase' failed — see $JIMDOTS_LOG"
     fi

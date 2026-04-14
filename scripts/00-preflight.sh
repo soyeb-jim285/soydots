@@ -16,9 +16,10 @@ if ! ping -c1 -W3 archlinux.org >/dev/null 2>&1; then
     die "no network connectivity to archlinux.org"
 fi
 
-info "ensuring base-devel and git"
-if ! is_pkg_installed base-devel || ! is_pkg_installed git; then
-    sudo_run pacman -S --needed --noconfirm base-devel git
+info "ensuring base-devel, git, gum"
+# gum is installed here so the remaining preflight prompts use its nicer UI.
+if ! is_pkg_installed base-devel || ! is_pkg_installed git || ! command -v gum >/dev/null 2>&1; then
+    sudo_run pacman -S --needed --noconfirm base-devel git gum
 fi
 
 if ! command -v yay >/dev/null 2>&1; then

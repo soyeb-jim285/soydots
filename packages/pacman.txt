@@ -5,6 +5,7 @@ jq
 zip
 unzip
 wl-clipboard
+gum
 
 # --- shell + prompt ---
 zsh

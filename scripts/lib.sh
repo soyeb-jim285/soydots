@@ -12,18 +12,72 @@ set -euo pipefail
 mkdir -p "$(dirname "$JIMDOTS_LOG")"
 
 if [[ -t 1 ]]; then
-    C_RESET=$'\e[0m'; C_DIM=$'\e[2m'; C_RED=$'\e[31m'; C_YEL=$'\e[33m'; C_GRN=$'\e[32m'; C_BLU=$'\e[34m'
+    C_RESET=$'\e[0m'; C_DIM=$'\e[2m'; C_RED=$'\e[31m'; C_YEL=$'\e[33m'; C_GRN=$'\e[32m'; C_BLU=$'\e[34m'; C_MAU=$'\e[38;2;203;166;247m'
 else
-    C_RESET=""; C_DIM=""; C_RED=""; C_YEL=""; C_GRN=""; C_BLU=""
+    C_RESET=""; C_DIM=""; C_RED=""; C_YEL=""; C_GRN=""; C_BLU=""; C_MAU=""
 fi
+
+_has_nf() {
+    # True if the current terminal plausibly renders Nerd Font glyphs.
+    # Linux TTY never does; GUI terminals usually do if the user set them up.
+    [[ "$TERM" != "linux" && "$TERM" != "dumb" ]] \
+        && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" \
+           || "$TERM" == xterm-kitty \
+           || "$TERM" == xterm-ghostty \
+           || "$TERM" == foot \
+           || "$TERM" == alacritty ]]
+}
+
+if _has_nf; then
+    IC_OK=$'\uf00c'; IC_WARN=$'\uf071'; IC_ERR=$'\uf00d'; IC_INFO=$'\uf054'
+else
+    IC_OK="[ok]"; IC_WARN="[!]"; IC_ERR="[x]"; IC_INFO="->"
+fi
+
+_has_gum() { command -v gum >/dev/null 2>&1; }
 
 _ts() { date '+%Y-%m-%d %H:%M:%S'; }
 
-log()  { printf '%s[%s]%s %s\n' "$C_DIM" "$(_ts)" "$C_RESET" "$*" | tee -a "$JIMDOTS_LOG" >&2; }
-info() { printf '%s==>%s %s\n' "$C_BLU" "$C_RESET" "$*" | tee -a "$JIMDOTS_LOG" >&2; }
-ok()   { printf '%s ok%s %s\n' "$C_GRN" "$C_RESET" "$*" | tee -a "$JIMDOTS_LOG" >&2; }
-warn() { printf '%s warn%s %s\n' "$C_YEL" "$C_RESET" "$*" | tee -a "$JIMDOTS_LOG" >&2; }
-die()  { printf '%s err%s %s\n' "$C_RED" "$C_RESET" "$*" | tee -a "$JIMDOTS_LOG" >&2; exit 1; }
+# Log-only: written to $JIMDOTS_LOG with timestamp, dim echo to stderr.
+log() { printf '%s[%s]%s %s\n' "$C_DIM" "$(_ts)" "$C_RESET" "$*" | tee -a "$JIMDOTS_LOG" >&2; }
+
+# Status lines: also written to the log file (plain).
+_logfile() { printf '[%s] %s %s\n' "$(_ts)" "$1" "$2" >> "$JIMDOTS_LOG"; }
+
+info() {
+    _logfile "INFO" "$*"
+    printf '%s%s%s %s\n' "$C_BLU" "$IC_INFO" "$C_RESET" "$*" >&2
+}
+
+ok() {
+    _logfile "OK  " "$*"
+    printf '%s%s%s %s\n' "$C_GRN" "$IC_OK" "$C_RESET" "$*" >&2
+}
+
+warn() {
+    _logfile "WARN" "$*"
+    printf '%s%s%s %s\n' "$C_YEL" "$IC_WARN" "$C_RESET" "$*" >&2
+}
+
+die() {
+    _logfile "ERR " "$*"
+    printf '%s%s%s %s\n' "$C_RED" "$IC_ERR" "$C_RESET" "$*" >&2
+    exit 1
+}
+
+# Banner shown at the start of each phase. Uses gum if available, otherwise plain.
+banner() {
+    local title="$1"
+    _logfile "STEP" "$title"
+    if _has_gum && [[ -t 1 ]]; then
+        gum style \
+            --border rounded --border-foreground 212 \
+            --foreground 212 --padding "0 2" --margin "1 0" \
+            "$title" >&2
+    else
+        printf '\n%s== %s ==%s\n' "$C_MAU" "$title" "$C_RESET" >&2
+    fi
+}
 
 dry() { [[ "$JIMDOTS_DRY_RUN" == "1" ]]; }
 
@@ -42,6 +96,14 @@ sudo_run() {
 confirm() {
     local q="$1" default="${2:-n}" reply
     if [[ "$JIMDOTS_ASSUME_YES" == "1" ]]; then return 0; fi
+    if _has_gum && [[ -t 0 ]]; then
+        if [[ "$default" == "y" ]]; then
+            gum confirm --default=true "$q"
+        else
+            gum confirm --default=false "$q"
+        fi
+        return $?
+    fi
     local hint="[y/N]"; [[ "$default" == "y" ]] && hint="[Y/n]"
     read -r -p "$q $hint " reply
     reply="${reply:-$default}"
@@ -50,6 +112,14 @@ confirm() {
 
 prompt_default() {
     local label="$1" def="${2:-}" reply
+    if _has_gum && [[ -t 0 ]]; then
+        if [[ -n "$def" ]]; then
+            gum input --header "$label" --value "$def"
+        else
+            gum input --header "$label" --placeholder "empty to skip"
+        fi
+        return 0
+    fi
     if [[ -n "$def" ]]; then
         read -r -p "$label [$def]: " reply
         echo "${reply:-$def}"
