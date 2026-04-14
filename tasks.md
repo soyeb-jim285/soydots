@@ -1,6 +1,7 @@
 # Arch Hyprland Setup
 
 ## Installed
+- dracula-cursors-git (AUR — Dracula theme cursor set, XCursor format)
 - yay
 - quillpolkit (custom polkit agent, fork of hyprpolkitagent with Catppuccin Mocha UI)
 - git
@@ -43,6 +44,9 @@
 - bat (cat with syntax highlighting)
 - awww (swww successor, Wayland wallpaper daemon with animated transitions)
 - python-pillow (image processing, used for wallpaper light variant generation)
+- greetd, greetd-tuigreet (minimal Wayland-friendly display manager + TUI greeter)
+- terminus-font (crisp bitmap TTY font used by the login console)
+- uwsm (Universal Wayland Session Manager, wraps Hyprland in systemd units)
 
 ## Configured
 - kitty (Catppuccin Mocha theme, 0.6 background opacity)
@@ -78,6 +82,13 @@
   - Bell icon in status bar with unread count badge
   - Quick settings panel: Wi-Fi, Bluetooth, DND, Night Light, Screenshot, Power, Reload, Caffeine, Settings
   - Volume and brightness sliders in notification center
+- cursor theme — Dracula-cursors (XCursor) applied across Hyprland / GTK / Qt / KDE:
+  - `env = XCURSOR_THEME,Dracula-cursors` + `HYPRCURSOR_THEME` in `hypr/hyprland.conf` (for server-side cursor + Qt/Chromium/Electron env)
+  - `exec-once = hyprctl setcursor Dracula-cursors 24` in `hypr/hyprland.conf` for live cursor at login
+  - `gtk-3.0/settings.ini` and `gtk-4.0/settings.ini` (symlinked into `~/.config/`) set `gtk-cursor-theme-name` (GTK apps ignore XCURSOR_THEME so this is required)
+  - `gsettings set org.gnome.desktop.interface cursor-theme/cursor-size` for GNOME/libadwaita apps
+  - Configurable from Quickshell settings (Appearance → Cursor): theme dropdown (auto-discovered from `/usr/share/icons`, `~/.local/share/icons`, `~/.icons`) + size slider
+  - Config.qml `_syncCursor()` writes both `gtk-{3,4}.0/settings.ini` files, runs `gsettings` + `hyprctl setcursor`, and sed-updates the XCURSOR/HYPRCURSOR env lines + exec-once line in `hypr/hyprland.conf` so changes persist across reboots
 - quickshell settings system — fully configurable via TOML config file and GUI:
   - Config.qml singleton with built-in TOML parser/writer, FileView persistence, ~120 configurable properties
   - Settings window (Super+Comma or IPC): sidebar navigation + 13 category pages
@@ -198,6 +209,18 @@
   - Switches between Catppuccin Latte and Mocha when theme is toggled from `Meta+Shift+T` or Quickshell settings
   - Syncs Zen light/dark mode, built-in light/dark theme selection, accent color, and browser/sidebar colors
   - Hot-reloads from `~/.config/zen-live-theme.json` after the one-time autoconfig setup
+- greetd + tuigreet login — minimal clean greeter on tty1:
+  - `/etc/greetd/config.toml` runs tuigreet as unprivileged `greeter` user with `--time --remember --remember-session --asterisks --sessions /usr/share/wayland-sessions` (F2 to switch session, selection remembered)
+  - `/etc/vconsole.conf` sets `FONT=ter-v20n` (Terminus 20px) for a crisp modern console
+  - Catppuccin Mocha 16-color TTY palette applied before greetd starts via `tty-colors.service` (oneshot) running `setvtrgb /etc/tty-colors.pal`
+  - `greetd.service` + `tty-colors.service` enabled; no manual TTY login or `exec Hyprland` in `.zprofile`
+- UWSM (Universal Wayland Session Manager) — Hyprland launched as a systemd user session:
+  - Chosen at tuigreet as `hyprland-uwsm` session; uwsm wraps Hyprland into `wayland-session-envelope@hyprland.desktop.target` and properly reaches `graphical-session.target`
+  - `hyprland.conf` autostart migrated: `exec-once = uwsm finalize` (first line, replaces manual `systemctl --user import-environment ... start hyprland-session.target`); user apps wrapped as `exec-once = uwsm app -- <cmd>` (awww-daemon, quickshell, wl-paste cliphist watchers, gen-wallpaper)
+  - `hyprctl setcursor` kept as plain `exec-once` (compositor-side call, not an app)
+  - `hypridle.service` user unit enabled (`systemctl --user enable hypridle.service`) so it auto-starts under `graphical-session.target`
+  - PowerMenu Logout action uses `uwsm stop` (ordered teardown) instead of `hyprctl dispatch exit` (which orphaned systemd units)
+  - Apps launched via `uwsm app` live in `app-graphical.slice` and die cleanly on logout
 
 ## System Setup Required
 These commands must be run manually for full functionality (not managed by dotfiles):
@@ -218,6 +241,16 @@ These commands must be run manually for full functionality (not managed by dotfi
 - Log out and back in so new group membership takes effect
 - Verify the monitor is reachable: `ddcutil detect`
 - Confirm brightness control works: `ddcutil --bus 4 getvcp 10`
+
+### Display Manager (greetd + tuigreet) and TTY colors
+- Install: `sudo pacman -S greetd greetd-tuigreet terminus-font uwsm`
+- Place `/etc/greetd/config.toml` (tuigreet session picker, runs as `greeter` user)
+- Place `/etc/vconsole.conf` with `FONT=ter-v20n` and `KEYMAP=us`
+- Place `/etc/tty-colors.pal` (Catppuccin Mocha 16-color palette in setvtrgb format: 3 lines R/G/B, 16 values each)
+- Place `/etc/systemd/system/tty-colors.service` (oneshot, runs `setvtrgb /etc/tty-colors.pal` before greetd; `Before=greetd.service getty@tty1.service`, `After=systemd-vconsole-setup.service`)
+- Enable services: `sudo systemctl daemon-reload && sudo systemctl enable tty-colors.service greetd.service`
+- Enable hypridle user unit: `systemctl --user enable hypridle.service`
+- Reboot; at tuigreet press F2 to pick `Hyprland (UWSM-managed)` (remembered after first pick)
 
 ### Symlinks
 - `~/.config/hypr/hypridle.conf` → `~/jimdots/hypr/hypridle.conf`
@@ -248,6 +281,8 @@ All configs live in `~/jimdots/` and are symlinked to `~/.config/`:
 - `applications/kitty-nvim.desktop` -> `~/.local/share/applications/kitty-nvim.desktop`
 - `qt6ct/` -> `~/.config/qt6ct` (qt6ct.conf, colors/catppuccin-mocha.conf)
 - `Kvantum/` -> `~/.config/Kvantum` (kvantum.kvconfig)
+- `gtk-3.0/settings.ini` -> `~/.config/gtk-3.0/settings.ini` (cursor theme for GTK 3 apps)
+- `gtk-4.0/settings.ini` -> `~/.config/gtk-4.0/settings.ini` (cursor theme for GTK 4 apps)
 - `wallpapers/` — end4 dark/light wallpaper pair (referenced by gen-wallpaper.sh)
 - `btop/themes/` — Catppuccin Mocha/Latte btop themes (referenced by Config.qml sync)
 - `quickshell/quill-polkit/` — git submodule (polkit agent repo)

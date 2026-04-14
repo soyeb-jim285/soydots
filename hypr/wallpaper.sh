@@ -10,7 +10,7 @@ WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
 LIGHT_DIR="$WALLPAPER_DIR/light"
 DARK_DIR="$WALLPAPER_DIR/dark"
 STATE_FILE="$HOME/.cache/wallpaper-state"
-TRANSITION="--transition-type fade --transition-duration 1"
+TRANSITION="--transition-type fade --transition-duration 0.35 --transition-bezier .54,0,.34,.99"
 
 mkdir -p "$(dirname "$STATE_FILE")"
 

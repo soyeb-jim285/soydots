@@ -17,12 +17,14 @@ ColumnLayout {
     SliderSetting { label: "Popup Spacing"; section: "notifications"; key: "popupSpacing"; value: Config.notifPopupSpacing; from: 0; to: 16 }
 
     TextSetting { label: "Background Color"; section: "notifications"; key: "popupBgColor"; value: Config.notifPopupBgColor }
+    SliderSetting { label: "Transparency"; section: "transparency"; key: "notifPopup"; value: Config._data?.transparency?.notifPopup ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 
     Text { text: "Notification Center"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
     SliderSetting { label: "Panel Width"; section: "notifications"; key: "centerWidth"; value: Config.notifCenterWidth; from: 200; to: 500 }
     SliderSetting { label: "Panel Radius"; section: "notifications"; key: "centerRadius"; value: Config.notifCenterRadius; from: 0; to: 24 }
     SliderSetting { label: "Overlay Opacity"; section: "notifications"; key: "centerOverlayOpacity"; value: Config.notifCenterOverlayOpacity; from: 0; to: 1.0; decimals: 2; stepSize: 0.05 }
+    SliderSetting { label: "Transparency"; section: "transparency"; key: "notifCenter"; value: Config._data?.transparency?.notifCenter ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 
     Text { text: "Quick Settings Grid"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 

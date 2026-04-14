@@ -11,7 +11,6 @@ setopt HIST_REDUCE_BLANKS     # trim whitespace
 setopt INC_APPEND_HISTORY     # write immediately, not on exit
 
 # ── General Options ──────────────────────────────────────
-setopt AUTO_CD                # type dir name to cd
 setopt INTERACTIVE_COMMENTS   # allow # comments in interactive shell
 setopt NO_BEEP
 setopt GLOB_DOTS              # include dotfiles in globbing

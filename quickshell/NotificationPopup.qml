@@ -266,13 +266,22 @@ Scope {
         margins.top: 0
         margins.right: 8
 
-        Item {
+        Column {
             id: toastContainer
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.topMargin: 6
             width: Config.notifPopupWidth
             height: parent.height
+            spacing: root.itemSpacing
+
+            move: Transition {
+                NumberAnimation {
+                    properties: "x,y"
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Repeater {
                 model: toastModel
@@ -307,12 +316,6 @@ Scope {
                         radius: 1
                         color: root.urgencyColor(toast.urgency)
                         Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.Linear } }
-                    }
-
-                    // Position based on index, animated smoothly
-                    y: index * (root.itemHeight + root.itemSpacing)
-                    Behavior on y {
-                        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                     }
 
                     // Slide in on creation, slide out on dismiss

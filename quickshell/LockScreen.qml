@@ -24,9 +24,19 @@ Scope {
         root.status = "idle";
         root.errorMsg = "";
         root.showPassword = false;
+        refocus();
+    }
+
+    function refocus() {
+        if (!root.locked)
+            return;
+        refocusAttempts = 6;
+        keyHandler.forceActiveFocus();
+        refocusTimer.restart();
     }
 
     property string _user: Quickshell.env("USER") || "jim"
+    property int refocusAttempts: 0
 
     function tryUnlock() {
         if (password.length === 0) return;
@@ -39,6 +49,21 @@ Scope {
     IpcHandler {
         target: "lockscreen"
         function lock(): void { root.lock(); }
+        function refocus(): void { root.refocus(); }
+    }
+
+    Timer {
+        id: refocusTimer
+        interval: 250
+        repeat: true
+        onTriggered: {
+            if (!root.locked || refocusAttempts <= 0) {
+                stop();
+                return;
+            }
+            keyHandler.forceActiveFocus();
+            refocusAttempts--;
+        }
     }
 
     // Clock timer
@@ -93,6 +118,7 @@ Scope {
     WlSessionLock {
         id: sessionLock
         locked: root.locked
+        onLockedChanged: if (locked) root.refocus()
 
         WlSessionLockSurface {
             id: lockSurface
@@ -105,6 +131,7 @@ Scope {
                 focus: true
 
                 Component.onCompleted: forceActiveFocus()
+                onActiveFocusChanged: if (!activeFocus && root.locked) refocusTimer.restart()
 
                 Keys.onPressed: (event) => {
                     if (root.status !== "idle") {

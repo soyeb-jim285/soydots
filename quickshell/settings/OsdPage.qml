@@ -24,4 +24,5 @@ ColumnLayout {
     Text { text: "Appearance"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
     TextSetting { label: "Background Color"; section: "osd"; key: "bgColor"; value: Config.osdBgColor }
+    SliderSetting { label: "Transparency"; section: "transparency"; key: "osd"; value: Config._data?.transparency?.osd ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 }

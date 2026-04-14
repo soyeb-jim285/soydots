@@ -4,7 +4,7 @@ import QtQuick
 
 QtObject {
     // Theme transition duration (ms)
-    readonly property int themeTransitionDuration: 1000
+    readonly property int themeTransitionDuration: 350
 
     // Catppuccin palette — animated color properties for smooth theme transitions
     property color base: Config.base

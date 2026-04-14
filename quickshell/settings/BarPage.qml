@@ -10,6 +10,7 @@ ColumnLayout {
     SliderSetting { label: "Bar Height"; section: "bar"; key: "height"; value: Config.barHeight; from: 20; to: 60 }
     SliderSetting { label: "Bar Margin"; section: "bar"; key: "margin"; value: Config.barMargin; from: 0; to: 20 }
     SliderSetting { label: "Bar Radius"; section: "bar"; key: "radius"; value: Config.barRadius; from: 0; to: 24 }
+    SliderSetting { label: "Transparency"; section: "transparency"; key: "bar"; value: Config._data?.transparency?.bar ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 
     Text { text: "Widget Layout"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 

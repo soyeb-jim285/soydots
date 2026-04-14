@@ -15,4 +15,5 @@ ColumnLayout {
     SliderSetting { label: "Item Height"; section: "clipboard"; key: "itemHeight"; value: Config.clipboardItemHeight; from: 24; to: 60 }
     SliderSetting { label: "Image Item Height"; section: "clipboard"; key: "imageItemHeight"; value: Config.clipboardImageItemHeight; from: 40; to: 120 }
     SliderSetting { label: "Backdrop Opacity"; section: "clipboard"; key: "backdropOpacity"; value: Config.clipboardBackdropOpacity; from: 0; to: 1.0; decimals: 2; stepSize: 0.05 }
+    SliderSetting { label: "Transparency"; section: "transparency"; key: "clipboard"; value: Config._data?.transparency?.clipboard ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 }

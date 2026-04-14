@@ -45,7 +45,7 @@ Scope {
         lines.push("general {");
         lines.push("    lock_cmd = quickshell msg lockscreen lock");
         lines.push("    before_sleep_cmd = quickshell msg lockscreen lock");
-        lines.push("    after_sleep_cmd = hyprctl dispatch dpms on");
+        lines.push("    after_sleep_cmd = " + _homeDir + "/jimdots/hypr/idle-after-sleep.sh");
         lines.push("}");
 
         if (Config.idleDimEnabled) {
@@ -69,8 +69,8 @@ Scope {
             lines.push("");
             lines.push("listener {");
             lines.push("    timeout = " + Config.idleDpmsTimeout);
-            lines.push("    on-timeout = hyprctl dispatch dpms off");
-            lines.push("    on-resume = hyprctl dispatch dpms on");
+            lines.push("    on-timeout = " + _homeDir + "/jimdots/hypr/idle-dpms-off.sh");
+            lines.push("    on-resume = " + _homeDir + "/jimdots/hypr/idle-dpms-on.sh");
             lines.push("}");
         }
 
@@ -111,6 +111,6 @@ Scope {
 
     Process {
         id: restartProc
-        command: ["bash", "-c", "pkill -x hypridle 2>/dev/null; while pgrep -x hypridle >/dev/null; do sleep 0.1; done; hypridle &"]
+        command: ["systemctl", "--user", "restart", "hypridle"]
     }
 }

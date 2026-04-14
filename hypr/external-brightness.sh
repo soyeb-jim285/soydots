@@ -52,6 +52,12 @@ set_value() {
   ddcutil --bus "$bus" --noverify setvcp 10 "$value" >/dev/null
 }
 
+set_power_mode() {
+  local bus="$1"
+  local value="$2"
+  ddcutil --bus "$bus" --noverify setvcp D6 "$value" >/dev/null
+}
+
 clamp_value() {
   local value="$1"
   if [ "$value" -lt 0 ]; then value=0; fi
@@ -137,6 +143,16 @@ case "${1:-}" in
     exec 9>"$lock_file"
     flock 9
     set_value "$bus" "$value"
+    ;;
+  power-off)
+    exec 9>"$lock_file"
+    flock 9
+    set_power_mode "$bus" 5
+    ;;
+  power-on)
+    exec 9>"$lock_file"
+    flock 9
+    set_power_mode "$bus" 1
     ;;
   *)
     exit 1

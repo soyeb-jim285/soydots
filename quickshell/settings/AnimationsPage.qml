@@ -46,4 +46,5 @@ ColumnLayout {
     SliderSetting { label: "Scale Duration"; section: "animations"; key: "pickerScaleDuration"; value: Config.animPickerScaleDuration; from: 50; to: 500 }
     SliderSetting { label: "Fade Duration"; section: "animations"; key: "pickerFadeDuration"; value: Config.animPickerFadeDuration; from: 50; to: 500 }
     SliderSetting { label: "Backdrop Opacity"; section: "animations"; key: "pickerBackdropOpacity"; value: Config.animPickerBackdropOpacity; from: 0; to: 1.0; decimals: 2; stepSize: 0.05 }
+    SliderSetting { label: "Transparency"; section: "transparency"; key: "animPicker"; value: Config._data?.transparency?.animPicker ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
 }

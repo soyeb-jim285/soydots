@@ -2,3 +2,5 @@
 CLAUDE.md
 quickshell/settings.toml
 hypr/quickshell-theme.conf
+.superpowers/
+machine.local.conf

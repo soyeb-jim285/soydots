@@ -27,5 +27,5 @@ if [[ ! -f "$wallpaper" ]]; then
 fi
 
 if [[ "${1:-}" != "--no-apply" ]]; then
-    awww img "$wallpaper" --transition-type fade --transition-duration 1
+    awww img "$wallpaper" --transition-type fade --transition-duration 0.35 --transition-bezier .54,0,.34,.99
 fi

@@ -4,11 +4,13 @@ set -euo pipefail
 
 state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/hypr"
 state_file="$state_dir/idle-monitor-brightness.tsv"
+external_state_file="$state_dir/idle-external-brightness"
 
 mkdir -p "$state_dir"
 
 brightnessctl -s set 10 >/dev/null 2>&1 || true
-/home/jim/jimdots/hypr/external-brightness.sh save >/dev/null 2>&1 || true
+external_brightness="$(/home/jim/jimdots/hypr/external-brightness.sh get 2>/dev/null || true)"
+[ -n "$external_brightness" ] && printf '%s\n' "$external_brightness" > "$external_state_file"
 /home/jim/jimdots/hypr/external-brightness.sh set 10 >/dev/null 2>&1 || true
 
 hyprctl -j monitors | jq -r '
