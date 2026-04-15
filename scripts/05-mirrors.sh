@@ -40,38 +40,55 @@ tune_pacman_conf() {
 
 pick_countries() {
     # Returns a comma-separated country list on stdout, or empty to skip reflector.
+    # reflector --list-countries prints: header, dashes, then "Name  Code  Count"
+    # We want the full country name (may contain spaces), so strip the trailing
+    # two columns instead of taking $1.
     local all
-    all="$(reflector --list-countries 2>/dev/null | awk 'NR>2 {print $1}' | sort -u)"
+    all="$(reflector --list-countries 2>/dev/null \
+        | awk 'NR>2 { sub(/[[:space:]]+[A-Z]{2}[[:space:]]+[0-9]+[[:space:]]*$/, ""); print }' \
+        | sort -u)"
     [[ -z "$all" ]] && return 0
 
+    # Preferred: fzf (searchable, type-ahead filtering, Tab multi-select).
+    # Needs a real TTY — redirect in/out to /dev/tty so logging pipelines
+    # don't break it.
+    if command -v fzf >/dev/null 2>&1 && [[ -r /dev/tty && -w /dev/tty ]]; then
+        local chosen
+        chosen="$(printf '%s\n' "$all" | fzf \
+            --multi \
+            --height=60% \
+            --reverse \
+            --prompt='mirror countries> ' \
+            --header=$'TYPE to filter  •  TAB to mark  •  ENTER to confirm  •  ESC to skip' \
+            </dev/tty >/dev/tty)" || true
+        [[ -z "$chosen" ]] && return 0
+        printf '%s' "$chosen" | paste -sd, -
+        return 0
+    fi
+
+    # Fallback: gum filter (also searchable, --no-limit enables multi-select).
     if _has_gum && [[ -t 0 ]]; then
-        # gum choose --no-limit returns one per line
         local chosen
-        chosen="$(printf '%s\n' "$all" | gum choose --no-limit --height 20 \
-            --header 'Select mirror countries (space to toggle, enter to confirm, esc to skip)')" || true
+        chosen="$(printf '%s\n' "$all" | gum filter --no-limit --height 20 \
+            --placeholder 'type to search, tab to mark, enter to confirm')" || true
         [[ -z "$chosen" ]] && return 0
         printf '%s' "$chosen" | paste -sd, -
         return 0
     fi
 
-    if command -v fzf >/dev/null 2>&1 && [[ -t 0 ]]; then
-        local chosen
-        chosen="$(printf '%s\n' "$all" | fzf -m --prompt='mirror countries> ' --header='tab to multi-select, enter to confirm, esc to skip')" || true
-        [[ -z "$chosen" ]] && return 0
-        printf '%s' "$chosen" | paste -sd, -
-        return 0
-    fi
-
-    # Fallback: plain prompt
+    # Last resort: plain prompt.
     local reply
     reply="$(prompt_default "Mirror countries (comma-separated, empty to skip)" "")"
     printf '%s' "$reply"
 }
 
 refresh_mirrors() {
-    if ! command -v reflector >/dev/null 2>&1; then
-        info "installing reflector"
-        sudo_run pacman -S --needed --noconfirm reflector
+    local need=()
+    command -v reflector >/dev/null 2>&1 || need+=(reflector)
+    command -v fzf       >/dev/null 2>&1 || need+=(fzf)
+    if (( ${#need[@]} > 0 )); then
+        info "installing: ${need[*]}"
+        sudo_run pacman -S --needed --noconfirm "${need[@]}"
     fi
 
     local countries
@@ -101,7 +118,21 @@ refresh_mirrors() {
 
 # --- main -----------------------------------------------------------------
 
-if confirm "Tune /etc/pacman.conf (Color, ILoveCandy, ParallelDownloads)?" y; then
+# Default to "no" on reruns where the tweaks are already in place.
+pacman_tuned=n
+if sudo grep -qE '^\s*ILoveCandy' "$PACMAN_CONF" \
+    && sudo grep -qE '^\s*Color' "$PACMAN_CONF" \
+    && sudo grep -qE '^\s*ParallelDownloads\s*=' "$PACMAN_CONF"; then
+    pacman_tuned=y
+    info "pacman.conf already tuned"
+fi
+
+if [[ "$pacman_tuned" == "y" ]]; then
+    default_tune=n
+else
+    default_tune=y
+fi
+if confirm "Tune /etc/pacman.conf (Color, ILoveCandy, ParallelDownloads)?" "$default_tune"; then
     parallel="$(prompt_default "ParallelDownloads" "8")"
     [[ "$parallel" =~ ^[0-9]+$ ]] || die "ParallelDownloads must be an integer, got: $parallel"
     tune_pacman_conf "$parallel"
@@ -109,7 +140,16 @@ else
     warn "skipping pacman.conf tweaks"
 fi
 
-if confirm "Refresh mirrorlist with reflector now?" y; then
+# Default reflector to "no" if the mirrorlist was refreshed recently (<7 days).
+default_reflect=y
+if [[ -f "$MIRRORLIST" ]]; then
+    age_days=$(( ( $(date +%s) - $(stat -c %Y "$MIRRORLIST") ) / 86400 ))
+    if (( age_days < 7 )); then
+        default_reflect=n
+        info "mirrorlist refreshed ${age_days}d ago"
+    fi
+fi
+if confirm "Refresh mirrorlist with reflector now?" "$default_reflect"; then
     refresh_mirrors
 else
     warn "skipping reflector"

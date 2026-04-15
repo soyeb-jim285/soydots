@@ -4,3 +4,7 @@ quickshell/settings.toml
 hypr/quickshell-theme.conf
 .superpowers/
 machine.local.conf
+
+# build/bootstrap artifacts
+yay/
+*.bak.*

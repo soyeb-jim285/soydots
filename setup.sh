@@ -77,3 +77,13 @@ for phase in "${PHASES[@]}"; do
 done
 
 ok "jimdots setup complete"
+
+# Offer a single reboot at the very end — only if we ran the full sequence
+# (i.e. no --only filter), since partial runs rarely need one.
+if [[ -z "$ONLY" ]] && ! dry; then
+    if confirm "Reboot now to apply greetd, group changes, and kernel params?" n; then
+        sudo_run systemctl reboot
+    else
+        warn "remember to reboot later to pick up greetd + group changes + resume param"
+    fi
+fi
