@@ -6,9 +6,18 @@ set -euo pipefail
 SYSTEM_SERVICES=(tty-colors.service greetd.service bluetooth.service)
 USER_SERVICES=(hypridle.service pipewire.service pipewire-pulse.service wireplumber.service)
 
+_user_bus_up() {
+    [[ -n "${XDG_RUNTIME_DIR:-}" ]] \
+        && [[ -S "$XDG_RUNTIME_DIR/bus" || -S "$XDG_RUNTIME_DIR/systemd/private" ]]
+}
+
 info "reloading systemd"
 sudo_run systemctl daemon-reload
-run systemctl --user daemon-reload || true
+if _user_bus_up; then
+    run timeout 10 systemctl --user daemon-reload || warn "user daemon-reload failed/timed out"
+else
+    warn "no user systemd bus — skipping user daemon-reload"
+fi
 
 for s in "${SYSTEM_SERVICES[@]}"; do
     if ! systemctl list-unit-files "$s" --no-legend --quiet 2>/dev/null | grep -q .; then
@@ -18,12 +27,16 @@ for s in "${SYSTEM_SERVICES[@]}"; do
     sudo_run systemctl enable --now "$s"
 done
 
-for s in "${USER_SERVICES[@]}"; do
-    if ! systemctl --user list-unit-files "$s" --no-legend --quiet 2>/dev/null | grep -q .; then
-        warn "user unit $s not installed — skipping"
-        continue
-    fi
-    run systemctl --user enable --now "$s"
-done
+if _user_bus_up; then
+    for s in "${USER_SERVICES[@]}"; do
+        if ! timeout 5 systemctl --user list-unit-files "$s" --no-legend --quiet 2>/dev/null | grep -q .; then
+            warn "user unit $s not installed — skipping"
+            continue
+        fi
+        run timeout 15 systemctl --user enable --now "$s" || warn "enable $s failed/timed out"
+    done
+else
+    warn "no user systemd bus — skipping user services (run again from a graphical session)"
+fi
 
 ok "services enabled"
