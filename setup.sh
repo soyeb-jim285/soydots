@@ -23,7 +23,7 @@ jimdots setup
 Usage: $0 [--only phase[,phase...]] [--dry-run] [--yes] [--help]
 
 Phases (in order):
-  preflight packages symlinks system services post nvidia
+  preflight mirrors packages symlinks system services post nvidia
 EOF
 }
 
@@ -40,9 +40,10 @@ done
 # shellcheck source=scripts/lib.sh
 . "$REPO/scripts/lib.sh"
 
-declare -a PHASES=(preflight packages symlinks system services post nvidia)
+declare -a PHASES=(preflight mirrors packages symlinks system services post nvidia)
 declare -A PHASE_SCRIPT=(
     [preflight]="00-preflight.sh"
+    [mirrors]="05-mirrors.sh"
     [packages]="10-packages.sh"
     [symlinks]="20-symlinks.sh"
     [system]="30-system.sh"
