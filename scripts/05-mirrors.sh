@@ -50,8 +50,10 @@ pick_countries() {
     [[ -z "$all" ]] && return 0
 
     # Preferred: fzf (searchable, type-ahead filtering, Tab multi-select).
-    # Needs a real TTY — redirect in/out to /dev/tty so logging pipelines
-    # don't break it.
+    # fzf reads the list from stdin and draws its TUI on /dev/tty
+    # automatically when stdout is captured — do NOT redirect stdin from
+    # /dev/tty, or the piped list gets replaced with terminal input and
+    # fzf falls back to walking files in CWD.
     if command -v fzf >/dev/null 2>&1 && [[ -r /dev/tty && -w /dev/tty ]]; then
         local chosen
         chosen="$(printf '%s\n' "$all" | fzf \
@@ -59,8 +61,7 @@ pick_countries() {
             --height=60% \
             --reverse \
             --prompt='mirror countries> ' \
-            --header=$'TYPE to filter  •  TAB to mark  •  ENTER to confirm  •  ESC to skip' \
-            </dev/tty >/dev/tty)" || true
+            --header=$'TYPE to filter  •  TAB to mark  •  ENTER to confirm  •  ESC to skip')" || true
         [[ -z "$chosen" ]] && return 0
         printf '%s' "$chosen" | paste -sd, -
         return 0
