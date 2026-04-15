@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 10 — install pacman + AUR packages.
+# Phase 10 — install all packages via yay (repo + AUR through one tool).
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
@@ -9,21 +9,15 @@ read_list() {
     grep -v '^\s*#' "$f" | grep -v '^\s*$' | awk '{print $1}'
 }
 
-mapfile -t PAC < <(read_list "$JIMDOTS_REPO/packages/pacman.txt")
-mapfile -t AUR < <(read_list "$JIMDOTS_REPO/packages/aur.txt")
-
-info "installing ${#PAC[@]} pacman packages"
-if (( ${#PAC[@]} > 0 )); then
-    sudo_run pacman -S --needed --noconfirm "${PAC[@]}"
-fi
+mapfile -t PKGS < <(read_list "$JIMDOTS_REPO/packages/packages.txt")
 
 if ! command -v yay >/dev/null 2>&1; then
     die "yay missing — preflight phase must run first"
 fi
 
-info "installing ${#AUR[@]} AUR packages"
-if (( ${#AUR[@]} > 0 )); then
-    run yay -S --needed --noconfirm "${AUR[@]}"
+info "installing ${#PKGS[@]} packages via yay"
+if (( ${#PKGS[@]} > 0 )); then
+    run yay -S --needed --noconfirm "${PKGS[@]}"
 fi
 
 ok "packages installed"

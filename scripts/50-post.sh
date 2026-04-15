@@ -19,6 +19,28 @@ if [[ -n "${GIT_EMAIL:-}" ]]; then
     ok "git user.email set"
 fi
 
+info "bundled fonts"
+font_src="$JIMDOTS_REPO/fonts"
+font_dest="$HOME/.local/share/fonts"
+if [[ -d "$font_src" ]]; then
+    run mkdir -p "$font_dest"
+    installed_any=0
+    while IFS= read -r -d '' f; do
+        name="$(basename "$f")"
+        if [[ -f "$font_dest/$name" ]] && cmp -s "$f" "$font_dest/$name"; then
+            continue
+        fi
+        run install -Dm644 "$f" "$font_dest/$name"
+        installed_any=1
+    done < <(find "$font_src" -type f \( -iname '*.ttf' -o -iname '*.otf' \) -print0)
+    if [[ "$installed_any" == "1" ]] && command -v fc-cache >/dev/null 2>&1; then
+        run fc-cache -f "$font_dest"
+    fi
+    ok "fonts synced to $font_dest"
+else
+    warn "no fonts/ directory in repo — skipping font install"
+fi
+
 info "TPM (tmux plugin manager)"
 if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
     run git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
