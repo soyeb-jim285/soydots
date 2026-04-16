@@ -369,8 +369,8 @@ QtObject {
     function _syncHyprland() { _hyprSyncTimer.restart(); }
 
     property string _homeDir: Quickshell.env("HOME")
-    property string _kittyThemePath: _homeDir + "/jimdots/kitty/current-theme.conf"
-    property string _hyprThemePath: _homeDir + "/jimdots/hypr/quickshell-theme.conf"
+    property string _kittyThemePath: _homeDir + "/.config/kitty/current-theme.conf"
+    property string _hyprThemePath: _homeDir + "/.config/hypr/quickshell-theme.conf"
 
     function _buildHyprTheme() {
         let b = blue.replace("#", "");
@@ -436,7 +436,7 @@ QtObject {
     function _syncWallpaper() { _wallpaperSyncTimer.restart(); }
 
     function _doSyncWallpaper() {
-        _wallpaperProc.command = ["bash", "-c", _homeDir + "/jimdots/hypr/gen-wallpaper.sh " + (darkMode ? "dark" : "light")];
+        _wallpaperProc.command = ["bash", "-c", _homeDir + "/.config/hypr/gen-wallpaper.sh " + (darkMode ? "dark" : "light")];
         _wallpaperProc.running = true;
     }
 
@@ -485,7 +485,7 @@ QtObject {
 
     // ===== Starship Sync =====
 
-    property string _starshipPath: _homeDir + "/jimdots/zsh/starship.toml"
+    property string _starshipPath: _homeDir + "/.config/starship.toml"
 
     property var _starshipSyncTimer: Timer {
         interval: 300
@@ -548,8 +548,8 @@ QtObject {
 
     function _doSyncBtop() {
         let theme = darkMode
-            ? _homeDir + "/jimdots/btop/themes/catppuccin_mocha.theme"
-            : _homeDir + "/jimdots/btop/themes/catppuccin_latte.theme";
+            ? _homeDir + "/.config/btop/themes/catppuccin_mocha.theme"
+            : _homeDir + "/.config/btop/themes/catppuccin_latte.theme";
         _btopProc.command = ["bash", "-c",
             "sed -i 's|^color_theme = .*|color_theme = \"" + theme + "\"|' " +
             _homeDir + "/.config/btop/btop.conf"];
@@ -652,7 +652,7 @@ QtObject {
         let kvConf = "[General]\ntheme=" + kvTheme + "\n";
         let qtConfPath = _homeDir + "/.config/qt6ct/qt6ct.conf";
         let kvConfPath = _homeDir + "/.config/Kvantum/kvantum.kvconfig";
-        let qtColorPath = _homeDir + "/jimdots/qt6ct/colors/" + qtColorFile;
+        let qtColorPath = _homeDir + "/.config/qt6ct/colors/" + qtColorFile;
 
         // Write Kvantum config
         _qtKvWriteProc.command = ["bash", "-c",
@@ -829,7 +829,7 @@ QtObject {
     onTmuxShowTempChanged: _syncTmux()
 
     property string _tmuxThemePath: _homeDir + "/.config/tmux/plugins/catppuccin-tmux/catppuccin-mocha.tmuxtheme"
-    property string _tmuxConfScript: _homeDir + "/jimdots/tmux/write-quickshell-conf.py"
+    property string _tmuxConfScript: _homeDir + "/.config/tmux/write-quickshell-conf.py"
 
     property var _tmuxSyncTimer: Timer {
         interval: 300
@@ -1428,9 +1428,9 @@ unfocusedWidth = 10'
     function _doSyncCursor() {
         let theme = cursorTheme;
         let size = cursorSize;
-        let gtk3Path = _homeDir + "/jimdots/gtk-3.0/settings.ini";
-        let gtk4Path = _homeDir + "/jimdots/gtk-4.0/settings.ini";
-        let hyprConf = _homeDir + "/jimdots/hypr/hyprland.conf";
+        let gtk3Path = _homeDir + "/.config/gtk-3.0/settings.ini";
+        let gtk4Path = _homeDir + "/.config/gtk-4.0/settings.ini";
+        let hyprConf = _homeDir + "/.config/hypr/hyprland.conf";
 
         let gtkBody = "[Settings]\\ngtk-cursor-theme-name=" + theme +
                       "\\ngtk-cursor-theme-size=" + size + "\\n";
