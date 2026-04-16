@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-/home/jim/jimdots/hypr/idle-dpms-on.sh >/dev/null 2>&1 || true
-/home/jim/jimdots/hypr/idle-undim.sh >/dev/null 2>&1 || true
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
+"$SCRIPT_DIR/idle-dpms-on.sh" >/dev/null 2>&1 || true
+"$SCRIPT_DIR/idle-undim.sh" >/dev/null 2>&1 || true
 
 # Give the lock surface a moment to remap after resume, then reclaim keyboard focus.
 sleep 0.5

@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
 state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/hypr"
 state_file="$state_dir/external-brightness"
 target_file="$state_dir/external-brightness-target"
@@ -81,7 +83,7 @@ get_cached_or_current() {
 }
 
 schedule_apply() {
-  nohup /home/jim/jimdots/hypr/external-brightness.sh apply >/dev/null 2>&1 &
+  nohup "$SCRIPT_DIR/external-brightness.sh" apply >/dev/null 2>&1 &
 }
 
 case "${1:-}" in

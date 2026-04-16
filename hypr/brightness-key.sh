@@ -2,5 +2,7 @@
 
 set -euo pipefail
 
-/home/jim/jimdots/hypr/brightness-sync.sh "$@"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
+"$SCRIPT_DIR/brightness-sync.sh" "$@"
 quickshell msg osd brightness >/dev/null 2>&1 || true
