@@ -5,12 +5,13 @@
 
 set -euo pipefail
 
-WALLPAPER_DIR="$HOME/jimdots/wallpapers"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+WALLPAPER_DIR="$(dirname "$SCRIPT_DIR")/wallpapers"
 
 # Accept mode as argument, fall back to reading settings file
 mode="${1:-}"
 if [[ -z "$mode" ]]; then
-    SETTINGS="$HOME/jimdots/quickshellsettings.toml"
+    SETTINGS="$HOME/.config/quickshellsettings.toml"
     dark_mode=$(grep "^darkMode" "$SETTINGS" | head -1 | sed 's/.*= *//')
     mode=$([[ "$dark_mode" == "true" ]] && echo "dark" || echo "light")
 fi
