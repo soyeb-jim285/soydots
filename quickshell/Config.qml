@@ -209,7 +209,13 @@ QtObject {
                 iconSize: launcherIconSize,
                 backdropOpacity: launcherBackdropOpacity,
                 hiddenApps: launcherHiddenApps, terminal: launcherTerminal,
-                pinnedApps: launcherPinnedApps, frecencyData: launcherFrecencyData
+                pinnedApps: launcherPinnedApps, frecencyData: launcherFrecencyData,
+                calculatorEnabled: launcherCalculatorEnabled,
+                calculatorCopyOnEnter: launcherCalculatorCopyOnEnter,
+                calculatorDecimals: launcherCalculatorDecimals,
+                webSearchEnabled: launcherWebSearchEnabled,
+                webSearchEngines: launcherWebSearchEngines,
+                webSearchBrowserClass: launcherWebSearchBrowserClass
             },
             clipboard: {
                 width: clipboardWidth, height: clipboardHeight, radius: clipboardRadius,
@@ -1311,6 +1317,22 @@ unfocusedWidth = 10'
     property string launcherTerminal: _data?.launcher?.terminal ?? "kitty"
     property var launcherPinnedApps: _data?.launcher?.pinnedApps ?? []
     property string launcherFrecencyData: _data?.launcher?.frecencyData ?? "{}"
+    property bool launcherCalculatorEnabled: _data?.launcher?.calculatorEnabled ?? true
+    property bool launcherCalculatorCopyOnEnter: _data?.launcher?.calculatorCopyOnEnter ?? true
+    property int launcherCalculatorDecimals: _data?.launcher?.calculatorDecimals ?? 10
+    property bool launcherWebSearchEnabled: _data?.launcher?.webSearchEnabled ?? true
+    property string launcherWebSearchBrowserClass: _data?.launcher?.webSearchBrowserClass ?? ""
+    property var launcherWebSearchEngines: _data?.launcher?.webSearchEngines ?? [
+        "g|Google|https://www.google.com/search?q=%s|google",
+        "ddg|DuckDuckGo|https://duckduckgo.com/?q=%s|duckduckgo",
+        "w|Wikipedia|https://en.wikipedia.org/wiki/Special:Search?search=%s|wikipedia",
+        "yt|YouTube|https://www.youtube.com/results?search_query=%s|youtube",
+        "gh|GitHub|https://github.com/search?q=%s|github",
+        "aw|ArchWiki|https://wiki.archlinux.org/index.php?search=%s|archlinux",
+        "gpt|ChatGPT|https://chatgpt.com/?q=%s|openai",
+        "cld|Claude|https://claude.ai/new?q=%s|claude",
+        "per|Perplexity|https://www.perplexity.ai/search?q=%s|perplexity"
+    ]
 
     // ===== CLIPBOARD =====
 

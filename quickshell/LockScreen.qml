@@ -31,7 +31,8 @@ Scope {
         if (!root.locked)
             return;
         refocusAttempts = 6;
-        keyHandler.forceActiveFocus();
+        // keyHandler lives inside WlSessionLockSurface, which is created async
+        // when locking. Just start the timer — it retries until the item exists.
         refocusTimer.restart();
     }
 
@@ -61,7 +62,7 @@ Scope {
                 stop();
                 return;
             }
-            keyHandler.forceActiveFocus();
+            try { keyHandler.forceActiveFocus(); } catch (e) { /* surface not yet instantiated */ }
             refocusAttempts--;
         }
     }
