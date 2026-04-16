@@ -52,13 +52,17 @@ with open(conf_path, 'w') as f:
     if clock_fmt:
         f.write(f'set -g @catppuccin_date_time_text "{clock_fmt}"\n')
 
-# Copy custom modules to catppuccin plugin directory
-custom_dir = os.path.expanduser("~/.config/tmux/plugins/catppuccin-tmux/custom")
-src_dir = os.path.dirname(os.path.realpath(__file__))
-os.makedirs(custom_dir, exist_ok=True)
+# Copy custom modules to catppuccin plugin directory, but only if the plugin
+# itself is already installed — otherwise we'd leave a hollow dir that blocks
+# TPM's git clone on retry.
+plugin_dir = os.path.expanduser("~/.config/tmux/plugins/catppuccin-tmux")
+if os.path.isdir(plugin_dir):
+    custom_dir = os.path.join(plugin_dir, "custom")
+    src_dir = os.path.dirname(os.path.realpath(__file__))
+    os.makedirs(custom_dir, exist_ok=True)
 
-for module in ['cpu', 'gpu', 'temp']:
-    src = os.path.join(src_dir, f'{module}.sh')
-    dst = os.path.join(custom_dir, f'{module}.sh')
-    if os.path.exists(src):
-        shutil.copy2(src, dst)
+    for module in ['cpu', 'gpu', 'temp']:
+        src = os.path.join(src_dir, f'{module}.sh')
+        dst = os.path.join(custom_dir, f'{module}.sh')
+        if os.path.exists(src):
+            shutil.copy2(src, dst)

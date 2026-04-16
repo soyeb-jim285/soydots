@@ -49,6 +49,14 @@ if [[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]]; then
     run "$HOME/.tmux/plugins/tpm/bin/install_plugins" || warn "TPM install_plugins returned non-zero (safe to retry)"
 fi
 
+# Seed quickshell-tmux.conf so first-launch tmux has pills + top status,
+# before quickshell has had a chance to regenerate it.
+info "seeding quickshell-tmux.conf"
+run mkdir -p "$HOME/.config/tmux"
+run python3 "$JIMDOTS_REPO/tmux/write-quickshell-conf.py" \
+    '{"statusBottom":false,"pill":true,"modules_right":"directory","clockFormat":""}' \
+    || warn "quickshell-tmux.conf seed returned non-zero"
+
 info "browser theme-sync bootstraps"
 if [[ -x "$JIMDOTS_REPO/zen/setup-live-theme-sync.sh" ]]; then
     run "$JIMDOTS_REPO/zen/setup-live-theme-sync.sh" || warn "zen setup returned non-zero"
