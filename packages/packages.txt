@@ -43,6 +43,11 @@ quickshell
 python-gobject
 python-pillow
 
+# --- quill-polkit build + runtime deps ---
+cmake
+polkit-qt6
+hyprland-qt-support
+
 # --- display manager ---
 greetd
 greetd-tuigreet
@@ -83,4 +88,3 @@ dracula-cursors-git
 zen-browser-bin
 kvantum-theme-catppuccin
 awww
-hyprpolkitagent

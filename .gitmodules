@@ -4,3 +4,6 @@
 [submodule "quill"]
 	path = quill
 	url = https://github.com/soyeb-jim285/quill.git
+[submodule "quickshell/quill-polkit"]
+	path = quickshell/quill-polkit
+	url = https://github.com/soyeb-jim285/quillpolkit.git
