@@ -45,15 +45,15 @@ Scope {
         lines.push("general {");
         lines.push("    lock_cmd = quickshell msg lockscreen lock");
         lines.push("    before_sleep_cmd = quickshell msg lockscreen lock");
-        lines.push("    after_sleep_cmd = " + _homeDir + "/jimdots/hypr/idle-after-sleep.sh");
+        lines.push("    after_sleep_cmd = " + _homeDir + "/.config/hypr/idle-after-sleep.sh");
         lines.push("}");
 
         if (Config.idleDimEnabled) {
             lines.push("");
             lines.push("listener {");
             lines.push("    timeout = " + Config.idleDimTimeout);
-            lines.push("    on-timeout = " + _homeDir + "/jimdots/hypr/idle-dim.sh");
-            lines.push("    on-resume = " + _homeDir + "/jimdots/hypr/idle-undim.sh");
+            lines.push("    on-timeout = " + _homeDir + "/.config/hypr/idle-dim.sh");
+            lines.push("    on-resume = " + _homeDir + "/.config/hypr/idle-undim.sh");
             lines.push("}");
         }
 
@@ -69,8 +69,8 @@ Scope {
             lines.push("");
             lines.push("listener {");
             lines.push("    timeout = " + Config.idleDpmsTimeout);
-            lines.push("    on-timeout = " + _homeDir + "/jimdots/hypr/idle-dpms-off.sh");
-            lines.push("    on-resume = " + _homeDir + "/jimdots/hypr/idle-dpms-on.sh");
+            lines.push("    on-timeout = " + _homeDir + "/.config/hypr/idle-dpms-off.sh");
+            lines.push("    on-resume = " + _homeDir + "/.config/hypr/idle-dpms-on.sh");
             lines.push("}");
         }
 
@@ -97,7 +97,7 @@ Scope {
     }
 
     property string _homeDir: Quickshell.env("HOME")
-    property string _confPath: _homeDir + "/jimdots/hypr/hypridle.conf"
+    property string _confPath: _homeDir + "/.config/hypr/hypridle.conf"
 
     Process {
         id: writeProc
