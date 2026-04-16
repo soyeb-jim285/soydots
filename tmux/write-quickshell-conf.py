@@ -54,7 +54,7 @@ with open(conf_path, 'w') as f:
 
 # Copy custom modules to catppuccin plugin directory
 custom_dir = os.path.expanduser("~/.config/tmux/plugins/catppuccin-tmux/custom")
-src_dir = os.path.expanduser("~/jimdots/tmux")
+src_dir = os.path.dirname(os.path.realpath(__file__))
 os.makedirs(custom_dir, exist_ok=True)
 
 for module in ['cpu', 'gpu', 'temp']:

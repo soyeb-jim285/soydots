@@ -6,6 +6,7 @@ nvim|.config/nvim
 # tmux/btop/gtk dirs hold per-machine state alongside repo configs,
 # so we link specific files rather than whole directories.
 tmux/tmux.conf|.config/tmux/tmux.conf
+tmux/write-quickshell-conf.py|.config/tmux/write-quickshell-conf.py
 qt6ct|.config/qt6ct
 Kvantum|.config/Kvantum
 gtk-3.0/settings.ini|.config/gtk-3.0/settings.ini
