@@ -408,6 +408,39 @@ Scope {
         return null;
     }
 
+    function findEngineByKeyword(kw) {
+        if (!kw) return null;
+        let lk = String(kw).toLowerCase();
+        for (let e of parsedEngines()) {
+            if (e.keyword.toLowerCase() === lk) return e;
+        }
+        return null;
+    }
+
+    // Parse the comma-separated order string into [{kind, param}] tokens.
+    // Stored as a flat string so it round-trips cleanly through TOML + the
+    // TextSetting in the settings dialog (we don't have a list reorder widget).
+    function universalOrder() {
+        let out = [];
+        for (let tok of String(Config.launcherUniversalSearchOrder || "").split(",")) {
+            tok = tok.trim();
+            if (!tok) continue;
+            let parts = tok.split(":");
+            out.push({ kind: parts[0].trim(), param: (parts[1] ?? "").trim() });
+        }
+        return out;
+    }
+
+    function universalWants(kind) {
+        if (!Config.launcherUniversalSearchEnabled) return false;
+        for (let t of universalOrder()) {
+            if (t.kind === kind) return true;
+            // `packages` is a merged pacman+flatpak slot, so it pulls from both.
+            if (t.kind === "packages" && (kind === "pacman" || kind === "flatpak")) return true;
+        }
+        return false;
+    }
+
     // System actions — power/session commands surfaced as launcher results
     // when the query fuzzy-matches the name or any keyword.
     readonly property var systemActions: [
@@ -755,6 +788,18 @@ Scope {
     property var flatpakSearchResults: []
     property string flatpakLastSearched: ""
     property bool flatpakSearching: false
+    // appId → true for flatpaks verified by Flathub (publisher owns the
+    // upstream domain/org). Built once from the local appstream cache.
+    property var flatpakVerified: ({})
+
+    // Ownership map for regular .desktop apps, powering the per-row
+    // uninstall action. Keyed by DesktopEntry.id with values of the form
+    //   { type: "flatpak", remote: "flathub" }
+    //   { type: "pacman",  pkg: "firefox" }
+    // Flatpak ownership is derived from `flatpakInstalled` (O(1)); pacman
+    // ownership comes from a one-shot `pacman -Qo` over every .desktop in
+    // the standard XDG dirs. Apps not in this map get no uninstall UI.
+    property var appOwnership: ({})
 
     property var flatpakMatch: {
         if (!Config.launcherFlatpakEnabled || !flatpakAvailable) return null;
@@ -789,7 +834,43 @@ Scope {
         running: true
         command: ["sh", "-c", "command -v flatpak >/dev/null 2>&1 && echo yes || echo no"]
         stdout: StdioCollector {
-            onStreamFinished: root.flatpakAvailable = this.text.trim() === "yes"
+            onStreamFinished: {
+                root.flatpakAvailable = this.text.trim() === "yes";
+                if (root.flatpakAvailable && !flatpakVerifiedProcess.running)
+                    flatpakVerifiedProcess.running = true;
+                // Load installed apps up-front so the app-row uninstall
+                // button can detect flatpak ownership (and prefix-search
+                // can badge installed flatpaks without an initial delay).
+                if (root.flatpakAvailable && !flatpakInstalledLoaded && !flatpakListProcess.running)
+                    flatpakListProcess.running = true;
+            }
+        }
+    }
+
+    // Extract the set of Flathub-verified app IDs from the local appstream
+    // cache. Verification lives in `<custom><value key="flathub::
+    // verification::verified">true</value></custom>` per <component>. We
+    // scan both user and system scope caches in one awk pass, dedupe, and
+    // store as an object for O(1) lookups.
+    Process {
+        id: flatpakVerifiedProcess
+        command: ["sh", "-c",
+            "awk 'BEGIN{id=\"\";v=0} " +
+            "/<component/{id=\"\";v=0} " +
+            "/<id>/{if(match($0,/<id>[^<]+/))id=substr($0,RSTART+4,RLENGTH-4)} " +
+            "/flathub::verification::verified\">true/{v=1} " +
+            "/<\\/component>/{if(id&&v)print id; id=\"\"; v=0}' " +
+            "\"$HOME\"/.local/share/flatpak/appstream/flathub/*/active/appstream.xml " +
+            "/var/lib/flatpak/appstream/flathub/*/active/appstream.xml 2>/dev/null | sort -u"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let set = {};
+                for (let line of this.text.split("\n")) {
+                    line = line.trim();
+                    if (line) set[line] = true;
+                }
+                root.flatpakVerified = set;
+            }
         }
     }
 
@@ -799,6 +880,7 @@ Scope {
         stdout: StdioCollector {
             onStreamFinished: {
                 let out = {};
+                let own = Object.assign({}, root.appOwnership);
                 for (let line of this.text.split("\n")) {
                     if (!line) continue;
                     let parts = line.split("\t");
@@ -808,9 +890,14 @@ Scope {
                         branch: parts[2] || "",
                         name: parts[3] || parts[0]
                     };
+                    // Flatpak desktop files are published under the appId,
+                    // which matches DesktopEntry.id for most apps. Stamp
+                    // ownership so the app row can offer uninstall.
+                    own[parts[0]] = { type: "flatpak", remote: parts[1] || "flathub" };
                 }
                 root.flatpakInstalled = out;
                 root.flatpakInstalledLoaded = true;
+                root.appOwnership = own;
             }
         }
     }
@@ -848,11 +935,22 @@ Scope {
         }
     }
 
+    // `flatpakActiveQuery` feeds the search pipeline from either the flatpak
+    // prefix OR universal-search mode (when the user has no prefix and the
+    // order string includes "flatpak"). One property drives one debounce,
+    // so both entry paths stay consistent.
+    readonly property string flatpakActiveQuery: {
+        if (flatpakMatch) return (flatpakMatch.query ?? "").trim();
+        if (universalSearchActive && universalWants("flatpak"))
+            return searchText.trim();
+        return "";
+    }
+
     Timer {
         id: flatpakDebounce
         interval: 280
         onTriggered: {
-            let q = (root.flatpakMatch?.query ?? "").trim();
+            let q = root.flatpakActiveQuery;
             if (q.length < 2) {
                 root.flatpakSearchResults = [];
                 root.flatpakLastSearched = "";
@@ -872,35 +970,47 @@ Scope {
         }
     }
 
-    onFlatpakMatchChanged: {
-        if (flatpakMatch) {
+    onFlatpakActiveQueryChanged: {
+        if (flatpakActiveQuery) {
             if (!flatpakInstalledLoaded && !flatpakListProcess.running)
                 flatpakListProcess.running = true;
+            // Flip to "searching" the instant the query changes so the UI
+            // doesn't show stale "No matches" during the debounce window
+            // (the actual `flatpak search` only fires after 280ms).
+            if (flatpakActiveQuery.length >= 2 && flatpakActiveQuery !== flatpakLastSearched) {
+                flatpakSearchResults = [];
+                flatpakSearching = true;
+            }
             flatpakDebounce.restart();
         }
     }
 
-    // Spawn flatpak install/remove in a terminal so the user sees real-time
-    // progress (download bars, runtime resolution, conflicts). Script stays
-    // interactive at the end via `read` so the terminal doesn't vanish before
-    // the user can read the outcome — portable across kitty/alacritty/ghostty
-    // et al. without relying on terminal-specific flags like --hold.
+    // Spawn a package manager install/remove in a terminal so the user sees
+    // real-time progress (downloads, conflicts, build output for AUR). Script
+    // stays interactive at the end via `read` so the terminal doesn't vanish
+    // before the user can read the outcome — portable across kitty/alacritty/
+    // ghostty et al. without relying on terminal-specific flags like --hold.
     //
-    // Assigns a unique --class so we can follow up with `hyprctl dispatch
-    // focuswindow` and raise the terminal (otherwise focus lingers on
-    // whatever had it before the launcher opened). --class is honored by
-    // kitty/alacritty/ghostty/wezterm; terminals that don't support it
-    // will still spawn, just without the focus hop.
-    function _spawnFlatpakTerminal(script, scriptName, scriptArgs) {
+    // Routes through `hyprctl dispatch exec` so Hyprland spawns the terminal
+    // in *its* current-workspace context. `Quickshell.execDetached` forks
+    // through our own process tree, and Hyprland then places the new window
+    // on whatever workspace its internal pointer last resolved to — which
+    // can diverge from the one the user is actually viewing. Letting
+    // Hyprland do the spawn keeps the terminal on the focused workspace.
+    //
+    // --class is a unique token so a follow-up `focuswindow` can raise the
+    // terminal if it didn't auto-focus. Honored by kitty/alacritty/ghostty/
+    // wezterm; terminals without --class spawn fine, just no focus hop.
+    function _spawnPackageTerminal(cls, script, scriptName, scriptArgs) {
         let term = Config.launcherTerminal || "kitty";
-        let cls = "soydots-flatpak";
-        let cmd = [
-            "bash", "-c",
-            '"$@" & sleep 0.35 && hyprctl dispatch focuswindow "class:' + cls + '" >/dev/null 2>&1',
-            "_",
-            term, "--class", cls, "-e", "bash", "-c", script, scriptName
-        ].concat(scriptArgs);
-        Quickshell.execDetached(cmd);
+        // sh-single-quote: ' → '\''
+        function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'"; }
+        let parts = [shq(term), "--class", shq(cls), "-e", "bash", "-c", shq(script), shq(scriptName)];
+        for (let a of scriptArgs) parts.push(shq(a));
+        let shCmd = parts.join(" ")
+            + ' & sleep 0.35 && hyprctl dispatch focuswindow ' + shq("class:" + cls)
+            + ' >/dev/null 2>&1';
+        Quickshell.execDetached(["hyprctl", "dispatch", "exec", shCmd]);
     }
 
     function flatpakInstall(item) {
@@ -916,7 +1026,7 @@ Scope {
             'fi; ' +
             'printf "\\n\\033[2mPress any key to close…\\033[0m"; ' +
             'read -n 1 -s -r';
-        root._spawnFlatpakTerminal(script, "flatpak-install", [remote, item.appId, item.name]);
+        root._spawnPackageTerminal("soydots-flatpak", script, "flatpak-install", [remote, item.appId, item.name]);
         root.closing = true;
     }
 
@@ -932,7 +1042,7 @@ Scope {
             'fi; ' +
             'printf "\\n\\033[2mPress any key to close…\\033[0m"; ' +
             'read -n 1 -s -r';
-        root._spawnFlatpakTerminal(script, "flatpak-uninstall", [item.appId, item.name]);
+        root._spawnPackageTerminal("soydots-flatpak", script, "flatpak-uninstall", [item.appId, item.name]);
         root.closing = true;
     }
 
@@ -940,6 +1050,317 @@ Scope {
         if (!entry || !entry.item) return;
         if (entry.installed) root.flatpakUninstall(entry.item);
         else root.flatpakInstall(entry.item);
+    }
+
+    // --- pacman / AUR (via yay) ---------------------------------------
+    // Mirrors the flatpak flow: yay handles repo + AUR in one pass, so we
+    // don't need a separate appstream-style cache warmup. Install always
+    // needs sudo, which yay itself prompts for inside the spawned terminal.
+    property bool pacmanAvailable: false
+    property var pacmanInstalled: ({})
+    property bool pacmanInstalledLoaded: false
+    property var pacmanSearchResults: []
+    property string pacmanLastSearched: ""
+    property bool pacmanSearching: false
+
+    property var pacmanMatch: {
+        if (!Config.launcherPacmanEnabled || !pacmanAvailable) return null;
+        let prefix = Config.launcherPacmanPrefix || "p";
+        if (!searchText.startsWith(prefix)) return null;
+        let rest = searchText.substring(prefix.length);
+        if (rest.length > 0 && !/^\s/.test(rest)) return null;
+        return { query: rest.replace(/^\s+/, "") };
+    }
+
+    // Universal search: active when the user types a plain query with no
+    // prefix / calc / url active. Merges configured providers in order so
+    // web-search, pacman, flatpak, AI etc. can all appear alongside apps.
+    readonly property bool universalSearchActive:
+        Config.launcherUniversalSearchEnabled
+        && searchText.trim().length > 0
+        && !commandMatch
+        && !emojiMatch
+        && !clipboardMatch
+        && !pacmanMatch
+        && !flatpakMatch
+        && !keywordSearchMatch
+        && calcValue === null
+        && !urlPathMatch
+
+    Process {
+        id: pacmanDetect
+        running: true
+        command: ["sh", "-c", "command -v yay >/dev/null 2>&1 && echo yes || echo no"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.pacmanAvailable = this.text.trim() === "yes";
+                // Once pacman is confirmed present, scan ownership of all
+                // installed .desktop files so the per-row uninstall button
+                // knows which apps we can safely remove via yay -Rns.
+                if (root.pacmanAvailable && !appOwnershipProcess.running)
+                    appOwnershipProcess.running = true;
+                // Also kick the installed-apps list so prefix-search UI
+                // can badge installed packages on first keystroke.
+                if (root.pacmanAvailable && !pacmanInstalledLoaded && !pacmanListProcess.running)
+                    pacmanListProcess.running = true;
+            }
+        }
+    }
+
+    // `pacman -Qe` = explicitly installed (user-requested) packages. Skips
+    // the ~1000 dependencies that would otherwise drown the empty-prefix view.
+    Process {
+        id: pacmanListProcess
+        command: ["pacman", "-Qe"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let out = {};
+                for (let line of this.text.split("\n")) {
+                    if (!line) continue;
+                    let parts = line.split(/\s+/);
+                    if (!parts[0]) continue;
+                    out[parts[0]] = { version: parts[1] || "" };
+                }
+                root.pacmanInstalled = out;
+                root.pacmanInstalledLoaded = true;
+            }
+        }
+    }
+
+    // Map DesktopEntry.id → owning pacman/AUR package by batch-querying
+    // every .desktop file in the standard XDG dirs. One fork, one parse,
+    // populates appOwnership with {type:"pacman", pkg:...}. Unowned files
+    // (manual installs, flatpak exports already handled, AppImages) simply
+    // don't appear in the map, so their app rows show no uninstall button.
+    Process {
+        id: appOwnershipProcess
+        command: ["sh", "-c",
+            "find /usr/share/applications \"$HOME/.local/share/applications\" " +
+            "-maxdepth 1 -name '*.desktop' -print0 2>/dev/null | " +
+            "xargs -0 --no-run-if-empty pacman -Qo 2>/dev/null | " +
+            "awk '/is owned by/{n=split($1,a,\"/\"); id=a[n]; sub(/\\.desktop$/,\"\",id); print id\"\\t\"$5}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let own = Object.assign({}, root.appOwnership);
+                for (let line of this.text.split("\n")) {
+                    if (!line) continue;
+                    let parts = line.split("\t");
+                    if (parts.length < 2 || !parts[0] || !parts[1]) continue;
+                    // Don't clobber a flatpak entry if both happened to
+                    // match (shouldn't, but be defensive).
+                    if (own[parts[0]] && own[parts[0]].type === "flatpak") continue;
+                    own[parts[0]] = { type: "pacman", pkg: parts[1] };
+                }
+                root.appOwnership = own;
+            }
+        }
+    }
+
+    // Unified ranking for pacman (repo + AUR) and flatpak results so they
+    // can be merged into one list. Origin-blind — the user asked for the
+    // top N regardless of extra/core/aur/flathub. Name matches outrank
+    // description-only matches; exact/prefix matches get additive boosts.
+    //
+    // Multi-word queries: strip whitespace from the query and hyphens/
+    // underscores from the name before comparing. Package names use
+    // kebab/snake case ("helium-browser-bin"), so "helium browser" must
+    // match across the separator to score correctly. fuzzyScore already
+    // rewards word boundaries in the raw name, so we keep both paths.
+    function scorePackage(item, query, kind) {
+        let q = (query || "").toLowerCase().replace(/\s+/g, "");
+        if (!q) return 0;
+        let name = (item.name || "").toLowerCase();
+        let desc = (kind === "flatpak" ? (item.summary || "") : (item.desc || "")).toLowerCase();
+        let nameCompact = name.replace(/[-_]/g, "");
+        let score = root.fuzzyScore(q, name) * 1.0
+                  + root.fuzzyScore(q, desc) * 0.15;
+        if (nameCompact === q) score += 2.5;
+        else if (nameCompact.startsWith(q)) score += 1.2;
+        else if (nameCompact.indexOf(q) >= 0) score += 0.5;
+
+        // AUR popularity: log-scaled so the boost stays bounded (≈0.6 at
+        // 10k votes). Kept below the exact/prefix name boosts so match
+        // quality still dominates — this only tiebreaks when two packages
+        // score similarly on text, e.g. picking the 500-vote canonical
+        // package over a 0-vote fork with the same name shape.
+        if (kind === "pacman" && item.repo === "aur" && typeof item.votes === "number")
+            score += Math.log10(item.votes + 1) * 0.15;
+
+        // Small penalty for AUR packages flagged out-of-date — usually
+        // abandoned forks or lagging behind upstream.
+        if (kind === "pacman" && item.outOfDate) score -= 0.3;
+
+        return score;
+    }
+
+    function scorePacman(item, query) {
+        return scorePackage(item, query, "pacman");
+    }
+
+    // yay -Ss emits a two-line format per result:
+    //   repo/name version [(size)] [(votes pop)] [...] [[installed]]
+    //       description (indented)
+    // We parse the header line and grab the following indented line as desc.
+    Process {
+        id: pacmanSearchProcess
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let items = [];
+                let lines = (this.text || "").split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+                    if (!line || /^\s/.test(line)) continue;
+                    let m = line.match(/^([a-zA-Z0-9_.+-]+)\/(\S+)\s+(\S+)(.*)$/);
+                    if (!m) continue;
+                    let repo = m[1], name = m[2], version = m[3], rest = m[4];
+                    let installed = /\[installed/.test(rest);
+                    // AUR-only metadata: yay appends "(+<votes> <popularity>)"
+                    // after the version for AUR entries. Popularity is AUR's
+                    // decay-weighted install estimate; votes is a raw count.
+                    let voteMatch = rest.match(/\(\+(\d+)\s+([\d.]+)\)/);
+                    let votes = voteMatch ? parseInt(voteMatch[1]) : null;
+                    let popularity = voteMatch ? parseFloat(voteMatch[2]) : null;
+                    let outOfDate = /\(Out-of-date/.test(rest);
+                    let desc = "";
+                    if (i + 1 < lines.length && /^\s/.test(lines[i + 1])) {
+                        desc = lines[i + 1].trim();
+                        i++;
+                    }
+                    items.push({
+                        repo: repo, name: name, version: version, desc: desc,
+                        installed: installed, votes: votes, popularity: popularity,
+                        outOfDate: outOfDate
+                    });
+                }
+                let q = root.pacmanLastSearched;
+                let scored = items.map(it => ({ item: it, score: root.scorePacman(it, q) }));
+                scored.sort((a, b) => b.score - a.score);
+                root.pacmanSearchResults = scored
+                    .slice(0, Config.launcherPacmanMaxResults)
+                    .map(s => s.item);
+                root.pacmanSearching = false;
+            }
+        }
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                root.pacmanSearchResults = [];
+                root.pacmanSearching = false;
+            }
+        }
+    }
+
+    // Same pattern as flatpakActiveQuery: drive the pacman pipeline from
+    // prefix OR universal-search mode. yay -Ss hits the AUR RPC so the
+    // debounce matters; we still gate at 2+ chars before spawning.
+    readonly property string pacmanActiveQuery: {
+        if (pacmanMatch) return (pacmanMatch.query ?? "").trim();
+        if (universalSearchActive && universalWants("pacman"))
+            return searchText.trim();
+        return "";
+    }
+
+    Timer {
+        id: pacmanDebounce
+        interval: 280
+        onTriggered: {
+            let q = root.pacmanActiveQuery;
+            if (q.length < 2) {
+                root.pacmanSearchResults = [];
+                root.pacmanLastSearched = "";
+                root.pacmanSearching = false;
+                return;
+            }
+            if (q === root.pacmanLastSearched && !root.pacmanSearching) return;
+            root.pacmanLastSearched = q;
+            root.pacmanSearching = true;
+            if (pacmanSearchProcess.running) pacmanSearchProcess.running = false;
+            // Split on whitespace so yay ANDs the terms ("helium browser"
+            // → matches packages with both words). Passed as one arg, yay
+            // treats it as a literal regex with a space and returns nothing.
+            let terms = q.split(/\s+/).filter(s => s.length > 0);
+            pacmanSearchProcess.command = ["yay", "-Ss"].concat(terms);
+            pacmanSearchProcess.running = true;
+        }
+    }
+
+    onPacmanActiveQueryChanged: {
+        if (pacmanActiveQuery) {
+            if (!pacmanInstalledLoaded && !pacmanListProcess.running)
+                pacmanListProcess.running = true;
+            if (pacmanActiveQuery.length >= 2 && pacmanActiveQuery !== pacmanLastSearched) {
+                pacmanSearchResults = [];
+                pacmanSearching = true;
+            }
+            pacmanDebounce.restart();
+        }
+    }
+
+    function pacmanInstall(item) {
+        if (!item || !item.name) return;
+        // yay runs as the user and elevates via sudo when it hits pacman;
+        // --needed short-circuits if already up-to-date (defensive — the
+        // UI routes installed packages to the remove path).
+        let script =
+            'printf "\\n\\033[1;34m⬇ Installing %s\\033[0m  \\033[2m(%s)\\033[0m\\n\\n" "$1" "$2"; ' +
+            'if yay -S --needed "$1"; then ' +
+            '  printf "\\n\\033[1;32m✓ Installed %s\\033[0m\\n" "$1"; ' +
+            'else ' +
+            '  printf "\\n\\033[1;31m✗ Install failed\\033[0m\\n"; ' +
+            'fi; ' +
+            'printf "\\n\\033[2mPress any key to close…\\033[0m"; ' +
+            'read -n 1 -s -r';
+        let tag = item.repo ? (item.repo + " · " + (item.desc || "")) : (item.desc || "");
+        root._spawnPackageTerminal("soydots-pacman", script, "pacman-install", [item.name, tag]);
+        root.closing = true;
+    }
+
+    function pacmanUninstall(item) {
+        if (!item || !item.name) return;
+        // -Rns: remove + unused deps + configs. Refused by pacman if the
+        // package is a dependency of something else, which is visible in
+        // the terminal.
+        let script =
+            'printf "\\n\\033[1;31m✗ Removing %s\\033[0m\\n\\n" "$1"; ' +
+            'if yay -Rns "$1"; then ' +
+            '  printf "\\n\\033[1;32m✓ Removed %s\\033[0m\\n" "$1"; ' +
+            'else ' +
+            '  printf "\\n\\033[1;31m✗ Remove failed\\033[0m\\n"; ' +
+            'fi; ' +
+            'printf "\\n\\033[2mPress any key to close…\\033[0m"; ' +
+            'read -n 1 -s -r';
+        root._spawnPackageTerminal("soydots-pacman", script, "pacman-remove", [item.name]);
+        root.closing = true;
+    }
+
+    // Resolve ownership for a DesktopEntry and dispatch to the right
+    // uninstall flow. Returns true if an uninstall was triggered, false
+    // if we couldn't identify the owning package (no button/shortcut
+    // should be shown for those rows in the first place).
+    function uninstallApp(app) {
+        if (!app) return false;
+        let id = app.id ?? "";
+        let own = appOwnership[id];
+        if (!own) return false;
+        if (own.type === "flatpak") {
+            let info = flatpakInstalled[id] || {};
+            root.flatpakUninstall({
+                appId: id,
+                name: info.name || app.name || id,
+                remote: info.remote || own.remote || "flathub"
+            });
+            return true;
+        }
+        if (own.type === "pacman") {
+            root.pacmanUninstall({ name: own.pkg });
+            return true;
+        }
+        return false;
+    }
+
+    function activatePacman(entry) {
+        if (!entry || !entry.item) return;
+        if (entry.installed) root.pacmanUninstall(entry.item);
+        else root.pacmanInstall(entry.item);
     }
 
     function openFlathubPage(appId) {
@@ -1079,6 +1500,40 @@ Scope {
             if (!clipboardCacheLoaded) return [];
             return filteredClipboard.map(c => ({ type: "clipboard", clip: c }));
         }
+        if (pacmanMatch) {
+            if (!pacmanInstalledLoaded)
+                return [{ type: "pacmanInfo", message: "Loading installed packages…" }];
+            let q = pacmanMatch.query.trim();
+            if (q === "") {
+                let items = [];
+                for (let name in pacmanInstalled) {
+                    items.push({
+                        type: "pacman",
+                        installed: true,
+                        item: {
+                            name: name,
+                            version: pacmanInstalled[name].version || "",
+                            repo: "installed",
+                            desc: ""
+                        }
+                    });
+                }
+                if (items.length === 0)
+                    return [{ type: "pacmanInfo", message: "Type to search pacman + AUR (e.g. " + Config.launcherPacmanPrefix + " steam)" }];
+                return items;
+            }
+            if (q.length < 2)
+                return [{ type: "pacmanInfo", message: "Keep typing…" }];
+            if (pacmanSearching || q !== pacmanLastSearched)
+                return [{ type: "pacmanInfo", message: "Searching pacman + AUR…" }];
+            if (pacmanSearchResults.length === 0)
+                return [{ type: "pacmanInfo", message: "No package matches for \u201C" + q + "\u201D" }];
+            return pacmanSearchResults.map(item => ({
+                type: "pacman",
+                installed: item.installed || !!pacmanInstalled[item.name],
+                item: item
+            }));
+        }
         if (flatpakMatch) {
             if (!flatpakInstalledLoaded)
                 return [{ type: "flatpakInfo", message: "Loading flatpak apps…" }];
@@ -1106,7 +1561,10 @@ Scope {
             }
             if (q.length < 2)
                 return [{ type: "flatpakInfo", message: "Keep typing…" }];
-            if (flatpakSearching && flatpakSearchResults.length === 0)
+            // "Searching" if the process is running OR the current query
+            // hasn't been dispatched yet (debounce window / query changed
+            // but stdout hasn't landed). Gates against a "No matches" flash.
+            if (flatpakSearching || q !== flatpakLastSearched)
                 return [{ type: "flatpakInfo", message: "Searching flathub…" }];
             if (flatpakSearchResults.length === 0)
                 return [{ type: "flatpakInfo", message: "No flathub matches for \u201C" + q + "\u201D" }];
@@ -1124,6 +1582,115 @@ Scope {
         if (urlPathMatch && calcValue === null) {
             return [{ type: urlPathMatch.kind, target: urlPathMatch.target, display: urlPathMatch.display }];
         }
+
+        // Universal search: merge configured providers in order when the
+        // user types a plain query. Pacman/flatpak results appear as soon
+        // as yay/flatpak stdout lands (the search ran async via the same
+        // debounce the prefix mode uses). If a provider hasn't answered
+        // yet for the current query it's just skipped — items grow in as
+        // they arrive, instead of a jarring "Searching…" stall.
+        if (universalSearchActive) {
+            let uq = searchText.trim();
+            let items = [];
+            for (let tok of universalOrder()) {
+                if (tok.kind === "web") {
+                    let eng = findEngineByKeyword(tok.param);
+                    if (eng) items.push({ type: "search", engine: eng, query: uq });
+                } else if (tok.kind === "pacman") {
+                    if (!pacmanAvailable) continue;
+                    // Debounce only searches at 2+ chars — don't hold a
+                    // "Searching…" slot for a query that will never run.
+                    if (uq.length < 2) continue;
+                    if (pacmanSearching || uq !== pacmanLastSearched) {
+                        // Hold the slot so the layout doesn't jump when
+                        // pacman stdout lands after apps have already rendered.
+                        items.push({ type: "pacmanInfo", message: "Searching pacman + AUR…" });
+                        continue;
+                    }
+                    let n = parseInt(tok.param) || 3;
+                    for (let pac of pacmanSearchResults.slice(0, n)) {
+                        items.push({
+                            type: "pacman",
+                            installed: pac.installed || !!pacmanInstalled[pac.name],
+                            item: pac
+                        });
+                    }
+                } else if (tok.kind === "flatpak") {
+                    if (!flatpakAvailable) continue;
+                    if (uq.length < 2) continue;
+                    if (flatpakSearching || uq !== flatpakLastSearched) {
+                        items.push({ type: "flatpakInfo", message: "Searching flathub…" });
+                        continue;
+                    }
+                    let n = parseInt(tok.param) || 3;
+                    for (let fp of flatpakSearchResults.slice(0, n)) {
+                        items.push({
+                            type: "flatpak",
+                            installed: !!flatpakInstalled[fp.appId],
+                            item: fp
+                        });
+                    }
+                } else if (tok.kind === "packages") {
+                    // Merged pacman + flatpak slot: rescore both with the
+                    // same algorithm, sort by score, show top N regardless
+                    // of origin. Fill as each backend's stdout lands, so
+                    // the UI doesn't block on the slower of the two.
+                    if (!pacmanAvailable && !flatpakAvailable) continue;
+                    if (uq.length < 2) continue;
+                    let n = parseInt(tok.param) || 6;
+                    let pacReady = pacmanAvailable && !pacmanSearching && uq === pacmanLastSearched;
+                    let fpReady = flatpakAvailable && !flatpakSearching && uq === flatpakLastSearched;
+                    let pacPending = pacmanAvailable && !pacReady;
+                    let fpPending = flatpakAvailable && !fpReady;
+                    if (!pacReady && !fpReady) {
+                        items.push({ type: "pacmanInfo", message: "Searching packages…" });
+                        continue;
+                    }
+                    let merged = [];
+                    if (pacReady)
+                        for (let p of pacmanSearchResults)
+                            merged.push({ kind: "pacman", item: p, score: scorePackage(p, uq, "pacman") });
+                    if (fpReady)
+                        for (let f of flatpakSearchResults)
+                            merged.push({ kind: "flatpak", item: f, score: scorePackage(f, uq, "flatpak") });
+                    merged.sort((a, b) => b.score - a.score);
+                    for (let m of merged.slice(0, n)) {
+                        if (m.kind === "pacman") {
+                            items.push({
+                                type: "pacman",
+                                installed: m.item.installed || !!pacmanInstalled[m.item.name],
+                                item: m.item
+                            });
+                        } else {
+                            items.push({
+                                type: "flatpak",
+                                installed: !!flatpakInstalled[m.item.appId],
+                                item: m.item
+                            });
+                        }
+                    }
+                    if (pacPending || fpPending)
+                        items.push({ type: "pacmanInfo", message: "Searching packages…" });
+                } else if (tok.kind === "apps") {
+                    let n = parseInt(tok.param);
+                    let list = (n && n > 0) ? filteredApps.slice(0, n) : filteredApps;
+                    for (let app of list) items.push({ type: "app", app: app });
+                } else if (tok.kind === "systemActions") {
+                    if (!Config.launcherSystemActionsEnabled) continue;
+                    let sys = [];
+                    for (let a of systemActions) {
+                        let s = scoreSystemAction(a, uq.toLowerCase());
+                        if (s >= 0.5) sys.push({ action: a, score: s });
+                    }
+                    sys.sort((a, b) => b.score - a.score);
+                    for (let s of sys) items.push({ type: "system", action: s.action });
+                }
+            }
+            return items;
+        }
+
+        // Legacy fallback (universal search disabled): system actions then
+        // apps, with web-search only when the query matches nothing.
         let q = searchText.trim();
         let items = [];
         if (q.length > 0 && Config.launcherSystemActionsEnabled) {
@@ -1159,6 +1726,11 @@ Scope {
             root.flatpakSearchResults = [];
             root.flatpakLastSearched = "";
             root.flatpakSearching = false;
+            root.pacmanInstalledLoaded = false;
+            root.pacmanInstalled = ({});
+            root.pacmanSearchResults = [];
+            root.pacmanLastSearched = "";
+            root.pacmanSearching = false;
         }
     }
 
@@ -1182,6 +1754,7 @@ Scope {
         else if (item.type === "clipboard") root.pasteClipboard(item.clip);
         else if (item.type === "emoji") root.copyEmoji(item.glyph);
         else if (item.type === "flatpak") root.activateFlatpak(item);
+        else if (item.type === "pacman") root.activatePacman(item);
     }
 
     IpcHandler {
@@ -1362,6 +1935,21 @@ Scope {
                                 else
                                     root.activateResult(item);
                             });
+                            // Ctrl+Shift+Backspace on the highlighted app
+                            // row → uninstall. Only fires when ownership
+                            // is known (flatpak or pacman/AUR); silently
+                            // no-op otherwise so we don't delete the last
+                            // char of the query as a side effect.
+                            inputItem.Keys.pressed.connect((event) => {
+                                if (event.key !== Qt.Key_Backspace) return;
+                                if (!(event.modifiers & Qt.ControlModifier)) return;
+                                if (!(event.modifiers & Qt.ShiftModifier)) return;
+                                if (root.filteredResults.length === 0) return;
+                                let idx = Math.max(0, Math.min(resultsView.currentIndex, root.filteredResults.length - 1));
+                                let item = root.filteredResults[idx];
+                                if (item.type !== "app") return;
+                                if (root.uninstallApp(item.app)) event.accepted = true;
+                            });
                         }
                     }
 
@@ -1460,10 +2048,15 @@ Scope {
                             readonly property bool isEmoji: modelData.type === "emoji"
                             readonly property bool isFlatpak: modelData.type === "flatpak"
                             readonly property bool isFlatpakInfo: modelData.type === "flatpakInfo"
+                            readonly property bool isPacman: modelData.type === "pacman"
+                            readonly property bool isPacmanInfo: modelData.type === "pacmanInfo"
                             readonly property var appData: isApp ? modelData.app : null
                             readonly property var sysAction: isSystem ? modelData.action : null
                             readonly property var flatpakItem: isFlatpak ? modelData.item : null
                             readonly property bool flatpakInstalledState: isFlatpak ? modelData.installed : false
+                            readonly property var pacmanItem: isPacman ? modelData.item : null
+                            readonly property bool pacmanInstalledState: isPacman ? modelData.installed : false
+                            readonly property bool isPacmanAur: isPacman && pacmanItem && pacmanItem.repo === "aur"
 
                             width: resultsView.width
                             height: Config.launcherItemHeight
@@ -1610,6 +2203,41 @@ Scope {
                                         color: resultItem.isFlatpakInfo ? Config.overlay0
                                             : (resultItem.flatpakInstalledState ? Config.green : Config.blue)
                                     }
+
+                                    // Official repo (core/extra/multilib/...): package box
+                                    // in peach. Info-state rows (Loading/Searching/No matches)
+                                    // also fall here since we don't know repo vs AUR yet.
+                                    IconPackageOpen {
+                                        anchors.centerIn: parent
+                                        visible: (resultItem.isPacman && !resultItem.isPacmanAur)
+                                            || resultItem.isPacmanInfo
+                                        size: Config.launcherIconSize * 0.78
+                                        color: resultItem.isPacmanInfo ? Config.overlay0
+                                            : (resultItem.pacmanInstalledState ? Config.green : Config.peach)
+                                    }
+
+                                    // AUR: user-submitted PKGBUILD archive — distinct shape
+                                    // (folder-archive) and mauve tint so AUR reads different
+                                    // from official repo without needing to read the repo label.
+                                    IconFolderArchive {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isPacmanAur
+                                        size: Config.launcherIconSize * 0.78
+                                        color: resultItem.pacmanInstalledState ? Config.green : Config.mauve
+                                    }
+
+                                    Rectangle {
+                                        visible: resultItem.isPacman && resultItem.pacmanInstalledState
+                                        width: 9; height: 9; radius: 5
+                                        color: Config.green
+                                        border.color: Theme.launcherBg
+                                        border.width: 1.5
+                                        anchors.right: parent.right
+                                        anchors.bottom: parent.bottom
+                                        anchors.rightMargin: -2
+                                        anchors.bottomMargin: -2
+                                        z: 2
+                                    }
                                 }
 
                                 Text {
@@ -1628,22 +2256,36 @@ Scope {
                                                             : resultItem.isEmoji
                                                                 ? resultItem.modelData.name
                                                                 : resultItem.isFlatpak
-                                                                    ? (resultItem.flatpakItem.name + (resultItem.flatpakItem.summary
-                                                                        ? "  \u00B7  " + resultItem.flatpakItem.summary : ""))
+                                                                    ? (resultItem.flatpakItem.name
+                                                                        + (root.flatpakVerified[resultItem.flatpakItem.appId] ? " \u2713" : "")
+                                                                        + (resultItem.flatpakItem.summary
+                                                                            ? "  \u00B7  " + resultItem.flatpakItem.summary : ""))
                                                                     : resultItem.isFlatpakInfo
                                                                         ? resultItem.modelData.message
-                                                                        : ""
+                                                                        : resultItem.isPacman
+                                                                            ? (resultItem.pacmanItem.name
+                                                                                + "  \u00B7  " + resultItem.pacmanItem.repo
+                                                                                + (resultItem.pacmanItem.repo === "aur" && resultItem.pacmanItem.votes != null
+                                                                                    ? "  \u00B7  \u2191" + resultItem.pacmanItem.votes : "")
+                                                                                + (resultItem.pacmanItem.outOfDate
+                                                                                    ? "  \u00B7  \u26A0 out-of-date" : "")
+                                                                                + (resultItem.pacmanItem.desc
+                                                                                    ? "  \u00B7  " + resultItem.pacmanItem.desc : ""))
+                                                                            : resultItem.isPacmanInfo
+                                                                                ? resultItem.modelData.message
+                                                                                : ""
                                     color: resultItem.isSystem ? resultItem.sysAction.color
                                         : resultItem.isCommand ? Config.green
                                         : resultItem.isUrl ? Config.blue
                                         : resultItem.isPath ? Config.peach
                                         : resultItem.isClipboard ? Config.text
                                         : resultItem.isFlatpakInfo ? Config.overlay0
+                                        : resultItem.isPacmanInfo ? Config.overlay0
                                         : Config.text
                                     font.pixelSize: 14
                                     font.family: Config.fontFamily
                                     font.bold: resultItem.isSystem
-                                    font.italic: resultItem.isFlatpakInfo
+                                    font.italic: resultItem.isFlatpakInfo || resultItem.isPacmanInfo
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                     maximumLineCount: 1
@@ -1668,13 +2310,18 @@ Scope {
                                                                     ? "Emoji"
                                                                     : resultItem.isFlatpak
                                                                         ? (resultItem.flatpakInstalledState ? "\u23CE Remove" : "\u23CE Install")
-                                                                        : ""
+                                                                        : resultItem.isPacman
+                                                                            ? (resultItem.pacmanInstalledState ? "\u23CE Remove" : "\u23CE Install")
+                                                                            : ""
                                     color: resultItem.isFlatpak
                                         ? (resultItem.flatpakInstalledState ? Config.red : Config.blue)
-                                        : Config.overlay0
+                                        : resultItem.isPacman
+                                            ? (resultItem.pacmanInstalledState ? Config.red
+                                                : (resultItem.isPacmanAur ? Config.mauve : Config.peach))
+                                            : Config.overlay0
                                     font.pixelSize: 12
                                     font.family: Config.fontFamily
-                                    font.bold: resultItem.isFlatpak
+                                    font.bold: resultItem.isFlatpak || resultItem.isPacman
                                     elide: Text.ElideRight
                                     Layout.maximumWidth: 180
                                 }
@@ -1729,6 +2376,52 @@ Scope {
                                         resultsView.currentIndex = resultItem.index;
                                 }
                             }
+
+                            // Per-row uninstall button. Only shown for app rows
+                            // where we've resolved the owning package (flatpak
+                            // or pacman/AUR). Later sibling than appMouse so
+                            // its own MouseArea captures clicks first — left
+                            // click uninstalls, rest bubbles to appMouse.
+                            // Keyboard equivalent: Ctrl+Shift+Backspace.
+                            Item {
+                                id: uninstallBtn
+                                width: 28
+                                height: 28
+                                readonly property var _own: resultItem.isApp
+                                    ? root.appOwnership[resultItem.appData.id ?? ""]
+                                    : null
+                                visible: resultItem.isApp && _own
+                                    && (appMouse.containsMouse || uninstallMouse.containsMouse)
+                                anchors.right: parent.right
+                                anchors.rightMargin: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                z: 10
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 6
+                                    color: Config.red
+                                    opacity: uninstallMouse.containsMouse ? 0.18 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                                }
+
+                                IconTrash {
+                                    anchors.centerIn: parent
+                                    size: 16
+                                    color: uninstallMouse.containsMouse ? Config.red : Config.overlay1
+                                }
+
+                                MouseArea {
+                                    id: uninstallMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (resultItem.isApp)
+                                            root.uninstallApp(resultItem.appData);
+                                    }
+                                }
+                            }
                         }
 
                         Keys.onReturnPressed: (event) => {
@@ -1771,6 +2464,14 @@ Scope {
                                     resultsView.currentIndex = (resultsView.currentIndex - 1 + n) % n;
                                 }
                                 event.accepted = true;
+                            } else if (event.key === Qt.Key_Backspace
+                                    && (event.modifiers & Qt.ControlModifier)
+                                    && (event.modifiers & Qt.ShiftModifier)) {
+                                if (currentIndex >= 0 && currentIndex < root.filteredResults.length) {
+                                    let item = root.filteredResults[currentIndex];
+                                    if (item.type === "app" && root.uninstallApp(item.app))
+                                        event.accepted = true;
+                                }
                             } else if (!event.modifiers && event.text && event.text.length > 0) {
                                 searchBox.inputItem.forceActiveFocus();
                                 searchBox.text += event.text;

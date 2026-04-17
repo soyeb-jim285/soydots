@@ -139,17 +139,42 @@ syncColors = true
 
 [launcher]
 backdropOpacity = 0.25
-frecencyData = "{"pcmanfm-qt-desktop-pref":{"score":100,"lastLaunch":1775508814},"helium":{"score":182.01576836450258,"lastLaunch":1775681979},"btop":{"score":100,"lastLaunch":1775508997},"org.gnome.Nautilus":{"score":378.9517532679148,"lastLaunch":1776189476},"hyprfm":{"score":824.7605171370038,"lastLaunch":1775750740},"org.kde.dolphin":{"score":248.17639518374722,"lastLaunch":1775824483},"org.kde.filelight":{"score":478.2250188868813,"lastLaunch":1775742524},"io.github.soyeb_jim285.HyprFM":{"score":1215.1232340239528,"lastLaunch":1776369298}}"
+calculatorCopyOnEnter = true
+calculatorDecimals = 10
+calculatorEnabled = true
+clipboardEnabled = true
+clipboardMax = 50
+clipboardPrefix = "cb"
+emojiEnabled = true
+emojiPrefix = ":"
+flatpakEnabled = true
+flatpakMaxResults = 20
+flatpakPrefix = "i"
+flatpakScope = "user"
+frecencyData = "{"pcmanfm-qt-desktop-pref":{"score":100,"lastLaunch":1775508814},"helium":{"score":182.01576836450258,"lastLaunch":1775681979},"btop":{"score":100,"lastLaunch":1775508997},"org.gnome.Nautilus":{"score":378.9517532679148,"lastLaunch":1776189476},"hyprfm":{"score":824.7605171370038,"lastLaunch":1775750740},"org.kde.dolphin":{"score":248.17639518374722,"lastLaunch":1775824483},"org.kde.filelight":{"score":478.2250188868813,"lastLaunch":1775742524},"io.github.soyeb_jim285.HyprFM":{"score":1339.4381097128773,"lastLaunch":1776425224},"zen":{"score":499.4000164930036,"lastLaunch":1776423984},"uuctl":{"score":100,"lastLaunch":1776421894},"com.valvesoftware.Steam":{"score":100,"lastLaunch":1776429377},"org.qbittorrent.qBittorrent":{"score":197.94517278327922,"lastLaunch":1776451711},"qt6ct":{"score":100,"lastLaunch":1776455571}}"
 hiddenApps = ["avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap", "electron", "cmake-gui"]
 iconSize = 28
 itemHeight = 44
 itemRadius = 10
 maxHeight = 500
+pacmanEnabled = true
+pacmanMaxResults = 30
+pacmanPrefix = "p"
 pinnedApps = []
 radius = 16
 searchHeight = 48
 searchRadius = 12
+shellRunnerEnabled = true
+shellRunnerPrefix = ">"
+shellRunnerShell = "bash"
+systemActionsEnabled = true
 terminal = "kitty"
+universalSearchEnabled = true
+universalSearchOrder = "web:g,packages:4,web:gpt,web:per,apps"
+urlPathEnabled = true
+webSearchBrowserClass = ""
+webSearchEnabled = true
+webSearchEngines = ["g|Google|https://www.google.com/search?q=%s|google", "ddg|DuckDuckGo|https://duckduckgo.com/?q=%s|duckduckgo", "w|Wikipedia|https://en.wikipedia.org/wiki/Special:Search?search=%s|wikipedia", "yt|YouTube|https://www.youtube.com/results?search_query=%s|youtube", "gh|GitHub|https://github.com/search?q=%s|github", "aw|ArchWiki|https://wiki.archlinux.org/index.php?search=%s|archlinux", "gpt|ChatGPT|https://chatgpt.com/?q=%s|openai", "cld|Claude|https://claude.ai/new?q=%s|claude", "per|Perplexity|https://www.perplexity.ai/search?q=%s|perplexity"]
 width = 600
 
 [lockscreen]

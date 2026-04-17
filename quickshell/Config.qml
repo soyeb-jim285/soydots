@@ -215,7 +215,26 @@ QtObject {
                 calculatorDecimals: launcherCalculatorDecimals,
                 webSearchEnabled: launcherWebSearchEnabled,
                 webSearchEngines: launcherWebSearchEngines,
-                webSearchBrowserClass: launcherWebSearchBrowserClass
+                webSearchBrowserClass: launcherWebSearchBrowserClass,
+                systemActionsEnabled: launcherSystemActionsEnabled,
+                shellRunnerEnabled: launcherShellRunnerEnabled,
+                shellRunnerPrefix: launcherShellRunnerPrefix,
+                shellRunnerShell: launcherShellRunnerShell,
+                urlPathEnabled: launcherUrlPathEnabled,
+                clipboardEnabled: launcherClipboardEnabled,
+                clipboardPrefix: launcherClipboardPrefix,
+                clipboardMax: launcherClipboardMax,
+                emojiEnabled: launcherEmojiEnabled,
+                emojiPrefix: launcherEmojiPrefix,
+                flatpakEnabled: launcherFlatpakEnabled,
+                flatpakPrefix: launcherFlatpakPrefix,
+                flatpakScope: launcherFlatpakScope,
+                flatpakMaxResults: launcherFlatpakMaxResults,
+                pacmanEnabled: launcherPacmanEnabled,
+                pacmanPrefix: launcherPacmanPrefix,
+                pacmanMaxResults: launcherPacmanMaxResults,
+                universalSearchEnabled: launcherUniversalSearchEnabled,
+                universalSearchOrder: launcherUniversalSearchOrder
             },
             clipboard: {
                 width: clipboardWidth, height: clipboardHeight, radius: clipboardRadius,
@@ -1322,6 +1341,31 @@ unfocusedWidth = 10'
     property int launcherCalculatorDecimals: _data?.launcher?.calculatorDecimals ?? 10
     property bool launcherWebSearchEnabled: _data?.launcher?.webSearchEnabled ?? true
     property string launcherWebSearchBrowserClass: _data?.launcher?.webSearchBrowserClass ?? ""
+    property bool launcherSystemActionsEnabled: _data?.launcher?.systemActionsEnabled ?? true
+    property bool launcherShellRunnerEnabled: _data?.launcher?.shellRunnerEnabled ?? true
+    property string launcherShellRunnerPrefix: _data?.launcher?.shellRunnerPrefix ?? ">"
+    property string launcherShellRunnerShell: _data?.launcher?.shellRunnerShell ?? "bash"
+    property bool launcherUrlPathEnabled: _data?.launcher?.urlPathEnabled ?? true
+    property bool launcherClipboardEnabled: _data?.launcher?.clipboardEnabled ?? true
+    property string launcherClipboardPrefix: _data?.launcher?.clipboardPrefix ?? "cb"
+    property int launcherClipboardMax: _data?.launcher?.clipboardMax ?? 50
+    property bool launcherEmojiEnabled: _data?.launcher?.emojiEnabled ?? true
+    property string launcherEmojiPrefix: _data?.launcher?.emojiPrefix ?? ":"
+    property bool launcherFlatpakEnabled: _data?.launcher?.flatpakEnabled ?? true
+    property string launcherFlatpakPrefix: _data?.launcher?.flatpakPrefix ?? "i"
+    property string launcherFlatpakScope: _data?.launcher?.flatpakScope ?? "user"
+    property int launcherFlatpakMaxResults: _data?.launcher?.flatpakMaxResults ?? 20
+    property bool launcherPacmanEnabled: _data?.launcher?.pacmanEnabled ?? true
+    property string launcherPacmanPrefix: _data?.launcher?.pacmanPrefix ?? "p"
+    property int launcherPacmanMaxResults: _data?.launcher?.pacmanMaxResults ?? 30
+    // Universal search merges results from multiple providers when the user
+    // types a plain query (no prefix). Order is a comma-separated list of
+    // tokens: "web:<keyword>" (one result via that engine), "pacman:<n>",
+    // "flatpak:<n>", "packages:<n>" (merged pacman+flatpak ranked together),
+    // "apps[:<n>]", "systemActions". First token wins the top slot.
+    property bool launcherUniversalSearchEnabled: _data?.launcher?.universalSearchEnabled ?? true
+    property string launcherUniversalSearchOrder: _data?.launcher?.universalSearchOrder
+        ?? "web:g,packages:4,web:gpt,web:per,apps"
     property var launcherWebSearchEngines: _data?.launcher?.webSearchEngines ?? [
         "g|Google|https://www.google.com/search?q=%s|google",
         "ddg|DuckDuckGo|https://duckduckgo.com/?q=%s|duckduckgo",

@@ -76,6 +76,10 @@ if command -v flatpak >/dev/null 2>&1; then
     else
         log "flathub remote already present (--user)"
     fi
+    # Warm the appstream cache so the launcher's `flatpak search` returns
+    # results immediately — otherwise the first few searches on a fresh
+    # install hit an empty cache and look broken.
+    run flatpak update --appstream --user -y || warn "appstream sync returned non-zero"
 else
     warn "flatpak not installed — skipping flathub remote setup"
 fi

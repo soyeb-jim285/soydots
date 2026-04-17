@@ -42,6 +42,103 @@ ColumnLayout {
     ToggleSetting { label: "Copy Result on Enter"; section: "launcher"; key: "calculatorCopyOnEnter"; value: Config.launcherCalculatorCopyOnEnter }
     SliderSetting { label: "Decimal Places"; section: "launcher"; key: "calculatorDecimals"; value: Config.launcherCalculatorDecimals; from: 0; to: 15 }
 
+    Text { text: "Clipboard"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Type the prefix to search your cliphist history. Enter copies the entry back to the clipboard."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "clipboardEnabled"; value: Config.launcherClipboardEnabled }
+    TextSetting { label: "Prefix"; section: "launcher"; key: "clipboardPrefix"; value: Config.launcherClipboardPrefix }
+    SliderSetting { label: "Max Results"; section: "launcher"; key: "clipboardMax"; value: Config.launcherClipboardMax; from: 5; to: 200 }
+
+    Text { text: "Emoji"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Type the prefix followed by a search term (e.g. ':fire') to pick an emoji. Enter copies the glyph — paste with Ctrl+V."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "emojiEnabled"; value: Config.launcherEmojiEnabled }
+    TextSetting { label: "Prefix"; section: "launcher"; key: "emojiPrefix"; value: Config.launcherEmojiPrefix }
+
+    Text { text: "Flatpak"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Install or remove apps from flathub directly from the launcher. Type the prefix (default \"i\") followed by a search term (e.g. 'i firefox'). Enter installs (or removes, if already installed); Ctrl+Enter opens the Flathub page. Runs in your terminal so you can watch progress. Icons come from flatpak's appstream cache."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "flatpakEnabled"; value: Config.launcherFlatpakEnabled }
+    TextSetting { label: "Prefix"; section: "launcher"; key: "flatpakPrefix"; value: Config.launcherFlatpakPrefix }
+    DropdownSetting {
+        label: "Install Scope"
+        section: "launcher"
+        key: "flatpakScope"
+        value: Config.launcherFlatpakScope
+        model: ["user", "system"]
+    }
+    SliderSetting { label: "Max Results"; section: "launcher"; key: "flatpakMaxResults"; value: Config.launcherFlatpakMaxResults; from: 5; to: 50 }
+
+    Text { text: "Pacman + AUR"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Install or remove native Arch / AUR packages from the launcher. Type the prefix (default \"p\") followed by a search term (e.g. 'p steam'). Enter installs (or removes, if already installed) via yay, running in your terminal so you can watch progress and enter your sudo password. Empty prefix lists explicitly-installed packages."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "pacmanEnabled"; value: Config.launcherPacmanEnabled }
+    TextSetting { label: "Prefix"; section: "launcher"; key: "pacmanPrefix"; value: Config.launcherPacmanPrefix }
+    SliderSetting { label: "Max Results"; section: "launcher"; key: "pacmanMaxResults"; value: Config.launcherPacmanMaxResults; from: 5; to: 100 }
+
+    Text { text: "Universal Search"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "When you type a plain query (no prefix), merge results from multiple providers in a configurable order. Format: comma-separated tokens. Supported: web:&lt;engine-keyword&gt; (one web-search item), pacman:&lt;n&gt;, flatpak:&lt;n&gt;, apps[:&lt;n&gt;] (default all), systemActions. Example: web:g,pacman:3,flatpak:3,web:gpt,web:per,apps puts Google first, then top-3 pacman, top-3 flatpak, ChatGPT, Perplexity, then apps. When disabled, the launcher falls back to apps + web-search-on-empty."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "universalSearchEnabled"; value: Config.launcherUniversalSearchEnabled }
+    TextSetting { label: "Order"; section: "launcher"; key: "universalSearchOrder"; value: Config.launcherUniversalSearchOrder }
+
+    Text { text: "URL &amp; Path"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Detect URLs (http, https, file, ftp, mailto) and filesystem paths (/, ~/, ./) in the query, and open them via xdg-open."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "urlPathEnabled"; value: Config.launcherUrlPathEnabled }
+
+    Text { text: "Shell Runner"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Prefix the query with the shell prefix (default \">\") to run the rest as a shell command. Runs detached — for feedback, pipe to wl-copy, notify-send, or a file."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "shellRunnerEnabled"; value: Config.launcherShellRunnerEnabled }
+    TextSetting { label: "Prefix"; section: "launcher"; key: "shellRunnerPrefix"; value: Config.launcherShellRunnerPrefix }
+    TextSetting { label: "Shell"; section: "launcher"; key: "shellRunnerShell"; value: Config.launcherShellRunnerShell }
+
+    Text { text: "System Actions"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
+
+    Text {
+        text: "Surface lock, logout, suspend, hibernate, reboot, and shutdown as launcher results when the query matches their name or keywords."
+        color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
+        wrapMode: Text.Wrap; Layout.fillWidth: true
+    }
+
+    ToggleSetting { label: "Enabled"; section: "launcher"; key: "systemActionsEnabled"; value: Config.launcherSystemActionsEnabled }
+
     Text { text: "Web Search"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
     Text {

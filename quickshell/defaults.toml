@@ -129,6 +129,25 @@ calculatorCopyOnEnter = true
 calculatorDecimals = 10
 webSearchEnabled = true
 webSearchBrowserClass = ""
+systemActionsEnabled = true
+shellRunnerEnabled = true
+shellRunnerPrefix = ">"
+shellRunnerShell = "bash"
+urlPathEnabled = true
+clipboardEnabled = true
+clipboardPrefix = "cb"
+clipboardMax = 50
+emojiEnabled = true
+emojiPrefix = ":"
+flatpakEnabled = true
+flatpakPrefix = "i"
+flatpakScope = "user"
+flatpakMaxResults = 20
+pacmanEnabled = true
+pacmanPrefix = "p"
+pacmanMaxResults = 30
+universalSearchEnabled = true
+universalSearchOrder = "web:g,packages:4,web:gpt,web:per,apps"
 webSearchEngines = ["g|Google|https://www.google.com/search?q=%s|google", "ddg|DuckDuckGo|https://duckduckgo.com/?q=%s|duckduckgo", "w|Wikipedia|https://en.wikipedia.org/wiki/Special:Search?search=%s|wikipedia", "yt|YouTube|https://www.youtube.com/results?search_query=%s|youtube", "gh|GitHub|https://github.com/search?q=%s|github", "aw|ArchWiki|https://wiki.archlinux.org/index.php?search=%s|archlinux", "gpt|ChatGPT|https://chatgpt.com/?q=%s|openai", "cld|Claude|https://claude.ai/new?q=%s|claude", "per|Perplexity|https://www.perplexity.ai/search?q=%s|perplexity"]
 
 [media]
