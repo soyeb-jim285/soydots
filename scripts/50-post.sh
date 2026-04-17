@@ -65,6 +65,21 @@ if command -v firefox >/dev/null 2>&1 && [[ -x "$JIMDOTS_REPO/firefox/setup-live
     run "$JIMDOTS_REPO/firefox/setup-live-theme-sync.sh" || warn "firefox setup returned non-zero"
 fi
 
+info "flatpak: flathub remote"
+if command -v flatpak >/dev/null 2>&1; then
+    # User-scope remote matches the launcher's default (--user install scope),
+    # so users don't need sudo to install apps from the launcher.
+    if ! flatpak remote-list --user 2>/dev/null | awk '{print $1}' | grep -qx flathub; then
+        run flatpak remote-add --user --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
+        ok "flathub remote added (--user)"
+    else
+        log "flathub remote already present (--user)"
+    fi
+else
+    warn "flatpak not installed — skipping flathub remote setup"
+fi
+
 info "quill-polkit build"
 polkit_dir="$JIMDOTS_REPO/quickshell/quill-polkit"
 if [[ -d "$polkit_dir" ]]; then

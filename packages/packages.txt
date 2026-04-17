@@ -27,6 +27,7 @@ tmux
 
 # --- fonts ---
 # Maple Mono NF is bundled under fonts/maple-mono and installed by 50-post.sh.
+noto-fonts-emoji
 
 # --- wayland / hyprland stack ---
 hyprland
@@ -82,6 +83,23 @@ btop
 
 # --- nvidia (installed only if nvidia machine; harmless on others) ---
 linux-headers
+
+# --- hyprfm (file manager) + optional runtime deps ---
+# hyprfm-git is an AUR package; yay handles it transparently.
+hyprfm-git
+gvfs
+gvfs-smb
+ffmpeg
+poppler
+perl-image-exiftool
+udisks2
+# wl-clipboard and bat are already listed above.
+
+# --- flatpak (flathub remote is added by 50-post.sh) ---
+flatpak
+xdg-desktop-portal
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
 
 # --- AUR ---
 dracula-cursors-git

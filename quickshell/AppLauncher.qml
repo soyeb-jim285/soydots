@@ -408,6 +408,546 @@ Scope {
         return null;
     }
 
+    // System actions — power/session commands surfaced as launcher results
+    // when the query fuzzy-matches the name or any keyword.
+    readonly property var systemActions: [
+        { id: "lock",      name: "Lock",      keywords: ["lock", "lockscreen"],
+          iconSource: "icons/IconLock.qml",      color: Config.blue,
+          command: ["quickshell", "msg", "lockscreen", "lock"] },
+        { id: "logout",    name: "Logout",    keywords: ["logout", "signout", "sign out"],
+          iconSource: "icons/IconLogOut.qml",    color: Config.yellow,
+          command: ["uwsm", "stop"] },
+        { id: "suspend",   name: "Suspend",   keywords: ["suspend", "sleep"],
+          iconSource: "icons/IconMoon.qml",      color: Config.mauve,
+          command: ["systemctl", Config.idleHibernateEnabled ? "suspend-then-hibernate" : "suspend"] },
+        { id: "hibernate", name: "Hibernate", keywords: ["hibernate"],
+          iconSource: "icons/IconCloud.qml",     color: Config.teal,
+          command: ["systemctl", "hibernate"] },
+        { id: "reboot",    name: "Reboot",    keywords: ["reboot", "restart"],
+          iconSource: "icons/IconRefreshCw.qml", color: Config.peach,
+          command: ["systemctl", "reboot"] },
+        { id: "shutdown",  name: "Shutdown",  keywords: ["shutdown", "poweroff", "power off"],
+          iconSource: "icons/IconPower.qml",     color: Config.red,
+          command: ["systemctl", "poweroff"] }
+    ]
+
+    function scoreSystemAction(action, query) {
+        let best = fuzzyScore(query, action.name.toLowerCase());
+        for (let kw of action.keywords) {
+            let s = fuzzyScore(query, kw.toLowerCase());
+            if (s > best) best = s;
+        }
+        return best;
+    }
+
+    function runSystemAction(action) {
+        if (!action || !action.command) return;
+        Quickshell.execDetached(action.command);
+        root.closing = true;
+    }
+
+    // Shell runner: detect the configured prefix (default ">") and treat the
+    // rest of the query as a command to exec via the configured shell.
+    property var commandMatch: {
+        if (!Config.launcherShellRunnerEnabled) return null;
+        let prefix = Config.launcherShellRunnerPrefix || ">";
+        if (!searchText.startsWith(prefix)) return null;
+        let cmd = searchText.substring(prefix.length).replace(/^\s+/, "");
+        if (!cmd) return null;
+        return { command: cmd };
+    }
+
+    function runShellCommand(cmd) {
+        if (!cmd) return;
+        let shell = Config.launcherShellRunnerShell || "bash";
+        Quickshell.execDetached([shell, "-c", cmd]);
+        root.closing = true;
+    }
+
+    // URL / filesystem path detection. URLs with a scheme (http, https, file,
+    // ftp, mailto) and filesystem paths (/, ~/, ./, ../) are routed straight
+    // to xdg-open, which picks the right handler (browser, file manager, ...).
+    property var urlPathMatch: {
+        if (!Config.launcherUrlPathEnabled) return null;
+        let q = searchText.trim();
+        if (!q) return null;
+        if (/^(https?|ftp|file|mailto):/i.test(q)) {
+            return { kind: "url", target: q, display: q };
+        }
+        if (q.startsWith("/") || q === "~" || q.startsWith("~/")
+            || q.startsWith("./") || q.startsWith("../")) {
+            let expanded = q;
+            if (q === "~") expanded = Quickshell.env("HOME") || q;
+            else if (q.startsWith("~/")) expanded = (Quickshell.env("HOME") || "") + q.substring(1);
+            return { kind: "path", target: expanded, display: q };
+        }
+        return null;
+    }
+
+    function openTarget(target) {
+        if (!target) return;
+        Quickshell.execDetached(["xdg-open", target]);
+        root.closing = true;
+    }
+
+    // === Clipboard pull ====================================================
+    // Prefix-triggered search over cliphist history. Cache is populated on
+    // first `cb` detection per launcher session, then filtered client-side.
+    property var clipboardCache: []
+    property bool clipboardCacheLoaded: false
+
+    property var clipboardMatch: {
+        if (!Config.launcherClipboardEnabled) return null;
+        let prefix = Config.launcherClipboardPrefix || "cb";
+        if (!searchText.startsWith(prefix)) return null;
+        let rest = searchText.substring(prefix.length);
+        if (rest.length > 0 && !/^\s/.test(rest)) return null;
+        return { filter: rest.replace(/^\s+/, "") };
+    }
+
+    property var filteredClipboard: {
+        if (!clipboardMatch) return [];
+        let filter = clipboardMatch.filter.toLowerCase();
+        let max = Math.max(1, Config.launcherClipboardMax || 50);
+        let items = filter === ""
+            ? clipboardCache
+            : clipboardCache.filter(it => (it.text ?? "").toLowerCase().includes(filter));
+        return items.slice(0, max);
+    }
+
+    function pasteClipboard(item) {
+        if (!item || !item.id) return;
+        Quickshell.execDetached(["bash", "-c", "cliphist decode " + item.id + " | wl-copy"]);
+        root.closing = true;
+    }
+
+    Process {
+        id: clipboardRefresh
+        command: ["cliphist", "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let lines = this.text.trim().split("\n");
+                let items = [];
+                for (let line of lines) {
+                    let tabIdx = line.indexOf("\t");
+                    if (tabIdx <= 0) continue;
+                    let id = line.substring(0, tabIdx).trim();
+                    let text = line.substring(tabIdx + 1);
+                    if (text.length === 0) continue;
+                    let isImage = text.startsWith("[[ binary data");
+                    items.push({ id: id, text: isImage ? "Image" : text, isImage: isImage });
+                }
+                root.clipboardCache = items;
+                root.clipboardCacheLoaded = true;
+            }
+        }
+    }
+
+    onClipboardMatchChanged: {
+        if (clipboardMatch && !clipboardCacheLoaded && !clipboardRefresh.running) {
+            clipboardRefresh.running = true;
+        }
+    }
+
+    // === Emoji picker ======================================================
+    // Curated ~140-entry set. Stored as "glyph|keyword1 keyword2 ..." strings
+    // so each line is dense and keyword-searching is a simple substring test.
+    readonly property var emojiData: [
+        "\uD83D\uDE00|grinning face smile happy",
+        "\uD83D\uDE03|smile happy grin joy",
+        "\uD83D\uDE04|happy smile laugh joy grin",
+        "\uD83D\uDE05|sweat smile grin relief",
+        "\uD83D\uDE06|laugh squint happy grin",
+        "\uD83D\uDE02|joy laugh cry tears",
+        "\uD83E\uDD23|rofl laugh roll floor crying",
+        "\uD83D\uDE0A|blush smile happy shy",
+        "\uD83D\uDE42|slight smile",
+        "\uD83D\uDE43|upside down silly",
+        "\uD83D\uDE09|wink",
+        "\uD83D\uDE0D|heart eyes love adore",
+        "\uD83E\uDD70|smiling hearts love adore",
+        "\uD83D\uDE18|kiss heart love",
+        "\uD83D\uDE0E|cool sunglasses shades",
+        "\uD83E\uDD14|thinking hmm consider",
+        "\uD83E\uDD28|raised eyebrow skeptical",
+        "\uD83D\uDE10|neutral face meh",
+        "\uD83D\uDE11|expressionless",
+        "\uD83D\uDE36|no mouth quiet",
+        "\uD83D\uDE0F|smirk smug",
+        "\uD83D\uDE12|unamused",
+        "\uD83D\uDE22|cry sad tear",
+        "\uD83D\uDE2D|sob crying loud",
+        "\uD83D\uDE21|angry mad rage",
+        "\uD83E\uDD2F|mind blown shocked",
+        "\uD83E\uDD29|star struck amazed",
+        "\uD83E\uDD73|party congrats celebrate",
+        "\uD83D\uDE34|sleep tired zzz",
+        "\uD83E\uDD17|hug embrace",
+        "\uD83D\uDE4C|raised hands praise celebrate yay",
+        "\uD83D\uDC4D|thumbs up yes good like approve",
+        "\uD83D\uDC4E|thumbs down no bad dislike",
+        "\uD83D\uDC4F|clap applause bravo",
+        "\uD83D\uDE4F|pray thanks please",
+        "\uD83D\uDC4B|wave hello hi bye",
+        "\u270A|fist power",
+        "\u270C|victory peace",
+        "\uD83D\uDC4C|ok hand perfect",
+        "\uD83E\uDD1D|handshake deal agreement",
+        "\uD83E\uDD1E|fingers crossed luck hope",
+        "\uD83D\uDC4A|punch fist",
+        "\uD83D\uDC40|eyes look see",
+        "\uD83E\uDDE0|brain mind smart",
+        "\u2764|heart love red",
+        "\uD83D\uDC99|blue heart love",
+        "\uD83D\uDC9A|green heart love",
+        "\uD83D\uDC9B|yellow heart love",
+        "\uD83D\uDC9C|purple heart love",
+        "\uD83D\uDDA4|black heart love",
+        "\uD83E\uDD0D|white heart love",
+        "\uD83D\uDC94|broken heart sad",
+        "\uD83D\uDCAF|100 perfect hundred",
+        "\uD83D\uDD25|fire lit hot",
+        "\u2728|sparkles shiny magic",
+        "\u2B50|star favorite",
+        "\uD83C\uDF1F|glowing star sparkle",
+        "\uD83D\uDCA1|idea lightbulb bright",
+        "\u26A0|warning caution",
+        "\u2705|check tick done yes success ok",
+        "\u274C|cross fail no wrong error",
+        "\u2753|question",
+        "\u2757|exclamation alert",
+        "\uD83D\uDCA5|boom explosion",
+        "\uD83D\uDC80|skull dead",
+        "\uD83D\uDC7B|ghost boo spooky",
+        "\uD83D\uDC7D|alien ufo",
+        "\uD83C\uDF83|pumpkin halloween",
+        "\uD83D\uDC36|dog puppy",
+        "\uD83D\uDC31|cat kitty",
+        "\uD83E\uDD8A|fox",
+        "\uD83D\uDC3B|bear",
+        "\uD83D\uDC2F|tiger",
+        "\uD83E\uDD81|lion",
+        "\uD83D\uDC38|frog",
+        "\uD83E\uDD84|unicorn magic",
+        "\uD83D\uDC19|octopus squid",
+        "\uD83D\uDC27|penguin",
+        "\uD83E\uDD86|duck",
+        "\uD83C\uDF4E|apple red",
+        "\uD83C\uDF4C|banana yellow",
+        "\uD83C\uDF55|pizza",
+        "\uD83C\uDF54|burger",
+        "\uD83C\uDF5F|fries chips",
+        "\uD83C\uDF70|cake birthday",
+        "\uD83C\uDF69|donut",
+        "\uD83C\uDF6A|cookie",
+        "\u2615|coffee cafe tea",
+        "\uD83C\uDF7A|beer",
+        "\uD83C\uDF77|wine",
+        "\u26BD|soccer football",
+        "\uD83C\uDFC0|basketball",
+        "\uD83C\uDFBE|tennis",
+        "\uD83C\uDFAE|game controller gaming",
+        "\uD83C\uDFAF|dart bullseye target",
+        "\uD83C\uDFB8|guitar music",
+        "\uD83C\uDFB5|music note",
+        "\uD83C\uDFB6|musical notes",
+        "\uD83C\uDF89|party tada celebrate confetti",
+        "\uD83C\uDF8A|confetti celebrate",
+        "\uD83C\uDF81|gift present",
+        "\uD83C\uDF82|birthday cake",
+        "\uD83D\uDC51|crown king queen",
+        "\uD83D\uDC8E|gem diamond",
+        "\uD83D\uDCB0|money bag cash rich",
+        "\uD83D\uDCB8|money flying spending",
+        "\uD83D\uDE97|car vehicle",
+        "\uD83D\uDE95|taxi cab",
+        "\uD83D\uDEB2|bike bicycle",
+        "\u2708|airplane plane flight",
+        "\uD83D\uDE80|rocket launch ship",
+        "\uD83C\uDFE0|home house",
+        "\uD83C\uDFE2|office building",
+        "\u2600|sun",
+        "\uD83C\uDF19|moon crescent night",
+        "\uD83C\uDF1E|sun face",
+        "\u2601|cloud",
+        "\uD83C\uDF27|rain cloud",
+        "\u26C8|thunderstorm lightning",
+        "\uD83C\uDF08|rainbow pride lgbt",
+        "\u2744|snowflake cold snow",
+        "\uD83D\uDCF1|phone mobile cellphone",
+        "\uD83D\uDCBB|laptop computer",
+        "\u2328|keyboard",
+        "\uD83D\uDDA5|desktop monitor computer",
+        "\uD83D\uDCF7|camera photo",
+        "\uD83D\uDD0B|battery",
+        "\uD83D\uDD11|key",
+        "\uD83D\uDCCC|pushpin pin",
+        "\uD83D\uDCCE|paperclip attach",
+        "\u270F|pencil write edit",
+        "\uD83D\uDCDD|memo note write",
+        "\uD83D\uDCCB|clipboard list",
+        "\uD83D\uDCC1|folder directory",
+        "\uD83D\uDCC4|document file page",
+        "\uD83D\uDD0D|search magnify find",
+        "\uD83D\uDD12|lock secure",
+        "\uD83D\uDD13|unlock",
+        "\uD83D\uDD14|bell notification",
+        "\u2709|email mail envelope",
+        "\uD83D\uDCC5|calendar date",
+        "\u23F0|alarm clock",
+        "\u23F1|stopwatch",
+        "\u26D4|no entry forbidden",
+        "\uD83D\uDEAB|prohibited banned forbidden",
+        "\uD83D\uDC40|eyes peek look",
+        "\uD83D\uDC41|eye watch"
+    ]
+
+    property var emojiMatch: {
+        if (!Config.launcherEmojiEnabled) return null;
+        let prefix = Config.launcherEmojiPrefix || ":";
+        if (!searchText.startsWith(prefix)) return null;
+        let rest = searchText.substring(prefix.length).trim();
+        return { filter: rest };
+    }
+
+    property var filteredEmoji: {
+        if (!emojiMatch) return [];
+        let filter = emojiMatch.filter.toLowerCase();
+        let scored = [];
+        for (let entry of emojiData) {
+            let sep = entry.indexOf("|");
+            if (sep < 0) continue;
+            let glyph = entry.substring(0, sep);
+            let keywords = entry.substring(sep + 1);
+            let kwLower = keywords.toLowerCase();
+            let score;
+            if (filter === "") {
+                score = 1; // no filter — show all, in order
+            } else {
+                // Prefer whole-word keyword matches, fall back to substring
+                let words = kwLower.split(/\s+/);
+                let exact = words.indexOf(filter) >= 0 ? 2 : 0;
+                let prefix = 0;
+                for (let w of words) { if (w.startsWith(filter)) { prefix = 1.5; break; } }
+                let sub = kwLower.includes(filter) ? 1 : 0;
+                score = Math.max(exact, prefix, sub);
+            }
+            if (score > 0) scored.push({ glyph: glyph, name: keywords, score: score });
+        }
+        scored.sort((a, b) => b.score - a.score);
+        return scored.slice(0, 80);
+    }
+
+    function copyEmoji(glyph) {
+        if (!glyph) return;
+        Quickshell.execDetached(["wl-copy", "--", glyph]);
+        root.closing = true;
+    }
+
+    // === Flatpak install/uninstall =========================================
+    // `i <query>` searches flathub. Enter installs or removes depending on
+    // current state. Install/remove runs detached via notify-send so the user
+    // gets feedback after the launcher closes. Icons come from flatpak's
+    // appstream cache (populated automatically when flatpak syncs metadata).
+    property bool flatpakAvailable: false
+    property var flatpakInstalled: ({})
+    property bool flatpakInstalledLoaded: false
+    property var flatpakSearchResults: []
+    property string flatpakLastSearched: ""
+    property bool flatpakSearching: false
+
+    property var flatpakMatch: {
+        if (!Config.launcherFlatpakEnabled || !flatpakAvailable) return null;
+        let prefix = Config.launcherFlatpakPrefix || "i";
+        if (!searchText.startsWith(prefix)) return null;
+        let rest = searchText.substring(prefix.length);
+        if (rest.length > 0 && !/^\s/.test(rest)) return null;
+        return { query: rest.replace(/^\s+/, "") };
+    }
+
+    // Returns fallback chain of candidate icon URLs. Image delegate walks this
+    // list via onStatusChanged until one loads, then falls back to the
+    // generic package icon. User-scope first since `--user` installs land
+    // there; system-scope next for pre-populated system caches.
+    function flatpakIconCandidates(appId) {
+        if (!appId) return [];
+        let home = Quickshell.env("HOME") || "";
+        let roots = [
+            home + "/.local/share/flatpak/appstream/flathub/x86_64/active",
+            "/var/lib/flatpak/appstream/flathub/x86_64/active"
+        ];
+        let sizes = ["128x128", "64x64"];
+        let out = [];
+        for (let r of roots)
+            for (let s of sizes)
+                out.push("file://" + r + "/icons/" + s + "/" + appId + ".png");
+        return out;
+    }
+
+    Process {
+        id: flatpakDetect
+        running: true
+        command: ["sh", "-c", "command -v flatpak >/dev/null 2>&1 && echo yes || echo no"]
+        stdout: StdioCollector {
+            onStreamFinished: root.flatpakAvailable = this.text.trim() === "yes"
+        }
+    }
+
+    Process {
+        id: flatpakListProcess
+        command: ["flatpak", "list", "--app", "--columns=application,origin,branch,name"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let out = {};
+                for (let line of this.text.split("\n")) {
+                    if (!line) continue;
+                    let parts = line.split("\t");
+                    if (!parts[0]) continue;
+                    out[parts[0]] = {
+                        remote: parts[1] || "",
+                        branch: parts[2] || "",
+                        name: parts[3] || parts[0]
+                    };
+                }
+                root.flatpakInstalled = out;
+                root.flatpakInstalledLoaded = true;
+            }
+        }
+    }
+
+    Process {
+        id: flatpakSearchProcess
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let items = [];
+                let text = this.text || "";
+                for (let line of text.split("\n")) {
+                    if (!line || line.indexOf("\t") < 0) continue;
+                    if (line.indexOf("No matches found") >= 0) continue;
+                    let parts = line.split("\t");
+                    if (parts.length < 5) continue;
+                    let appId = parts[2];
+                    if (!appId) continue;
+                    items.push({
+                        name: parts[0] || appId,
+                        summary: parts[1] || "",
+                        appId: appId,
+                        version: parts[3] || "",
+                        remote: (parts[4] || "flathub").split(",")[0]
+                    });
+                }
+                root.flatpakSearchResults = items.slice(0, Config.launcherFlatpakMaxResults);
+                root.flatpakSearching = false;
+            }
+        }
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                root.flatpakSearchResults = [];
+                root.flatpakSearching = false;
+            }
+        }
+    }
+
+    Timer {
+        id: flatpakDebounce
+        interval: 280
+        onTriggered: {
+            let q = (root.flatpakMatch?.query ?? "").trim();
+            if (q.length < 2) {
+                root.flatpakSearchResults = [];
+                root.flatpakLastSearched = "";
+                root.flatpakSearching = false;
+                return;
+            }
+            if (q === root.flatpakLastSearched && !root.flatpakSearching) return;
+            root.flatpakLastSearched = q;
+            root.flatpakSearching = true;
+            if (flatpakSearchProcess.running) flatpakSearchProcess.running = false;
+            flatpakSearchProcess.command = [
+                "flatpak", "search",
+                "--columns=name,description,application,version,remotes",
+                q
+            ];
+            flatpakSearchProcess.running = true;
+        }
+    }
+
+    onFlatpakMatchChanged: {
+        if (flatpakMatch) {
+            if (!flatpakInstalledLoaded && !flatpakListProcess.running)
+                flatpakListProcess.running = true;
+            flatpakDebounce.restart();
+        }
+    }
+
+    // Spawn flatpak install/remove in a terminal so the user sees real-time
+    // progress (download bars, runtime resolution, conflicts). Script stays
+    // interactive at the end via `read` so the terminal doesn't vanish before
+    // the user can read the outcome — portable across kitty/alacritty/ghostty
+    // et al. without relying on terminal-specific flags like --hold.
+    //
+    // Assigns a unique --class so we can follow up with `hyprctl dispatch
+    // focuswindow` and raise the terminal (otherwise focus lingers on
+    // whatever had it before the launcher opened). --class is honored by
+    // kitty/alacritty/ghostty/wezterm; terminals that don't support it
+    // will still spawn, just without the focus hop.
+    function _spawnFlatpakTerminal(script, scriptName, scriptArgs) {
+        let term = Config.launcherTerminal || "kitty";
+        let cls = "soydots-flatpak";
+        let cmd = [
+            "bash", "-c",
+            '"$@" & sleep 0.35 && hyprctl dispatch focuswindow "class:' + cls + '" >/dev/null 2>&1',
+            "_",
+            term, "--class", cls, "-e", "bash", "-c", script, scriptName
+        ].concat(scriptArgs);
+        Quickshell.execDetached(cmd);
+    }
+
+    function flatpakInstall(item) {
+        if (!item || !item.appId) return;
+        let scope = Config.launcherFlatpakScope === "system" ? "--system" : "--user";
+        let remote = item.remote || "flathub";
+        let script =
+            'printf "\\n\\033[1;34m⬇ Installing %s\\033[0m  \\033[2m(%s)\\033[0m\\n\\n" "$3" "$2"; ' +
+            'if flatpak install ' + scope + ' -y "$1" "$2"; then ' +
+            '  printf "\\n\\033[1;32m✓ Installed %s\\033[0m\\n" "$3"; ' +
+            'else ' +
+            '  printf "\\n\\033[1;31m✗ Install failed\\033[0m\\n"; ' +
+            'fi; ' +
+            'printf "\\n\\033[2mPress any key to close…\\033[0m"; ' +
+            'read -n 1 -s -r';
+        root._spawnFlatpakTerminal(script, "flatpak-install", [remote, item.appId, item.name]);
+        root.closing = true;
+    }
+
+    function flatpakUninstall(item) {
+        if (!item || !item.appId) return;
+        let scope = Config.launcherFlatpakScope === "system" ? "--system" : "--user";
+        let script =
+            'printf "\\n\\033[1;31m✗ Removing %s\\033[0m  \\033[2m(%s)\\033[0m\\n\\n" "$2" "$1"; ' +
+            'if flatpak uninstall ' + scope + ' -y "$1"; then ' +
+            '  printf "\\n\\033[1;32m✓ Removed %s\\033[0m\\n" "$2"; ' +
+            'else ' +
+            '  printf "\\n\\033[1;31m✗ Remove failed\\033[0m\\n"; ' +
+            'fi; ' +
+            'printf "\\n\\033[2mPress any key to close…\\033[0m"; ' +
+            'read -n 1 -s -r';
+        root._spawnFlatpakTerminal(script, "flatpak-uninstall", [item.appId, item.name]);
+        root.closing = true;
+    }
+
+    function activateFlatpak(entry) {
+        if (!entry || !entry.item) return;
+        if (entry.installed) root.flatpakUninstall(entry.item);
+        else root.flatpakInstall(entry.item);
+    }
+
+    function openFlathubPage(appId) {
+        if (!appId) return;
+        Quickshell.execDetached(["xdg-open", "https://flathub.org/apps/" + appId]);
+        root.closing = true;
+    }
+
     function openSearch(engine, query) {
         if (!engine || !engine.url) return;
         let url = engine.url.replace("%s", encodeURIComponent(query));
@@ -524,16 +1064,80 @@ Scope {
         return scored.map(item => item.app);
     }
 
-    // Mixed results model: apps and web-search entries. Web-search entries
-    // appear when the user types a keyword-prefixed query (hides apps) or
-    // as a fallback when zero apps match a non-empty query.
+    // Mixed results model: apps, system actions, and web-search entries.
+    // Web-search keyword mode replaces the list; otherwise strongly-matching
+    // system actions appear at the top, followed by apps, followed (only
+    // when apps are empty) by web-search fallback entries.
     property var filteredResults: {
+        if (commandMatch) {
+            return [{ type: "command", command: commandMatch.command }];
+        }
+        if (emojiMatch) {
+            return filteredEmoji.map(e => ({ type: "emoji", glyph: e.glyph, name: e.name }));
+        }
+        if (clipboardMatch) {
+            if (!clipboardCacheLoaded) return [];
+            return filteredClipboard.map(c => ({ type: "clipboard", clip: c }));
+        }
+        if (flatpakMatch) {
+            if (!flatpakInstalledLoaded)
+                return [{ type: "flatpakInfo", message: "Loading flatpak apps…" }];
+            let q = flatpakMatch.query.trim();
+            if (q === "") {
+                // Empty query inside flatpak mode: list installed apps for quick removal
+                let items = [];
+                for (let appId in flatpakInstalled) {
+                    let info = flatpakInstalled[appId];
+                    items.push({
+                        type: "flatpak",
+                        installed: true,
+                        item: {
+                            name: info.name || appId,
+                            summary: "Installed",
+                            appId: appId,
+                            version: "",
+                            remote: info.remote || "flathub"
+                        }
+                    });
+                }
+                if (items.length === 0)
+                    return [{ type: "flatpakInfo", message: "Type to search flathub (e.g. " + Config.launcherFlatpakPrefix + " firefox)" }];
+                return items;
+            }
+            if (q.length < 2)
+                return [{ type: "flatpakInfo", message: "Keep typing…" }];
+            if (flatpakSearching && flatpakSearchResults.length === 0)
+                return [{ type: "flatpakInfo", message: "Searching flathub…" }];
+            if (flatpakSearchResults.length === 0)
+                return [{ type: "flatpakInfo", message: "No flathub matches for \u201C" + q + "\u201D" }];
+            return flatpakSearchResults.map(item => ({
+                type: "flatpak",
+                installed: !!flatpakInstalled[item.appId],
+                item: item
+            }));
+        }
         if (keywordSearchMatch) {
             return [{ type: "search", engine: keywordSearchMatch.engine, query: keywordSearchMatch.query }];
         }
-        let items = filteredApps.map(app => ({ type: "app", app: app }));
+        // URL / path takes precedence over apps but only when it's not being
+        // shadowed by an active calc expression (e.g. "/sin 30").
+        if (urlPathMatch && calcValue === null) {
+            return [{ type: urlPathMatch.kind, target: urlPathMatch.target, display: urlPathMatch.display }];
+        }
         let q = searchText.trim();
-        if (items.length === 0 && calcValue === null && q.length > 0 && Config.launcherWebSearchEnabled) {
+        let items = [];
+        if (q.length > 0 && Config.launcherSystemActionsEnabled) {
+            let sys = [];
+            for (let a of systemActions) {
+                let s = scoreSystemAction(a, q.toLowerCase());
+                if (s >= 0.5) sys.push({ action: a, score: s });
+            }
+            sys.sort((a, b) => b.score - a.score);
+            for (let s of sys) items.push({ type: "system", action: s.action });
+        }
+        for (let app of filteredApps) items.push({ type: "app", app: app });
+        if (filteredApps.length === 0 && items.length === 0 && calcValue === null
+            && q.length > 0 && Config.launcherWebSearchEnabled) {
             for (let e of parsedEngines()) {
                 items.push({ type: "search", engine: e, query: q });
             }
@@ -548,6 +1152,13 @@ Scope {
             root.closing = false;
             root.visible = true;
             root.searchText = "";
+            root.clipboardCacheLoaded = false;
+            root.clipboardCache = [];
+            root.flatpakInstalledLoaded = false;
+            root.flatpakInstalled = ({});
+            root.flatpakSearchResults = [];
+            root.flatpakLastSearched = "";
+            root.flatpakSearching = false;
         }
     }
 
@@ -565,6 +1176,12 @@ Scope {
         if (!item) return;
         if (item.type === "app") root.launch(item.app);
         else if (item.type === "search") root.openSearch(item.engine, item.query);
+        else if (item.type === "system") root.runSystemAction(item.action);
+        else if (item.type === "command") root.runShellCommand(item.command);
+        else if (item.type === "url" || item.type === "path") root.openTarget(item.target);
+        else if (item.type === "clipboard") root.pasteClipboard(item.clip);
+        else if (item.type === "emoji") root.copyEmoji(item.glyph);
+        else if (item.type === "flatpak") root.activateFlatpak(item);
     }
 
     IpcHandler {
@@ -737,8 +1354,11 @@ Scope {
                                 if (root.filteredResults.length === 0) return;
                                 let idx = Math.max(0, Math.min(resultsView.currentIndex, root.filteredResults.length - 1));
                                 let item = root.filteredResults[idx];
-                                if ((event.modifiers & Qt.ControlModifier) && item.type === "app")
+                                let ctrl = !!(event.modifiers & Qt.ControlModifier);
+                                if (ctrl && item.type === "app")
                                     root.togglePin(item.app.id ?? "");
+                                else if (ctrl && item.type === "flatpak")
+                                    root.openFlathubPage(item.item.appId);
                                 else
                                     root.activateResult(item);
                             });
@@ -832,7 +1452,18 @@ Scope {
                             required property int index
                             readonly property bool isApp: modelData.type === "app"
                             readonly property bool isSearch: modelData.type === "search"
+                            readonly property bool isSystem: modelData.type === "system"
+                            readonly property bool isCommand: modelData.type === "command"
+                            readonly property bool isUrl: modelData.type === "url"
+                            readonly property bool isPath: modelData.type === "path"
+                            readonly property bool isClipboard: modelData.type === "clipboard"
+                            readonly property bool isEmoji: modelData.type === "emoji"
+                            readonly property bool isFlatpak: modelData.type === "flatpak"
+                            readonly property bool isFlatpakInfo: modelData.type === "flatpakInfo"
                             readonly property var appData: isApp ? modelData.app : null
+                            readonly property var sysAction: isSystem ? modelData.action : null
+                            readonly property var flatpakItem: isFlatpak ? modelData.item : null
+                            readonly property bool flatpakInstalledState: isFlatpak ? modelData.installed : false
 
                             width: resultsView.width
                             height: Config.launcherItemHeight
@@ -884,6 +1515,101 @@ Scope {
                                         size: Config.launcherIconSize * 0.7
                                         color: Config.blue
                                     }
+
+                                    Loader {
+                                        id: sysIconLoader
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isSystem
+                                        source: resultItem.isSystem ? resultItem.sysAction.iconSource : ""
+                                        onLoaded: {
+                                            item.size = Config.launcherIconSize * 0.75;
+                                            item.color = resultItem.sysAction.color;
+                                        }
+                                    }
+
+                                    IconTerminal {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isCommand
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.green
+                                    }
+
+                                    IconExternalLink {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isUrl
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.blue
+                                    }
+
+                                    IconFolder {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isPath
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.peach
+                                    }
+
+                                    IconClipboard {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isClipboard
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.mauve
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isEmoji
+                                        text: resultItem.isEmoji ? modelData.glyph : ""
+                                        font.pixelSize: Config.launcherIconSize * 0.9
+                                        // No family — let Qt pick up the installed
+                                        // emoji font via fontconfig's fallback chain.
+                                    }
+
+                                    // Flatpak appstream icon with multi-path fallback.
+                                    // Direct source assignment (not binding) so the fallback
+                                    // cascade doesn't trip QML's binding-loop detector.
+                                    Image {
+                                        id: flatpakIcon
+                                        anchors.fill: parent
+                                        visible: resultItem.isFlatpak && status === Image.Ready
+                                        property var _candidates: resultItem.isFlatpak
+                                            ? root.flatpakIconCandidates(resultItem.flatpakItem.appId)
+                                            : []
+                                        property int _idx: 0
+                                        sourceSize: Qt.size(Config.launcherIconSize, Config.launcherIconSize)
+                                        smooth: true
+                                        Component.onCompleted: {
+                                            if (_candidates.length > 0) source = _candidates[0];
+                                        }
+                                        onStatusChanged: {
+                                            if (status === Image.Error && _idx + 1 < _candidates.length) {
+                                                _idx++;
+                                                source = _candidates[_idx];
+                                            }
+                                        }
+                                    }
+
+                                    // Installed-state overlay: small green dot at bottom-right
+                                    Rectangle {
+                                        visible: resultItem.isFlatpak && resultItem.flatpakInstalledState
+                                        width: 9; height: 9; radius: 5
+                                        color: Config.green
+                                        border.color: Theme.launcherBg
+                                        border.width: 1.5
+                                        anchors.right: parent.right
+                                        anchors.bottom: parent.bottom
+                                        anchors.rightMargin: -2
+                                        anchors.bottomMargin: -2
+                                        z: 2
+                                    }
+
+                                    IconPackageOpen {
+                                        anchors.centerIn: parent
+                                        visible: (resultItem.isFlatpak && !flatpakIcon.visible)
+                                            || resultItem.isFlatpakInfo
+                                        size: Config.launcherIconSize * 0.78
+                                        color: resultItem.isFlatpakInfo ? Config.overlay0
+                                            : (resultItem.flatpakInstalledState ? Config.green : Config.blue)
+                                    }
                                 }
 
                                 Text {
@@ -891,12 +1617,36 @@ Scope {
                                         ? (resultItem.appData.name ?? "")
                                         : resultItem.isSearch
                                             ? ("Search " + resultItem.modelData.engine.name + " for \u201C" + resultItem.modelData.query + "\u201D")
-                                            : ""
-                                    color: Config.text
+                                            : resultItem.isSystem
+                                                ? resultItem.sysAction.name
+                                                : resultItem.isCommand
+                                                    ? resultItem.modelData.command
+                                                    : (resultItem.isUrl || resultItem.isPath)
+                                                        ? resultItem.modelData.display
+                                                        : resultItem.isClipboard
+                                                            ? (resultItem.modelData.clip.text ?? "")
+                                                            : resultItem.isEmoji
+                                                                ? resultItem.modelData.name
+                                                                : resultItem.isFlatpak
+                                                                    ? (resultItem.flatpakItem.name + (resultItem.flatpakItem.summary
+                                                                        ? "  \u00B7  " + resultItem.flatpakItem.summary : ""))
+                                                                    : resultItem.isFlatpakInfo
+                                                                        ? resultItem.modelData.message
+                                                                        : ""
+                                    color: resultItem.isSystem ? resultItem.sysAction.color
+                                        : resultItem.isCommand ? Config.green
+                                        : resultItem.isUrl ? Config.blue
+                                        : resultItem.isPath ? Config.peach
+                                        : resultItem.isClipboard ? Config.text
+                                        : resultItem.isFlatpakInfo ? Config.overlay0
+                                        : Config.text
                                     font.pixelSize: 14
                                     font.family: Config.fontFamily
+                                    font.bold: resultItem.isSystem
+                                    font.italic: resultItem.isFlatpakInfo
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
+                                    maximumLineCount: 1
                                 }
 
                                 Text {
@@ -904,12 +1654,42 @@ Scope {
                                         ? (resultItem.appData.genericName ?? "")
                                         : resultItem.isSearch
                                             ? resultItem.modelData.engine.keyword
-                                            : ""
-                                    color: Config.overlay0
+                                            : resultItem.isSystem
+                                                ? "System"
+                                                : resultItem.isCommand
+                                                    ? ("⏎ run via " + Config.launcherShellRunnerShell)
+                                                    : resultItem.isUrl
+                                                        ? "Open in browser"
+                                                        : resultItem.isPath
+                                                            ? "Open path"
+                                                            : resultItem.isClipboard
+                                                                ? (resultItem.modelData.clip.isImage ? "Image" : "Clipboard")
+                                                                : resultItem.isEmoji
+                                                                    ? "Emoji"
+                                                                    : resultItem.isFlatpak
+                                                                        ? (resultItem.flatpakInstalledState ? "\u23CE Remove" : "\u23CE Install")
+                                                                        : ""
+                                    color: resultItem.isFlatpak
+                                        ? (resultItem.flatpakInstalledState ? Config.red : Config.blue)
+                                        : Config.overlay0
                                     font.pixelSize: 12
                                     font.family: Config.fontFamily
+                                    font.bold: resultItem.isFlatpak
                                     elide: Text.ElideRight
                                     Layout.maximumWidth: 180
+                                }
+
+                                // Secondary action hint (flatpak only). Surfaces the
+                                // Ctrl+Enter shortcut to open the Flathub page, but only
+                                // for the currently-selected row — keeps unselected rows
+                                // visually quiet while still making the action discoverable.
+                                Text {
+                                    visible: resultItem.isFlatpak
+                                        && resultsView.currentIndex === resultItem.index
+                                    text: "\u2303\u23CE Flathub"
+                                    color: Config.overlay1
+                                    font.pixelSize: 11
+                                    font.family: Config.fontFamily
                                 }
 
                                 IconStar {
@@ -954,8 +1734,11 @@ Scope {
                         Keys.onReturnPressed: (event) => {
                             if (currentIndex >= 0 && currentIndex < root.filteredResults.length) {
                                 let item = root.filteredResults[currentIndex];
-                                if ((event.modifiers & Qt.ControlModifier) && item.type === "app")
+                                let ctrl = !!(event.modifiers & Qt.ControlModifier);
+                                if (ctrl && item.type === "app")
                                     root.togglePin(item.app.id ?? "");
+                                else if (ctrl && item.type === "flatpak")
+                                    root.openFlathubPage(item.item.appId);
                                 else
                                     root.activateResult(item);
                             }
