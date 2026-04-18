@@ -1371,7 +1371,7 @@ unfocusedWidth = 10'
     // "apps[:<n>]", "systemActions". First token wins the top slot.
     property bool launcherUniversalSearchEnabled: _data?.launcher?.universalSearchEnabled ?? true
     property string launcherUniversalSearchOrder: _data?.launcher?.universalSearchOrder
-        ?? "web:g,packages:4,web:gpt,web:per,apps"
+        ?? "apps:8,packages:4,files:3,web:g,web:gpt,web:per,systemActions"
     property var launcherWebSearchEngines: _data?.launcher?.webSearchEngines ?? [
         "g|Google|https://www.google.com/search?q=%s|google",
         "ddg|DuckDuckGo|https://duckduckgo.com/?q=%s|duckduckgo",
