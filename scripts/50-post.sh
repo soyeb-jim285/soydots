@@ -84,6 +84,42 @@ else
     warn "flatpak not installed — skipping flathub remote setup"
 fi
 
+info "xdg-mime: kitty-nvim as default for text/code files"
+kitty_nvim_desktop="$JIMDOTS_REPO/applications/kitty-nvim.desktop"
+if command -v xdg-mime >/dev/null 2>&1 && [[ -f "$kitty_nvim_desktop" ]]; then
+    # Refresh the user desktop DB so xdg-mime can resolve kitty-nvim.desktop.
+    # (No-op if the symlink phase already ran update-desktop-database.)
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        run update-desktop-database "$HOME/.local/share/applications" \
+            || warn "update-desktop-database returned non-zero"
+    fi
+    mime_line="$(grep -E '^MimeType=' "$kitty_nvim_desktop" | sed 's/^MimeType=//')"
+    IFS=';' read -r -a _mimes <<< "$mime_line"
+    for m in "${_mimes[@]}"; do
+        [[ -z "$m" ]] && continue
+        run xdg-mime default kitty-nvim.desktop "$m"
+    done
+    ok "kitty-nvim.desktop registered for ${#_mimes[@]} MIME types"
+else
+    warn "xdg-mime or kitty-nvim.desktop missing — skipping file-manager handler setup"
+fi
+
+info "plocate database (initial seed)"
+if command -v updatedb >/dev/null 2>&1; then
+    # The plocate package ships an empty /var/lib/plocate/plocate.db
+    # placeholder on install, so a -f test always passes. We need -s
+    # (non-empty) to detect a real index. Run updatedb once now so the
+    # launcher's `'foo` file search returns results immediately; the
+    # plocate-updatedb.timer enabled in the services phase keeps it fresh.
+    if [[ ! -s /var/lib/plocate/plocate.db ]]; then
+        sudo_run updatedb || warn "initial updatedb returned non-zero"
+    else
+        log "plocate database already populated — skipping initial seed"
+    fi
+else
+    warn "updatedb not installed — file search will be empty until plocate is installed"
+fi
+
 info "quill-polkit build"
 polkit_dir="$JIMDOTS_REPO/quickshell/quill-polkit"
 if [[ -d "$polkit_dir" ]]; then

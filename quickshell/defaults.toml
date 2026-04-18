@@ -146,8 +146,11 @@ flatpakMaxResults = 20
 pacmanEnabled = true
 pacmanPrefix = "p"
 pacmanMaxResults = 30
+filesEnabled = true
+filesPrefix = "'"
+filesMaxResults = 30
 universalSearchEnabled = true
-universalSearchOrder = "web:g,packages:4,web:gpt,web:per,apps"
+universalSearchOrder = "apps:8,packages:4,web:g,web:gpt,web:per,systemActions"
 webSearchEngines = ["g|Google|https://www.google.com/search?q=%s|google", "ddg|DuckDuckGo|https://duckduckgo.com/?q=%s|duckduckgo", "w|Wikipedia|https://en.wikipedia.org/wiki/Special:Search?search=%s|wikipedia", "yt|YouTube|https://www.youtube.com/results?search_query=%s|youtube", "gh|GitHub|https://github.com/search?q=%s|github", "aw|ArchWiki|https://wiki.archlinux.org/index.php?search=%s|archlinux", "gpt|ChatGPT|https://chatgpt.com/?q=%s|openai", "cld|Claude|https://claude.ai/new?q=%s|claude", "per|Perplexity|https://www.perplexity.ai/search?q=%s|perplexity"]
 
 [media]

@@ -4,7 +4,7 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
 # Services enabled-and-started immediately (safe to start during setup).
-SYSTEM_SERVICES_NOW=(tty-colors.service bluetooth.service)
+SYSTEM_SERVICES_NOW=(tty-colors.service bluetooth.service plocate-updatedb.timer)
 # Services enabled only — started on next boot. greetd would hijack the
 # running TTY/session mid-setup if started now.
 SYSTEM_SERVICES_ENABLE_ONLY=(greetd.service)

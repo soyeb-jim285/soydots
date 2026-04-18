@@ -73,6 +73,7 @@ swappy
 cliphist
 fuzzel
 upower
+plocate
 
 # --- theming (qt/gtk) ---
 qt6ct

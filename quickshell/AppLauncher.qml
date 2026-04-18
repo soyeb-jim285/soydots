@@ -15,9 +15,441 @@ Scope {
     property bool visible: false
     property bool closing: false
     property string searchText: ""
+    property string uninstallConfirmId: ""
+    // Set by IPC handlers that want the launcher to open with an initial
+    // query. Consumed by the TextInput's Component.onCompleted so the
+    // seed survives the async LazyLoader instantiation.
+    property string pendingSeed: ""
 
     // Filter out system/network tools that shouldn't appear in a launcher
     property var hiddenApps: Config.launcherHiddenApps
+
+    readonly property string launcherPlaceholder: "Search apps, packages, files, web, math, paths..."
+
+    readonly property var modeChips: {
+        return [
+            {
+                text: "/ math",
+                active: calcValue !== null || (searchText === "/")
+            },
+            {
+                text: (Config.launcherEmojiPrefix || ":") + " emoji",
+                active: !!emojiMatch
+            },
+            {
+                text: (Config.launcherClipboardPrefix || "cb") + " clipboard",
+                active: !!clipboardMatch
+            },
+            {
+                text: (Config.launcherPacmanPrefix || "p") + " packages",
+                active: !!pacmanMatch
+            },
+            {
+                text: (Config.launcherFlatpakPrefix || "i") + " flatpak",
+                active: !!flatpakMatch
+            },
+            {
+                text: (Config.launcherFilesPrefix || "'") + " files",
+                active: !!filesMatch
+            },
+            {
+                text: (Config.launcherShellRunnerPrefix || ">") + " shell",
+                active: !!commandMatch
+            }
+        ];
+    }
+
+    readonly property string searchContextText: {
+        if (uninstallConfirmId)
+            return "Remove is armed for the selected app. Press Remove again to confirm.";
+        if (commandMatch)
+            return "Shell mode. Enter runs via " + (Config.launcherShellRunnerShell || "bash") + ".";
+        if (emojiMatch)
+            return "Emoji mode. Enter copies the highlighted glyph.";
+        if (clipboardMatch)
+            return "Clipboard mode. Enter copies the selection back to wl-copy.";
+        if (flatpakMatch)
+            return "Flatpak mode. Enter installs or removes.";
+        if (pacmanMatch)
+            return "Package mode. Enter installs or removes via yay.";
+        if (filesMatch)
+            return fileFoldersOnly
+                ? "Files: folders only. Alt+D shows everything, Alt+C copies path."
+                : "Files: Enter opens, Ctrl+Enter reveals, Alt+C copies path, Alt+D folders only.";
+        if (keywordSearchMatch)
+            return "Keyword web search is active for \"" + keywordSearchMatch.engine.name + "\".";
+        if (urlPathMatch)
+            return urlPathMatch.kind === "url" ? "Open the typed URL directly." : "Open the typed path directly.";
+        if (calcValue !== null)
+            return Config.launcherCalculatorCopyOnEnter ? "Calculator mode. Enter copies the current result." : "Calculator mode. Click the result row to copy it.";
+        if (searchText.trim().length === 0)
+            return "Pinned and recent apps stay up front. Prefix modes are available when you need them.";
+        return "Use arrows or Tab to move. Enter opens the selected result.";
+    }
+
+    function isSelectableResult(item) {
+        return !!item && item.type !== "section";
+    }
+
+    function firstSelectableResultIndex() {
+        for (let i = 0; i < filteredResults.length; i++) {
+            if (isSelectableResult(filteredResults[i])) return i;
+        }
+        return -1;
+    }
+
+    function lastSelectableResultIndex() {
+        for (let i = filteredResults.length - 1; i >= 0; i--) {
+            if (isSelectableResult(filteredResults[i])) return i;
+        }
+        return -1;
+    }
+
+    function nextSelectableResultIndex(currentIndex, dir, wrap) {
+        let count = filteredResults.length;
+        if (count === 0) return -1;
+        if (dir === 0) return isSelectableResult(filteredResults[currentIndex]) ? currentIndex : firstSelectableResultIndex();
+
+        let idx = currentIndex;
+        if (idx < 0 || idx >= count) idx = dir > 0 ? -1 : count;
+
+        for (let steps = 0; steps < count; steps++) {
+            idx += dir;
+            if (wrap) {
+                idx = (idx + count) % count;
+            } else if (idx < 0 || idx >= count) {
+                return -1;
+            }
+            if (isSelectableResult(filteredResults[idx])) return idx;
+        }
+        return -1;
+    }
+
+    function ensureSelectableResultIndex(index) {
+        if (index >= 0 && index < filteredResults.length && isSelectableResult(filteredResults[index]))
+            return index;
+        return firstSelectableResultIndex();
+    }
+
+    function appendSection(items, title, sectionItems) {
+        if (!sectionItems || sectionItems.length === 0) return;
+        items.push({ type: "section", title: title });
+        for (let item of sectionItems)
+            items.push(item);
+    }
+
+    function uniqueApps(apps, maxCount) {
+        let seen = {};
+        let out = [];
+        for (let app of apps || []) {
+            let id = app.id ?? app.name ?? "";
+            if (!id || seen[id]) continue;
+            seen[id] = true;
+            out.push(app);
+            if (maxCount > 0 && out.length >= maxCount) break;
+        }
+        return out;
+    }
+
+    function homeSuggestions() {
+        let items = [];
+        if (Config.launcherCalculatorEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "Calculator",
+                subtitle: "Solve inline and copy the result on Enter",
+                query: "/sqrt(144)",
+                iconSource: "icons/IconCalculator.qml",
+                color: Config.yellow
+            });
+        }
+        if (Config.launcherClipboardEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "Clipboard History",
+                subtitle: "Search copied text and images from cliphist",
+                query: (Config.launcherClipboardPrefix || "cb") + " ssh",
+                iconSource: "icons/IconClipboard.qml",
+                color: Config.mauve
+            });
+        }
+        if (Config.launcherEmojiEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "Emoji Picker",
+                subtitle: "Type a prefix and copy a glyph instantly",
+                query: (Config.launcherEmojiPrefix || ":") + " fire",
+                iconSource: "icons/IconStar.qml",
+                color: Config.pink
+            });
+        }
+        if (Config.launcherWebSearchEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "Web Search",
+                subtitle: "Use an engine keyword like g, gh, or aw",
+                query: "g quickshell launcher",
+                iconSource: "icons/IconSearch.qml",
+                color: Config.blue
+            });
+        }
+        if (Config.launcherPacmanEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "Packages",
+                subtitle: "Install or remove repo and AUR packages",
+                query: (Config.launcherPacmanPrefix || "p") + " firefox",
+                iconSource: "icons/IconPackageOpen.qml",
+                color: Config.peach
+            });
+        }
+        if (Config.launcherFilesEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "File Search",
+                subtitle: "Find files by name across the system",
+                query: (Config.launcherFilesPrefix || "'") + "report",
+                iconSource: "icons/IconFileText.qml",
+                color: Config.teal
+            });
+        }
+        if (Config.launcherShellRunnerEnabled) {
+            items.push({
+                type: "suggestion",
+                title: "Shell Runner",
+                subtitle: "Run a detached shell command from the launcher",
+                query: (Config.launcherShellRunnerPrefix || ">") + " notify-send hello",
+                iconSource: "icons/IconTerminal.qml",
+                color: Config.green
+            });
+        }
+        return items;
+    }
+
+    function removableAppId(app) {
+        if (!app) return "";
+        let id = app.id ?? "";
+        return appOwnership[id] ? id : "";
+    }
+
+    function requestUninstallApp(app) {
+        let id = removableAppId(app);
+        if (!id) return false;
+        if (uninstallConfirmId === id) {
+            uninstallConfirmId = "";
+            return uninstallApp(app);
+        }
+        uninstallConfirmId = id;
+        return true;
+    }
+
+    function resultAccentColor(item) {
+        if (!item) return Config.overlay0;
+        if (item.type === "section") return Config.overlay0;
+        return Config.overlay1;
+    }
+
+    function resultKey(item) {
+        if (!item) return "";
+        if (item.type === "app") return "app:" + (item.app?.id ?? item.app?.name ?? "");
+        if (item.type === "search") return "search:" + (item.engine?.keyword ?? item.engine?.name ?? "") + ":" + (item.query ?? "");
+        if (item.type === "system") return "system:" + (item.action?.id ?? item.action?.name ?? "");
+        if (item.type === "command") return "command:" + (item.command ?? "");
+        if (item.type === "url" || item.type === "path") return item.type + ":" + (item.target ?? item.display ?? "");
+        if (item.type === "file") return "file:" + (item.path ?? "");
+        if (item.type === "clipboard") return "clipboard:" + (item.clip?.id ?? item.clip?.text ?? "");
+        if (item.type === "emoji") return "emoji:" + (item.glyph ?? item.name ?? "");
+        if (item.type === "flatpak") return "flatpak:" + (item.item?.appId ?? item.item?.name ?? "");
+        if (item.type === "pacman") return "pacman:" + (item.item?.repo ?? "") + ":" + (item.item?.name ?? "");
+        if (item.type === "flatpakInfo" || item.type === "pacmanInfo" || item.type === "info") return item.type + ":" + (item.message ?? "");
+        if (item.type === "suggestion") return "suggestion:" + (item.query ?? item.title ?? "");
+        if (item.type === "section") return "section:" + (item.title ?? "");
+        return item.type ?? "";
+    }
+
+    function resultIndexByKey(key) {
+        if (!key) return -1;
+        for (let i = 0; i < filteredResults.length; i++) {
+            if (resultKey(filteredResults[i]) === key)
+                return i;
+        }
+        return -1;
+    }
+
+    function resultTitle(item) {
+        if (!item) return "";
+        if (item.type === "app") return item.app?.name ?? "";
+        if (item.type === "search") return item.engine.name;
+        if (item.type === "system") return item.action?.name ?? "";
+        if (item.type === "command") return item.command ?? "";
+        if (item.type === "url" || item.type === "path") return item.display ?? "";
+        if (item.type === "file") return fileBasename(item.path ?? "");
+        if (item.type === "clipboard") return item.clip?.text ?? "";
+        if (item.type === "emoji") return item.name ?? "";
+        if (item.type === "flatpak") return item.item?.name ?? item.item?.appId ?? "";
+        if (item.type === "pacman") return item.item?.name ?? "";
+        if (item.type === "flatpakInfo" || item.type === "pacmanInfo" || item.type === "info") return item.message ?? "";
+        if (item.type === "suggestion") return item.title ?? "";
+        if (item.type === "section") return item.title ?? "";
+        return "";
+    }
+
+    function resultSubtitle(item) {
+        if (!item) return "";
+        if (item.type === "app") return item.app?.genericName ?? item.app?.id ?? "";
+        if (item.type === "search") return item.query ? "Search for \u201c" + item.query + "\u201d" : "Search the web";
+        if (item.type === "system") return "System action";
+        if (item.type === "command") return "Runs via " + (Config.launcherShellRunnerShell || "bash");
+        if (item.type === "url") return "Open in browser";
+        if (item.type === "path") return "Open path";
+        if (item.type === "file") return shortenHome(fileDirname(item.path ?? ""));
+        if (item.type === "clipboard") return item.clip?.isImage ? "" : "Clipboard entry";
+        if (item.type === "emoji") return "Copy emoji to clipboard";
+        if (item.type === "flatpak") {
+            return item.item?.summary ?? item.item?.appId ?? "";
+        }
+        if (item.type === "pacman") {
+            let parts = [];
+            if (item.item?.outOfDate) parts.push("Out of date");
+            if (item.item?.desc) parts.push(item.item.desc);
+            else if (item.item?.version) parts.push(item.item.version);
+            return parts.join(" · ");
+        }
+        if (item.type === "suggestion") return item.subtitle ?? "";
+        return "";
+    }
+
+    function escapeText(text) {
+        return String(text ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;");
+    }
+
+    function resultLineText(item) {
+        if (!item) return "";
+        let titleRaw = resultTitle(item);
+        let title;
+        if (item?.type === "clipboard" && item.clip && item.clip.matchPositions)
+            title = highlightMatches(titleRaw, item.clip.matchPositions, Config.blue);
+        else
+            title = escapeText(titleRaw);
+        if (item?.type === "flatpak" || item?.type === "pacman" || item?.type === "search" || item?.type === "file") return title;
+        let subtitle = escapeText(resultSubtitle(item));
+        if (!subtitle) return title;
+        return title + " <span style=\"color:" + Config.overlay0 + "\">&#183; " + subtitle + "</span>";
+    }
+
+    function resultBadges(item) {
+        return [];
+    }
+
+    function resultRepoLabel(item) {
+        if (!item) return "";
+        if (item.type === "flatpak") {
+            let parts = ["flathub"];
+            if (flatpakVerified[item.item?.appId ?? ""]) parts.push("\u2713 verified");
+            return parts.join(" \u00b7 ");
+        }
+        if (item.type === "pacman") {
+            let r = item.item?.repo ?? "";
+            let parts = [r === "aur" ? "AUR" : r];
+            if (item.item?.votes != null) parts.push("\u2191" + item.item.votes);
+            if (item.item?.popularity != null) parts.push(item.item.popularity.toFixed(1));
+            return parts.join(" \u00b7 ");
+        }
+        if (item.type === "search") return item.engine?.keyword ?? "";
+        if (item.type === "file") {
+            if (item.isDir) return "DIR";
+            let ext = fileExtension(item.path ?? "");
+            return ext ? "." + ext : "";
+        }
+        return "";
+    }
+
+    function resultLoading(item) {
+        let msg = item?.message ?? "";
+        return item?.loading === true || msg.startsWith("Loading") || msg.startsWith("Searching");
+    }
+
+    function shortcutActions(item) {
+        let out = [];
+        if (!item) return out;
+
+        if (item.type === "app") {
+            out.push({ label: "Enter open", action: "activate" });
+            out.push({
+                label: "Ctrl+Enter " + (isPinned(item.app?.id ?? "") ? "unpin" : "pin"),
+                action: "pin"
+            });
+            if (removableAppId(item.app)) {
+                out.push({
+                    label: uninstallConfirmId === (item.app?.id ?? "")
+                        ? "Ctrl+Shift+Backspace confirm remove"
+                        : "Ctrl+Shift+Backspace remove",
+                    action: "remove",
+                    destructive: uninstallConfirmId === (item.app?.id ?? "")
+                });
+            }
+        } else if (item.type === "flatpak") {
+            out.push({ label: "Enter " + (item.installed ? "remove" : "install"), action: "activate" });
+            out.push({ label: "Ctrl+Enter flathub", action: "flathub" });
+        } else if (item.type === "pacman") {
+            out.push({ label: "Enter " + (item.installed ? "remove" : "install"), action: "activate" });
+        } else if (item.type === "clipboard" || item.type === "emoji") {
+            out.push({ label: "Enter copy", action: "activate" });
+        } else if (item.type === "search" || item.type === "url" || item.type === "path"
+                || item.type === "system" || item.type === "command") {
+            out.push({ label: "Enter open", action: "activate" });
+        } else if (item.type === "file") {
+            out.push({ label: "Enter open", action: "activate" });
+            out.push({ label: "Ctrl+Enter reveal", action: "reveal" });
+            out.push({ label: "Alt+C copy path", action: "copy" });
+            out.push({ label: (fileFoldersOnly ? "Alt+D show all" : "Alt+D folders only"), action: "toggleFolders" });
+        } else if (item.type === "suggestion") {
+            out.push({ label: "Enter fill example", action: "activate" });
+        }
+
+        return out;
+    }
+
+    function inlineActions(item) {
+        let out = [];
+        if (!item) return out;
+
+        if (item.type === "app") {
+            out.push({ label: isPinned(item.app?.id ?? "") ? "unpin" : "pin", action: "pin" });
+            if (removableAppId(item.app)) {
+                out.push({
+                    label: uninstallConfirmId === (item.app?.id ?? "") ? "confirm" : "remove",
+                    action: "remove",
+                    destructive: uninstallConfirmId === (item.app?.id ?? "")
+                });
+            }
+        }
+
+        return out;
+    }
+
+    function runShortcutAction(item, action) {
+        if (!item) return;
+        if (action === "activate") {
+            activateResult(item);
+        } else if (action === "pin" && item.type === "app") {
+            togglePin(item.app?.id ?? "");
+        } else if (action === "remove" && item.type === "app") {
+            requestUninstallApp(item.app);
+        } else if (action === "flathub" && item.type === "flatpak") {
+            openFlathubPage(item.item.appId);
+        } else if (action === "reveal" && item.type === "file") {
+            revealFile(item.path);
+        } else if (action === "copy" && item.type === "file") {
+            copyFilePath(item.path);
+        } else if (action === "toggleFolders") {
+            fileFoldersOnly = !fileFoldersOnly;
+        }
+    }
 
     // Sequential match score: chars in query appear in order in target
     // Returns 0-1 score, 0 means no match
@@ -464,6 +896,68 @@ Scope {
           command: ["systemctl", "poweroff"] }
     ]
 
+    // Category weights reflect user intent: "things I have on my system"
+    // (apps, files) rank above "things I could install" (packages), and
+    // web search is a pure fallback. Multiplied onto the raw match score
+    // so a great package match can still beat a weak app match, but a
+    // decent app match beats an equally-rated package.
+    function sectionCategoryWeight(items) {
+        if (!items || items.length === 0) return 1.0;
+        // Skip info/loading placeholders when picking a representative type —
+        // their presence during async loads shouldn't collapse the weight.
+        let rep = "";
+        for (let item of items) {
+            let t = item.type || "";
+            if (t === "info" || t.endsWith("Info")) continue;
+            rep = t;
+            break;
+        }
+        if (!rep && items.length > 0) rep = items[0].type || "";
+        switch (rep) {
+            case "app":       return 1.5;
+            case "file":      return 1.2;
+            case "system":    return 1.1;
+            case "pacman":
+            case "flatpak":   return 0.9;
+            case "search":    return 0.3;
+            default:          return 1.0;
+        }
+    }
+
+    // Section ranking: turn each section's best item into a normalized 0-1
+    // "match strength" so we can sort sections by how well they answer the
+    // query. Multiplied by the category weight at the call site, so "apps
+    // beat packages on ties" is a ranking rule, not a per-item bonus that
+    // could skew internal scoring.
+    function sectionMatchScore(items, query) {
+        if (!items || items.length === 0) return 0;
+        let q = String(query || "").toLowerCase();
+        if (!q) return 0;
+        let best = 0;
+        for (let item of items) {
+            let s = 0;
+            if (item.type === "app") {
+                let name = (item.app?.name || "").toLowerCase();
+                s = fuzzyScore(q, name);
+                if (name === q) s += 0.5;
+                else if (name.startsWith(q)) s += 0.25;
+                else if (name.indexOf(q) >= 0) s += 0.1;
+            } else if (item.type === "pacman") {
+                s = scorePackage(item.item, q, "pacman") / 4;
+            } else if (item.type === "flatpak") {
+                s = scorePackage(item.item, q, "flatpak") / 4;
+            } else if (item.type === "file") {
+                s = scoreFile(item.path, q) / 4;
+            } else if (item.type === "system") {
+                s = scoreSystemAction(item.action, q);
+            } else if (item.type === "search") {
+                s = 0.15;
+            }
+            if (s > best) best = s;
+        }
+        return Math.min(1, best);
+    }
+
     function scoreSystemAction(action, query) {
         let best = fuzzyScore(query, action.name.toLowerCase());
         for (let kw of action.keywords) {
@@ -471,6 +965,22 @@ Scope {
             if (s > best) best = s;
         }
         return best;
+    }
+
+    // Exact or prefix match (>=3 chars) against name or any keyword.
+    // Used to hoist obvious matches above the configured search order.
+    function strongSystemMatch(action, query) {
+        let q = String(query || "").toLowerCase();
+        if (!q) return false;
+        let name = action.name.toLowerCase();
+        if (name === q) return true;
+        if (q.length >= 3 && name.startsWith(q)) return true;
+        for (let kw of action.keywords) {
+            let lk = kw.toLowerCase();
+            if (lk === q) return true;
+            if (q.length >= 3 && lk.startsWith(q)) return true;
+        }
+        return false;
     }
 
     function runSystemAction(action) {
@@ -528,6 +1038,12 @@ Scope {
     // first `cb` detection per launcher session, then filtered client-side.
     property var clipboardCache: []
     property bool clipboardCacheLoaded: false
+    readonly property string clipboardImageDir: "/tmp/quickshell-launcher-clip"
+    // Bumped after image decode finishes so Image sources rebind and load
+    // newly-extracted thumbnails. We use a counter instead of a path-bust
+    // because Image.cache=false is enough — the counter just forces the
+    // delegate to re-evaluate the binding when cache reloads.
+    property int clipboardImageGen: 0
 
     property var clipboardMatch: {
         if (!Config.launcherClipboardEnabled) return null;
@@ -538,14 +1054,74 @@ Scope {
         return { filter: rest.replace(/^\s+/, "") };
     }
 
+    // Walks the target once, recording the index of every query char that
+    // matches in order (case-insensitive — caller lowercases both). Returns
+    // null if some query char never found its match; used for both filtering
+    // and for per-character highlighting.
+    function fuzzyMatchPositions(query, target) {
+        if (!query) return [];
+        let qi = 0;
+        let positions = [];
+        for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+            if (target[ti] === query[qi]) {
+                positions.push(ti);
+                qi++;
+            }
+        }
+        return qi === query.length ? positions : null;
+    }
+
+    // Wraps the matched chars in a colored bold span for Text.StyledText.
+    // Non-matched chars are HTML-escaped individually so the styling can
+    // be interleaved at the char level without losing escape coverage.
+    function highlightMatches(text, positions, color) {
+        if (!positions || positions.length === 0) return escapeText(text);
+        let out = "";
+        let set = {};
+        for (let p of positions) set[p] = true;
+        for (let i = 0; i < text.length; i++) {
+            let ch = escapeText(text[i]);
+            if (set[i]) out += '<span style="color:' + color + '"><b>' + ch + '</b></span>';
+            else out += ch;
+        }
+        return out;
+    }
+
     property var filteredClipboard: {
         if (!clipboardMatch) return [];
         let filter = clipboardMatch.filter.toLowerCase();
         let max = Math.max(1, Config.launcherClipboardMax || 50);
-        let items = filter === ""
-            ? clipboardCache
-            : clipboardCache.filter(it => (it.text ?? "").toLowerCase().includes(filter));
-        return items.slice(0, max);
+        if (filter === "") return clipboardCache.slice(0, max);
+        let scored = [];
+        for (let item of clipboardCache) {
+            let text = (item.text ?? "").toLowerCase();
+            let positions = fuzzyMatchPositions(filter, text);
+            let score, matchPositions;
+            if (positions) {
+                matchPositions = positions;
+                score = fuzzyScore(filter, text);
+            } else {
+                // Typo tolerance: if the in-order fuzzy pass fails, accept
+                // items that are still close on either edit distance or
+                // n-gram overlap. Weighted lower than true fuzzy matches
+                // so correctly-spelled results stay on top.
+                let edit = editDistanceScore(filter, text);
+                let ngram = ngramSimilarity(filter, text);
+                let typoScore = Math.max(edit, ngram);
+                if (typoScore < 0.55) continue;
+                matchPositions = [];
+                score = typoScore * 0.5;
+            }
+            scored.push({
+                item: item,
+                score: score,
+                matchPositions: matchPositions
+            });
+        }
+        scored.sort((a, b) => b.score - a.score);
+        return scored.slice(0, max).map(s => Object.assign({}, s.item, {
+            matchPositions: s.matchPositions
+        }));
     }
 
     function pasteClipboard(item) {
@@ -561,6 +1137,7 @@ Scope {
             onStreamFinished: {
                 let lines = this.text.trim().split("\n");
                 let items = [];
+                let imageIds = [];
                 for (let line of lines) {
                     let tabIdx = line.indexOf("\t");
                     if (tabIdx <= 0) continue;
@@ -569,11 +1146,33 @@ Scope {
                     if (text.length === 0) continue;
                     let isImage = text.startsWith("[[ binary data");
                     items.push({ id: id, text: isImage ? "Image" : text, isImage: isImage });
+                    if (isImage) imageIds.push(id);
                 }
                 root.clipboardCache = items;
                 root.clipboardCacheLoaded = true;
+                if (imageIds.length > 0) {
+                    // Decode each image clip to a stable path under
+                    // /tmp/quickshell-launcher-clip/<id>. cliphist exits
+                    // non-zero for non-image entries which is harmless here
+                    // because we already filtered to image IDs. `|| true`
+                    // keeps the loop going if a single decode fails.
+                    let script = 'mkdir -p "$1" && cd "$1" && shift; '
+                        + 'for id in "$@"; do '
+                        + '  [ -f "$id" ] || cliphist decode "$id" > "$id" 2>/dev/null || true; '
+                        + 'done';
+                    let args = ["bash", "-c", script, "_", root.clipboardImageDir].concat(imageIds);
+                    if (clipboardImageDecodeProcess.running)
+                        clipboardImageDecodeProcess.running = false;
+                    clipboardImageDecodeProcess.command = args;
+                    clipboardImageDecodeProcess.running = true;
+                }
             }
         }
+    }
+
+    Process {
+        id: clipboardImageDecodeProcess
+        onExited: { root.clipboardImageGen++; }
     }
 
     onClipboardMatchChanged: {
@@ -856,10 +1455,10 @@ Scope {
         id: flatpakVerifiedProcess
         command: ["sh", "-c",
             "awk 'BEGIN{id=\"\";v=0} " +
+            "/<\\/component>/{if(id&&v)print id; id=\"\"; v=0} " +
             "/<component/{id=\"\";v=0} " +
             "/<id>/{if(match($0,/<id>[^<]+/))id=substr($0,RSTART+4,RLENGTH-4)} " +
-            "/flathub::verification::verified\">true/{v=1} " +
-            "/<\\/component>/{if(id&&v)print id; id=\"\"; v=0}' " +
+            "/flathub::verification::verified\">true/{v=1}' " +
             "\"$HOME\"/.local/share/flatpak/appstream/flathub/*/active/appstream.xml " +
             "/var/lib/flatpak/appstream/flathub/*/active/appstream.xml 2>/dev/null | sort -u"]
         stdout: StdioCollector {
@@ -1083,6 +1682,7 @@ Scope {
         && !clipboardMatch
         && !pacmanMatch
         && !flatpakMatch
+        && !filesMatch
         && !keywordSearchMatch
         && calcValue === null
         && !urlPathMatch
@@ -1369,6 +1969,263 @@ Scope {
         root.closing = true;
     }
 
+    // --- file search (plocate) ----------------------------------------
+    // Alfred-style filename search. The prefix `'` (configurable) opens an
+    // explicit files-only mode; in universal mode the `files:N` token mixes
+    // file results in alongside apps/packages. Backed by plocate so the
+    // index is system-wide and queries return in milliseconds.
+    property bool filesAvailable: false
+    property var fileSearchResults: []
+    property string fileLastSearched: ""
+    property bool fileSearching: false
+    property bool fileFoldersOnly: false
+
+    property var filesMatch: {
+        if (!Config.launcherFilesEnabled) return null;
+        let prefix = Config.launcherFilesPrefix || "'";
+        if (!searchText.startsWith(prefix)) return null;
+        let rest = searchText.substring(prefix.length).replace(/^\s+/, "");
+        return { query: rest };
+    }
+
+    Process {
+        id: filesDetect
+        running: true
+        command: ["sh", "-c", "command -v plocate >/dev/null 2>&1 && echo yes || echo no"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.filesAvailable = this.text.trim() === "yes";
+            }
+        }
+    }
+
+    // Paths excluded from results — caches, vendor dirs, VCS guts, browser
+    // profile junk that would otherwise drown the legitimate matches.
+    readonly property var fileNoiseFragments: [
+        "/.cache/", "/.git/", "/node_modules/", "/__pycache__/",
+        "/.npm/", "/.cargo/", "/.rustup/", "/.gradle/",
+        "/.local/share/Trash/", "/.var/app/", "/.steam/",
+        "/.mozilla/firefox/", "/.config/google-chrome/",
+        "/.config/chromium/", "/.config/BraveSoftware/",
+        "/.thumbnails/", "/Library/Caches/"
+    ]
+
+    function isNoisyFilePath(p) {
+        for (let frag of fileNoiseFragments)
+            if (p.indexOf(frag) >= 0) return true;
+        return false;
+    }
+
+    function fileBasename(p) {
+        let i = p.lastIndexOf("/");
+        return i >= 0 ? p.substring(i + 1) : p;
+    }
+
+    function fileDirname(p) {
+        let i = p.lastIndexOf("/");
+        return i > 0 ? p.substring(0, i) : "/";
+    }
+
+    function fileExtension(p) {
+        let name = fileBasename(p);
+        let i = name.lastIndexOf(".");
+        if (i <= 0 || i === name.length - 1) return "";
+        return name.substring(i + 1).toLowerCase();
+    }
+
+    function shortenHome(p) {
+        let home = Quickshell.env("HOME") || "";
+        if (home && p.startsWith(home)) return "~" + p.substring(home.length);
+        return p;
+    }
+
+    readonly property var filePreferredPrefixes: {
+        let home = Quickshell.env("HOME") || "";
+        if (!home) return [];
+        return [
+            home + "/Documents", home + "/Downloads", home + "/Desktop",
+            home + "/Pictures", home + "/Videos", home + "/Music",
+            home + "/Projects", home + "/Code", home + "/src"
+        ];
+    }
+
+    function scoreFile(path, query) {
+        let q = (query || "").toLowerCase();
+        if (!q) return 0;
+        let name = fileBasename(path).toLowerCase();
+        let dir = fileDirname(path).toLowerCase();
+        let score = root.fuzzyScore(q, name) * 1.0
+                  + root.fuzzyScore(q, dir) * 0.15;
+        if (name === q) score += 2.5;
+        else if (name.startsWith(q)) score += 1.2;
+        else if (name.indexOf(q) >= 0) score += 0.5;
+        // Prefer shallower paths — files in $HOME/Documents beat files
+        // buried six levels deep with the same name.
+        let depth = (path.match(/\//g) || []).length;
+        if (depth > 4) score -= (depth - 4) * 0.05;
+        // Bonus for paths in user-content directories.
+        for (let pref of filePreferredPrefixes)
+            if (path.startsWith(pref)) { score += 0.3; break; }
+        // Penalize hidden segments (anything in a dotfolder/dotfile).
+        if (path.indexOf("/.") >= 0) score -= 0.5;
+        return score;
+    }
+
+    Process {
+        id: fileSearchProcess
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let q = root.fileLastSearched;
+                let raw = (this.text || "").split("\n");
+                let scored = [];
+                // Each line is "d /path" or "f /path" — the wrapping shell
+                // does a [-d] check per result so we get folder/file info
+                // in the same round-trip as the plocate query.
+                for (let line of raw) {
+                    if (!line) continue;
+                    let space = line.indexOf(" ");
+                    if (space <= 0) continue;
+                    let kind = line.substring(0, space);
+                    let p = line.substring(space + 1);
+                    if (!p) continue;
+                    if (root.isNoisyFilePath(p)) continue;
+                    let isDir = kind === "d";
+                    let s = root.scoreFile(p, q);
+                    // Mild bonus for folders — they're typically the
+                    // navigation intent in a launcher search.
+                    if (isDir) s += 0.15;
+                    scored.push({ path: p, score: s, isDir: isDir });
+                }
+                scored.sort((a, b) => b.score - a.score);
+                root.fileSearchResults = scored
+                    .slice(0, Config.launcherFilesMaxResults)
+                    .map(s => ({ path: s.path, isDir: s.isDir }));
+                root.fileSearching = false;
+            }
+        }
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                root.fileSearchResults = [];
+                root.fileSearching = false;
+            }
+        }
+    }
+
+    readonly property string fileActiveQuery: {
+        if (filesMatch) return (filesMatch.query ?? "").trim();
+        if (universalSearchActive && universalWants("files"))
+            return searchText.trim();
+        return "";
+    }
+
+    Timer {
+        id: fileDebounce
+        interval: 180
+        onTriggered: {
+            let q = root.fileActiveQuery;
+            if (q.length < 2) {
+                root.fileSearchResults = [];
+                root.fileLastSearched = "";
+                root.fileSearching = false;
+                return;
+            }
+            if (q === root.fileLastSearched && !root.fileSearching) return;
+            root.fileLastSearched = q;
+            root.fileSearching = true;
+            if (fileSearchProcess.running) fileSearchProcess.running = false;
+            // -i case-insensitive, -l caps result count before we filter
+            // and rescore. Pass query as a single arg so spaces don't get
+            // re-tokenized by plocate (it ANDs space-separated tokens which
+            // is also fine, but explicit is clearer).
+            // `-b` matches basenames only — without it plocate's result
+            // stream gets flooded with substring hits deep inside long
+            // paths. More importantly we pipe the output through a `grep -v`
+            // that strips cache / vcs / vendor paths BEFORE we apply the
+            // head limit. plocate emits matches in trie/lex order with no
+            // relevance ranking, so if the first 500 hits are all in
+            // ~/.cache/yay (common for short queries like "mock"), a
+            // plocate-side `-l` would burn the entire budget on noise and
+            // never reach legitimate matches like /stuff/Study/projects/mock.
+            let limit = Math.max(800, Config.launcherFilesMaxResults * 30);
+            let noise = '/\\.cache/|/\\.git/|/node_modules/|/__pycache__/|'
+                + '/\\.npm/|/\\.cargo/|/\\.rustup/|/\\.gradle/|'
+                + '/\\.local/share/Trash/|/\\.var/app/|/\\.steam/|'
+                + '/\\.mozilla/|/\\.config/google-chrome/|'
+                + '/\\.config/chromium/|/\\.config/BraveSoftware/|'
+                + '/\\.thumbnails/|/Library/Caches/|/\\.yarn/|/\\.pnpm-store/';
+            let script = 'plocate -b -i -- "$2" 2>/dev/null '
+                + '| LC_ALL=C grep -vE "$3" '
+                + '| head -n "$1" '
+                + '| while IFS= read -r p; do '
+                + '    [ -e "$p" ] || continue; '
+                + '    if [ -d "$p" ]; then echo "d $p"; else echo "f $p"; fi; '
+                + '  done';
+            fileSearchProcess.command = ["bash", "-c", script, "_", String(limit), q, noise];
+            fileSearchProcess.running = true;
+        }
+    }
+
+    onFileActiveQueryChanged: {
+        if (!filesAvailable) return;
+        if (fileActiveQuery) {
+            if (fileActiveQuery.length >= 2 && fileActiveQuery !== fileLastSearched) {
+                fileSearchResults = [];
+                fileSearching = true;
+            }
+            fileDebounce.restart();
+        }
+    }
+
+    // Hyprland's exec dispatcher accepts a [workspace name:X silent] token
+    // that places the spawned window on a chosen workspace, overriding the
+    // default. We capture the active workspace BEFORE the launcher closes
+    // and pin the new window to it — otherwise Hyprland may reassign focus
+    // mid-close and place the window wherever focus lands.
+    // Open a path on the active workspace. Two cases:
+    //   (a) hyprfm (or whichever file manager) is already running: pull
+    //       its existing window to this workspace + focus it, then hand
+    //       the path over. Running file managers that support single-
+    //       instance forwarding (hyprfm, Nautilus, Dolphin) will add
+    //       a new tab for the path instead of spawning a new window.
+    //   (b) not running: spawn via the exec dispatcher with a workspace
+    //       token so the new window lands here and doesn't follow focus
+    //       changes that happen while the launcher is closing.
+    function _hyprWorkspaceOpen(target) {
+        let script = 'ws=$(hyprctl activeworkspace -j 2>/dev/null '
+            + '| grep -oE \'"name":"[^"]+"\' | head -1 | cut -d\\" -f4); '
+            + 'running=$(hyprctl clients -j 2>/dev/null '
+            + '| grep -c \'"class":"hyprfm"\'); '
+            + 'if [ "$running" -gt 0 ] && [ -n "$ws" ]; then '
+            + '  hyprctl dispatch movetoworkspace "$ws,class:hyprfm" >/dev/null; '
+            + '  hyprctl dispatch focuswindow class:hyprfm >/dev/null; '
+            + 'fi; '
+            + 'q=$(printf "%q" "$1"); '
+            + 'if [ -n "$ws" ]; then '
+            + '  hyprctl dispatch exec "[workspace name:$ws silent] xdg-open $q" >/dev/null; '
+            + 'else '
+            + '  xdg-open "$1"; '
+            + 'fi';
+        Quickshell.execDetached(["bash", "-c", script, "_", target]);
+    }
+
+    function activateFile(path) {
+        if (!path) return;
+        _hyprWorkspaceOpen(path);
+        root.closing = true;
+    }
+
+    function revealFile(path) {
+        if (!path) return;
+        _hyprWorkspaceOpen(fileDirname(path));
+        root.closing = true;
+    }
+
+    function copyFilePath(path) {
+        if (!path) return;
+        Quickshell.execDetached(["wl-copy", "--", path]);
+        root.closing = true;
+    }
+
     function openSearch(engine, query) {
         if (!engine || !engine.url) return;
         let url = engine.url.replace("%s", encodeURIComponent(query));
@@ -1430,6 +2287,7 @@ Scope {
         else
             apps.push(appId);
         Config.set("launcher", "pinnedApps", apps);
+        uninstallConfirmId = "";
     }
 
     property list<DesktopEntry> allApps: {
@@ -1485,10 +2343,7 @@ Scope {
         return scored.map(item => item.app);
     }
 
-    // Mixed results model: apps, system actions, and web-search entries.
-    // Web-search keyword mode replaces the list; otherwise strongly-matching
-    // system actions appear at the top, followed by apps, followed (only
-    // when apps are empty) by web-search fallback entries.
+    // Mixed results model: returns grouped sections plus rich row types.
     property var filteredResults: {
         if (commandMatch) {
             return [{ type: "command", command: commandMatch.command }];
@@ -1497,7 +2352,8 @@ Scope {
             return filteredEmoji.map(e => ({ type: "emoji", glyph: e.glyph, name: e.name }));
         }
         if (clipboardMatch) {
-            if (!clipboardCacheLoaded) return [];
+            if (!clipboardCacheLoaded)
+                return [{ type: "info", message: "Loading clipboard history…", tone: "clipboard", loading: true }];
             return filteredClipboard.map(c => ({ type: "clipboard", clip: c }));
         }
         if (pacmanMatch) {
@@ -1574,6 +2430,25 @@ Scope {
                 item: item
             }));
         }
+        if (filesMatch) {
+            if (!filesAvailable)
+                return [{ type: "info", message: "plocate is not installed — install plocate and run sudo updatedb" }];
+            let q = filesMatch.query.trim();
+            if (q === "")
+                return [{ type: "info", message: "Type to search files (e.g. " + (Config.launcherFilesPrefix || "'") + "report)" }];
+            if (q.length < 2)
+                return [{ type: "info", message: "Keep typing…" }];
+            if (fileSearching || q !== fileLastSearched)
+                return [{ type: "info", message: "Searching files…", loading: true }];
+            let entries = fileFoldersOnly
+                ? fileSearchResults.filter(r => r.isDir)
+                : fileSearchResults;
+            if (entries.length === 0)
+                return [{ type: "info", message: fileFoldersOnly
+                    ? "No folder matches for \u201C" + q + "\u201D"
+                    : "No file matches for \u201C" + q + "\u201D" }];
+            return entries.map(r => ({ type: "file", path: r.path, isDir: r.isDir }));
+        }
         if (keywordSearchMatch) {
             return [{ type: "search", engine: keywordSearchMatch.engine, query: keywordSearchMatch.query }];
         }
@@ -1583,6 +2458,23 @@ Scope {
             return [{ type: urlPathMatch.kind, target: urlPathMatch.target, display: urlPathMatch.display }];
         }
 
+        let q = searchText.trim();
+
+        if (q.length === 0) {
+            let items = [];
+            let pinned = allApps
+                .filter(app => isPinned(app.id ?? ""))
+                .slice(0, 6)
+                .map(app => ({ type: "app", app: app, group: "Pinned" }));
+            let recent = uniqueApps(
+                allApps.filter(app => !isPinned(app.id ?? "") && getFrecencyScore(app.id ?? app.name ?? "") > 0),
+                6
+            ).map(app => ({ type: "app", app: app, group: "Recent" }));
+            appendSection(items, "Pinned", pinned);
+            appendSection(items, "Recent", recent);
+            return items;
+        }
+
         // Universal search: merge configured providers in order when the
         // user types a plain query. Pacman/flatpak results appear as soon
         // as yay/flatpak stdout lands (the search ran async via the same
@@ -1590,12 +2482,22 @@ Scope {
         // yet for the current query it's just skipped — items grow in as
         // they arrive, instead of a jarring "Searching…" stall.
         if (universalSearchActive) {
-            let uq = searchText.trim();
-            let items = [];
+            let uq = q;
+            let groupOrder = [];
+            let groups = {};
+
+            function pushGrouped(title, entry) {
+                if (!groups[title]) {
+                    groups[title] = [];
+                    groupOrder.push(title);
+                }
+                groups[title].push(entry);
+            }
+
             for (let tok of universalOrder()) {
                 if (tok.kind === "web") {
                     let eng = findEngineByKeyword(tok.param);
-                    if (eng) items.push({ type: "search", engine: eng, query: uq });
+                    if (eng) pushGrouped("Web", { type: "search", engine: eng, query: uq });
                 } else if (tok.kind === "pacman") {
                     if (!pacmanAvailable) continue;
                     // Debounce only searches at 2+ chars — don't hold a
@@ -1604,31 +2506,39 @@ Scope {
                     if (pacmanSearching || uq !== pacmanLastSearched) {
                         // Hold the slot so the layout doesn't jump when
                         // pacman stdout lands after apps have already rendered.
-                        items.push({ type: "pacmanInfo", message: "Searching pacman + AUR…" });
+                        pushGrouped("Packages", { type: "pacmanInfo", message: "Searching pacman + AUR…" });
                         continue;
                     }
                     let n = parseInt(tok.param) || 3;
-                    for (let pac of pacmanSearchResults.slice(0, n)) {
-                        items.push({
+                    let count = 0;
+                    for (let pac of pacmanSearchResults) {
+                        if (count >= n) break;
+                        if (pac.installed || pacmanInstalled[pac.name]) continue;
+                        pushGrouped("Packages", {
                             type: "pacman",
-                            installed: pac.installed || !!pacmanInstalled[pac.name],
+                            installed: false,
                             item: pac
                         });
+                        count++;
                     }
                 } else if (tok.kind === "flatpak") {
                     if (!flatpakAvailable) continue;
                     if (uq.length < 2) continue;
                     if (flatpakSearching || uq !== flatpakLastSearched) {
-                        items.push({ type: "flatpakInfo", message: "Searching flathub…" });
+                        pushGrouped("Packages", { type: "flatpakInfo", message: "Searching flathub…" });
                         continue;
                     }
                     let n = parseInt(tok.param) || 3;
-                    for (let fp of flatpakSearchResults.slice(0, n)) {
-                        items.push({
+                    let count = 0;
+                    for (let fp of flatpakSearchResults) {
+                        if (count >= n) break;
+                        if (flatpakInstalled[fp.appId]) continue;
+                        pushGrouped("Packages", {
                             type: "flatpak",
-                            installed: !!flatpakInstalled[fp.appId],
+                            installed: false,
                             item: fp
                         });
+                        count++;
                     }
                 } else if (tok.kind === "packages") {
                     // Merged pacman + flatpak slot: rescore both with the
@@ -1643,94 +2553,134 @@ Scope {
                     let pacPending = pacmanAvailable && !pacReady;
                     let fpPending = flatpakAvailable && !fpReady;
                     if (!pacReady && !fpReady) {
-                        items.push({ type: "pacmanInfo", message: "Searching packages…" });
+                        pushGrouped("Packages", { type: "pacmanInfo", message: "Searching packages…" });
                         continue;
                     }
                     let merged = [];
                     if (pacReady)
-                        for (let p of pacmanSearchResults)
+                        for (let p of pacmanSearchResults) {
+                            if (p.installed || pacmanInstalled[p.name]) continue;
                             merged.push({ kind: "pacman", item: p, score: scorePackage(p, uq, "pacman") });
+                        }
                     if (fpReady)
-                        for (let f of flatpakSearchResults)
+                        for (let f of flatpakSearchResults) {
+                            if (flatpakInstalled[f.appId]) continue;
                             merged.push({ kind: "flatpak", item: f, score: scorePackage(f, uq, "flatpak") });
+                        }
                     merged.sort((a, b) => b.score - a.score);
                     for (let m of merged.slice(0, n)) {
                         if (m.kind === "pacman") {
-                            items.push({
+                            pushGrouped("Packages", {
                                 type: "pacman",
-                                installed: m.item.installed || !!pacmanInstalled[m.item.name],
+                                installed: false,
                                 item: m.item
                             });
                         } else {
-                            items.push({
+                            pushGrouped("Packages", {
                                 type: "flatpak",
-                                installed: !!flatpakInstalled[m.item.appId],
+                                installed: false,
                                 item: m.item
                             });
                         }
                     }
                     if (pacPending || fpPending)
-                        items.push({ type: "pacmanInfo", message: "Searching packages…" });
+                        pushGrouped("Packages", { type: "pacmanInfo", message: "Searching packages…" });
                 } else if (tok.kind === "apps") {
                     let n = parseInt(tok.param);
                     let list = (n && n > 0) ? filteredApps.slice(0, n) : filteredApps;
-                    for (let app of list) items.push({ type: "app", app: app });
+                    for (let app of list) pushGrouped("Apps", { type: "app", app: app });
+                } else if (tok.kind === "files") {
+                    if (!Config.launcherFilesEnabled || !filesAvailable) continue;
+                    if (uq.length < 2) continue;
+                    if (fileSearching || uq !== fileLastSearched) {
+                        pushGrouped("Files", { type: "info", message: "Searching files…", loading: true });
+                        continue;
+                    }
+                    let n = parseInt(tok.param) || 3;
+                    let entries = fileFoldersOnly
+                        ? fileSearchResults.filter(r => r.isDir)
+                        : fileSearchResults;
+                    for (let r of entries.slice(0, n))
+                        pushGrouped("Files", { type: "file", path: r.path, isDir: r.isDir });
                 } else if (tok.kind === "systemActions") {
                     if (!Config.launcherSystemActionsEnabled) continue;
                     let sys = [];
                     for (let a of systemActions) {
                         let s = scoreSystemAction(a, uq.toLowerCase());
-                        if (s >= 0.5) sys.push({ action: a, score: s });
+                        if (s >= 0.5) sys.push({ action: a, score: s, strong: strongSystemMatch(a, uq) });
                     }
                     sys.sort((a, b) => b.score - a.score);
-                    for (let s of sys) items.push({ type: "system", action: s.action });
+                    for (let s of sys) {
+                        let entry = { type: "system", action: s.action };
+                        if (s.strong) pushGrouped("Best match", entry);
+                        else pushGrouped("System", entry);
+                    }
                 }
             }
+            let items = [];
+            appendSection(items, "Best match", groups["Best match"]);
+            // Sort the remaining sections by how well their top item matches
+            // the query. Stable on ties via the original token order so the
+            // user's configured priority still acts as a tiebreaker.
+            let scored = [];
+            let origIdx = 0;
+            for (let title of groupOrder) {
+                if (title === "Best match") continue;
+                let group = groups[title];
+                let raw = sectionMatchScore(group, uq);
+                let weight = sectionCategoryWeight(group);
+                scored.push({
+                    title: title,
+                    score: raw * weight,
+                    origIdx: origIdx++
+                });
+            }
+            scored.sort((a, b) => (b.score - a.score) || (a.origIdx - b.origIdx));
+            for (let s of scored) appendSection(items, s.title, groups[s.title]);
             return items;
         }
 
-        // Legacy fallback (universal search disabled): system actions then
-        // apps, with web-search only when the query matches nothing.
-        let q = searchText.trim();
+        // Legacy fallback (universal search disabled): apps first, then
+        // system actions, with web-search only when the query matches nothing.
         let items = [];
+        let sys = [];
         if (q.length > 0 && Config.launcherSystemActionsEnabled) {
-            let sys = [];
             for (let a of systemActions) {
                 let s = scoreSystemAction(a, q.toLowerCase());
                 if (s >= 0.5) sys.push({ action: a, score: s });
             }
             sys.sort((a, b) => b.score - a.score);
-            for (let s of sys) items.push({ type: "system", action: s.action });
         }
-        for (let app of filteredApps) items.push({ type: "app", app: app });
-        if (filteredApps.length === 0 && items.length === 0 && calcValue === null
+        appendSection(items, "Apps", filteredApps.map(app => ({ type: "app", app: app })));
+        appendSection(items, "System", sys.map(s => ({ type: "system", action: s.action })));
+        if (filteredApps.length === 0 && sys.length === 0 && calcValue === null
             && q.length > 0 && Config.launcherWebSearchEnabled) {
-            for (let e of parsedEngines()) {
-                items.push({ type: "search", engine: e, query: q });
-            }
+            appendSection(items, "Web", parsedEngines().map(e => ({ type: "search", engine: e, query: q })));
         }
         return items;
+    }
+
+    function _resetLauncherState(initialSearchText) {
+        root.closing = false;
+        root.searchText = initialSearchText || "";
+        root.uninstallConfirmId = "";
+        root.flatpakSearchResults = [];
+        root.flatpakLastSearched = "";
+        root.flatpakSearching = false;
+        root.pacmanSearchResults = [];
+        root.pacmanLastSearched = "";
+        root.pacmanSearching = false;
     }
 
     function toggle() {
         if (root.visible && !root.closing) {
             root.closing = true;
         } else if (!root.visible) {
-            root.closing = false;
+            _resetLauncherState("");
+            // Set visible AFTER state reset so the LazyLoader's synchronous
+            // instantiation (which fires TextInput's Component.onCompleted)
+            // sees the final state instead of a transient empty input.
             root.visible = true;
-            root.searchText = "";
-            root.clipboardCacheLoaded = false;
-            root.clipboardCache = [];
-            root.flatpakInstalledLoaded = false;
-            root.flatpakInstalled = ({});
-            root.flatpakSearchResults = [];
-            root.flatpakLastSearched = "";
-            root.flatpakSearching = false;
-            root.pacmanInstalledLoaded = false;
-            root.pacmanInstalled = ({});
-            root.pacmanSearchResults = [];
-            root.pacmanLastSearched = "";
-            root.pacmanSearching = false;
         }
     }
 
@@ -1751,16 +2701,67 @@ Scope {
         else if (item.type === "system") root.runSystemAction(item.action);
         else if (item.type === "command") root.runShellCommand(item.command);
         else if (item.type === "url" || item.type === "path") root.openTarget(item.target);
+        else if (item.type === "file") root.activateFile(item.path);
         else if (item.type === "clipboard") root.pasteClipboard(item.clip);
         else if (item.type === "emoji") root.copyEmoji(item.glyph);
         else if (item.type === "flatpak") root.activateFlatpak(item);
         else if (item.type === "pacman") root.activatePacman(item);
+        else if (item.type === "suggestion") {
+            root.searchText = item.query;
+            if (launcherLoader.active && searchBox) {
+                searchBox.text = item.query;
+                searchBox.inputItem.forceActiveFocus();
+            }
+        }
+    }
+
+    onSearchTextChanged: uninstallConfirmId = ""
+    onFilteredResultsChanged: {
+        if (!launcherLoader.active) return;
+        Qt.callLater(() => {
+            if (!launcherLoader.active) return;
+            let idx = -1;
+            if (resultsView.followFirstResult) {
+                idx = firstSelectableResultIndex();
+                resultsView.animateHighlight = false;
+            } else {
+                idx = resultIndexByKey(resultsView.selectionAnchorKey);
+                if (idx < 0)
+                    idx = ensureSelectableResultIndex(resultsView.currentIndex);
+            }
+            resultsView.currentIndex = idx >= 0 ? idx : -1;
+        });
     }
 
     IpcHandler {
         target: "launcher"
         function toggle(): void {
             root.toggle();
+        }
+        // Open the launcher pre-filled with the clipboard prefix, so the
+        // user lands directly in clipboard-history mode. Replaces the
+        // standalone ClipboardHistory popup bound to Meta+V.
+        function openClipboard(): void {
+            let prefix = Config.launcherClipboardPrefix || "cb";
+            let seed = prefix + " ";
+            if (root.visible && !root.closing && root.searchText === seed) {
+                root.closing = true;
+                return;
+            }
+            if (root.visible && launcherLoader.active && searchBox) {
+                // Already open — rewrite the input directly.
+                searchBox.text = seed;
+                searchBox.inputItem.forceActiveFocus();
+                return;
+            }
+            // Inline the same setup toggle() does, but with the seeded
+            // search text applied before visible flips to true. The
+            // LazyLoader instantiates its content (including the TextInput)
+            // synchronously on visibility change, so searchText must be
+            // correct at that moment.
+            root.pendingSeed = seed;
+            root._resetLauncherState(seed);
+            root.visible = true;
         }
     }
 
@@ -1822,7 +2823,14 @@ Scope {
                 id: container
                 anchors.centerIn: parent
                 width: Config.launcherWidth
-                height: Math.min(Config.launcherMaxHeight, searchBox.height + resultsView.contentHeight + 40 + (root.calcValue !== null ? Config.launcherItemHeight + 8 : 0))
+                height: Math.min(
+                    Config.launcherMaxHeight,
+                    searchBox.height
+                    + resultsView.contentHeight
+                    + footerBar.implicitHeight
+                    + 40
+                    + (root.calcValue !== null ? calcRow.height + 6 : 0)
+                )
                 color: Theme.launcherBg
                 radius: Config.launcherRadius
                 border.color: Config.surface1
@@ -1876,29 +2884,85 @@ Scope {
                     anchors.margins: 12
                     spacing: 8
 
-                    Quill.TextField {
+                    Rectangle {
                         id: searchBox
                         Layout.fillWidth: true
-                        variant: "filled"
-                        placeholder: "Search apps..."
-                        autoFocus: root.visible
-                        onTextEdited: (val) => {
-                            root.searchText = val;
-                            resultsView.currentIndex = 0;
-                        }
+                        Layout.preferredHeight: Math.max(Config.launcherSearchHeight + 10, 58)
+                        color: "transparent"
+                        property alias text: searchInput.text
+                        property alias inputItem: searchInput
 
                         function cycleResults(dir, wrap) {
-                            let count = root.filteredResults.length;
-                            if (count === 0) return;
-                            resultsView.keyboardNav = true;
-                            let next = resultsView.currentIndex + dir;
-                            if (wrap) {
-                                next = (next + count) % count;
-                            } else {
-                                if (next < 0) next = 0;
-                                if (next > count - 1) next = count - 1;
+                            let next = root.nextSelectableResultIndex(resultsView.currentIndex, dir, wrap);
+                            if (next < 0)
+                                next = dir < 0 ? root.lastSelectableResultIndex() : root.firstSelectableResultIndex();
+                            if (next >= 0) {
+                                resultsView.keyboardNav = true;
+                                resultsView.followFirstResult = false;
+                                resultsView.animateHighlight = true;
+                                resultsView.currentIndex = next;
                             }
-                            resultsView.currentIndex = next;
+                        }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 6
+                            anchors.rightMargin: 6
+                            spacing: 10
+
+                            IconSearch {
+                                size: 18
+                                color: Config.overlay1
+                                Layout.leftMargin: 6
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            TextInput {
+                                id: searchInput
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                verticalAlignment: TextInput.AlignVCenter
+                                color: Config.text
+                                selectionColor: Config.surface1
+                                selectedTextColor: Config.text
+                                font.pixelSize: 22
+                                font.family: Config.fontFamily
+                                clip: true
+                                focus: root.visible
+                                Component.onCompleted: {
+                                    if (root.pendingSeed !== "") {
+                                        text = root.pendingSeed;
+                                        root.pendingSeed = "";
+                                        cursorPosition = text.length;
+                                    }
+                                }
+                                onTextChanged: {
+                                    root.searchText = text;
+                                    root.uninstallConfirmId = "";
+                                    resultsView.keyboardNav = true;
+                                    resultsView.followFirstResult = true;
+                                    resultsView.animateHighlight = false;
+                                    resultsView.currentIndex = root.firstSelectableResultIndex();
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    text: root.launcherPlaceholder
+                                    color: Config.overlay0
+                                    font.pixelSize: searchInput.font.pixelSize
+                                    font.family: searchInput.font.family
+                                    visible: searchInput.text === ""
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 1
+                            color: Config.surface1
                         }
 
                         Component.onCompleted: {
@@ -1924,8 +2988,8 @@ Scope {
                                     root.copyCalcResult();
                                     return;
                                 }
-                                if (root.filteredResults.length === 0) return;
-                                let idx = Math.max(0, Math.min(resultsView.currentIndex, root.filteredResults.length - 1));
+                                let idx = root.ensureSelectableResultIndex(resultsView.currentIndex);
+                                if (idx < 0) return;
                                 let item = root.filteredResults[idx];
                                 let ctrl = !!(event.modifiers & Qt.ControlModifier);
                                 if (ctrl && item.type === "app")
@@ -1944,11 +3008,17 @@ Scope {
                                 if (event.key !== Qt.Key_Backspace) return;
                                 if (!(event.modifiers & Qt.ControlModifier)) return;
                                 if (!(event.modifiers & Qt.ShiftModifier)) return;
-                                if (root.filteredResults.length === 0) return;
-                                let idx = Math.max(0, Math.min(resultsView.currentIndex, root.filteredResults.length - 1));
+                                let idx = root.ensureSelectableResultIndex(resultsView.currentIndex);
+                                if (idx < 0) return;
                                 let item = root.filteredResults[idx];
                                 if (item.type !== "app") return;
-                                if (root.uninstallApp(item.app)) event.accepted = true;
+                                if (root.requestUninstallApp(item.app)) event.accepted = true;
+                            });
+                            Qt.callLater(() => {
+                                resultsView.keyboardNav = true;
+                                resultsView.followFirstResult = true;
+                                resultsView.animateHighlight = false;
+                                resultsView.currentIndex = root.firstSelectableResultIndex();
                             });
                         }
                     }
@@ -1956,12 +3026,11 @@ Scope {
                     Rectangle {
                         id: calcRow
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Config.launcherItemHeight
+                        Layout.preferredHeight: Math.max(Config.launcherItemHeight, 52)
                         visible: root.calcValue !== null
-                        radius: Config.launcherItemRadius
-                        color: Config.surface1
-                        border.color: Config.yellow
-                        border.width: 1
+                        radius: 8
+                        color: Config.launcherCalculatorCopyOnEnter ? Config.surface1 : "transparent"
+                        border.width: 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -1971,7 +3040,7 @@ Scope {
 
                             IconCalculator {
                                 size: Config.launcherIconSize * 0.8
-                                color: Config.yellow
+                                color: Config.overlay1
                                 Layout.preferredWidth: Config.launcherIconSize
                                 Layout.preferredHeight: Config.launcherIconSize
                                 Layout.alignment: Qt.AlignVCenter
@@ -1986,12 +3055,23 @@ Scope {
                                 elide: Text.ElideRight
                             }
 
-                            Text {
+                            Rectangle {
                                 visible: !root.calcOverflow
-                                text: Config.launcherCalculatorCopyOnEnter ? "⏎ copy" : "click to copy"
-                                color: Config.overlay0
-                                font.pixelSize: 11
-                                font.family: Config.fontFamily
+                                implicitWidth: calcHint.implicitWidth + 14
+                                implicitHeight: 22
+                                radius: 999
+                                color: "transparent"
+                                border.color: "transparent"
+                                border.width: 1
+
+                                Text {
+                                    id: calcHint
+                                    anchors.centerIn: parent
+                                    text: Config.launcherCalculatorCopyOnEnter ? "Enter copies" : "Click to copy"
+                                    color: Config.overlay0
+                                    font.pixelSize: 10
+                                    font.family: Config.fontFamily
+                                }
                             }
                         }
 
@@ -2007,29 +3087,76 @@ Scope {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        spacing: 2
+                        spacing: 0
                         model: root.filteredResults
-                        currentIndex: 0
+                        currentIndex: -1
                         property bool keyboardNav: false
+                        property bool followFirstResult: true
+                        property bool animateHighlight: false
+                        property string selectionAnchorKey: ""
                         property real lastMouseX: -1
                         property real lastMouseY: -1
+
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickDeceleration: 6000
+                        maximumFlickVelocity: 4000
+                        pixelAligned: true
+                        WheelHandler {
+                            target: null
+                            onWheel: (event) => {
+                                let step = event.angleDelta.y / 8;
+                                let pixels = step * 4;
+                                let target = Math.max(0,
+                                    Math.min(resultsView.contentHeight - resultsView.height,
+                                        resultsView.contentY - pixels));
+                                scrollAnim.to = target;
+                                scrollAnim.restart();
+                                event.accepted = true;
+                            }
+                        }
+                        NumberAnimation {
+                            id: scrollAnim
+                            target: resultsView
+                            property: "contentY"
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
 
                         highlightFollowsCurrentItem: false
                         onCurrentIndexChanged: {
                             if (currentItem)
                                 positionViewAtIndex(currentIndex, ListView.Contain);
+                            let item = (currentIndex >= 0 && currentIndex < root.filteredResults.length)
+                                ? root.filteredResults[currentIndex]
+                                : null;
+                            if (item && root.isSelectableResult(item))
+                                selectionAnchorKey = root.resultKey(item);
+                            if (!item || item.type !== "app" || (item.app.id ?? "") !== root.uninstallConfirmId)
+                                root.uninstallConfirmId = "";
                         }
                         highlight: Rectangle {
+                            visible: resultsView.currentItem
+                                && resultsView.currentIndex >= 0
+                                && root.isSelectableResult(root.filteredResults[resultsView.currentIndex])
+                                && !(root.calcValue !== null && Config.launcherCalculatorCopyOnEnter)
                             width: resultsView.width
-                            height: Config.launcherItemHeight
-                            radius: Config.launcherItemRadius
+                            height: resultsView.currentItem ? resultsView.currentItem.height : Config.launcherItemHeight
+                            radius: 8
                             color: Config.surface1
                             y: resultsView.currentItem ? resultsView.currentItem.y : 0
                             z: 0
                             Behavior on y {
+                                enabled: resultsView.animateHighlight
                                 NumberAnimation {
                                     duration: 150
                                     easing.type: Easing.InOutCubic
+                                }
+                            }
+                            Behavior on height {
+                                enabled: resultsView.animateHighlight
+                                NumberAnimation {
+                                    duration: 120
+                                    easing.type: Easing.OutCubic
                                 }
                             }
                         }
@@ -2038,12 +3165,16 @@ Scope {
                             id: resultItem
                             required property var modelData
                             required property int index
+                            readonly property bool isSection: modelData.type === "section"
+                            readonly property bool isSuggestion: modelData.type === "suggestion"
+                            readonly property bool isInfo: modelData.type === "info"
                             readonly property bool isApp: modelData.type === "app"
                             readonly property bool isSearch: modelData.type === "search"
                             readonly property bool isSystem: modelData.type === "system"
                             readonly property bool isCommand: modelData.type === "command"
                             readonly property bool isUrl: modelData.type === "url"
                             readonly property bool isPath: modelData.type === "path"
+                            readonly property bool isFile: modelData.type === "file"
                             readonly property bool isClipboard: modelData.type === "clipboard"
                             readonly property bool isEmoji: modelData.type === "emoji"
                             readonly property bool isFlatpak: modelData.type === "flatpak"
@@ -2057,22 +3188,47 @@ Scope {
                             readonly property var pacmanItem: isPacman ? modelData.item : null
                             readonly property bool pacmanInstalledState: isPacman ? modelData.installed : false
                             readonly property bool isPacmanAur: isPacman && pacmanItem && pacmanItem.repo === "aur"
+                            readonly property bool isSelectable: root.isSelectableResult(modelData)
+                            readonly property bool isSelected: resultsView.currentIndex === index
+                            readonly property var uninstallOwner: isApp ? root.appOwnership[appData?.id ?? ""] : null
+                            readonly property bool removable: isApp && !!uninstallOwner
+                            readonly property bool uninstallArmed: removable && root.uninstallConfirmId === (appData?.id ?? "")
+                            readonly property color accentColor: root.resultAccentColor(modelData)
+                            readonly property string titleText: root.resultTitle(modelData)
+                            readonly property string subtitleText: root.resultSubtitle(modelData)
+                            readonly property string lineText: root.resultLineText(modelData)
+                            readonly property var badgeData: root.resultBadges(modelData)
+                            readonly property bool loadingState: root.resultLoading(modelData)
+                            readonly property var shortcutData: root.shortcutActions(modelData)
+                            readonly property var inlineActionData: root.inlineActions(modelData)
 
                             width: resultsView.width
-                            height: Config.launcherItemHeight
-                            radius: Config.launcherItemRadius
+                            height: isSection
+                                ? 22
+                                : (isClipboard && modelData.clip && modelData.clip.isImage)
+                                    ? 68
+                                    : (isFlatpak || isPacman || isFlatpakInfo || isPacmanInfo || isInfo || isSuggestion || isSearch || isFile)
+                                        ? Math.max(Config.launcherItemHeight + 2, 48)
+                                        : Math.max(Config.launcherItemHeight - 2, 42)
+                            radius: 8
                             color: "transparent"
                             z: 1
 
                             RowLayout {
+                                z: 1
                                 anchors.fill: parent
                                 anchors.leftMargin: 12
                                 anchors.rightMargin: 12
                                 spacing: 12
+                                visible: !resultItem.isSection
 
                                 Item {
-                                    Layout.preferredWidth: Config.launcherIconSize
-                                    Layout.preferredHeight: Config.launcherIconSize
+                                    readonly property bool _isImageClip: resultItem.isClipboard
+                                        && resultItem.modelData.clip
+                                        && resultItem.modelData.clip.isImage
+                                    Layout.preferredWidth: _isImageClip ? 56 : Config.launcherIconSize
+                                    Layout.preferredHeight: _isImageClip ? 56 : Config.launcherIconSize
+                                    Layout.alignment: Qt.AlignVCenter
 
                                     Image {
                                         anchors.fill: parent
@@ -2102,11 +3258,21 @@ Scope {
                                         mipmap: true
                                     }
 
+                                    Loader {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isSuggestion
+                                        source: resultItem.isSuggestion ? resultItem.modelData.iconSource : ""
+                                        onLoaded: {
+                                            item.size = Config.launcherIconSize * 0.75;
+                                            item.color = Config.overlay1;
+                                        }
+                                    }
+
                                     IconSearch {
                                         anchors.centerIn: parent
                                         visible: resultItem.isSearch && !engineIcon.visible
                                         size: Config.launcherIconSize * 0.7
-                                        color: Config.blue
+                                        color: Config.overlay1
                                     }
 
                                     Loader {
@@ -2116,7 +3282,7 @@ Scope {
                                         source: resultItem.isSystem ? resultItem.sysAction.iconSource : ""
                                         onLoaded: {
                                             item.size = Config.launcherIconSize * 0.75;
-                                            item.color = resultItem.sysAction.color;
+                                            item.color = Config.overlay1;
                                         }
                                     }
 
@@ -2124,28 +3290,64 @@ Scope {
                                         anchors.centerIn: parent
                                         visible: resultItem.isCommand
                                         size: Config.launcherIconSize * 0.75
-                                        color: Config.green
+                                        color: Config.overlay1
                                     }
 
                                     IconExternalLink {
                                         anchors.centerIn: parent
                                         visible: resultItem.isUrl
                                         size: Config.launcherIconSize * 0.75
-                                        color: Config.blue
+                                        color: Config.overlay1
                                     }
 
                                     IconFolder {
                                         anchors.centerIn: parent
                                         visible: resultItem.isPath
                                         size: Config.launcherIconSize * 0.75
-                                        color: Config.peach
+                                        color: Config.overlay1
+                                    }
+
+                                    IconFileText {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isFile && !(resultItem.modelData && resultItem.modelData.isDir)
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.overlay1
+                                    }
+
+                                    IconFolder {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isFile && resultItem.modelData && resultItem.modelData.isDir
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.overlay1
                                     }
 
                                     IconClipboard {
                                         anchors.centerIn: parent
-                                        visible: resultItem.isClipboard
+                                        visible: (resultItem.isClipboard && !clipboardImagePreview.visible)
+                                            || (resultItem.isInfo && resultItem.modelData.tone === "clipboard")
                                         size: Config.launcherIconSize * 0.75
-                                        color: Config.mauve
+                                        color: Config.overlay1
+                                    }
+
+                                    Image {
+                                        id: clipboardImagePreview
+                                        anchors.fill: parent
+                                        property bool isImageClip: resultItem.isClipboard
+                                            && resultItem.modelData.clip
+                                            && resultItem.modelData.clip.isImage
+                                        // Bind to clipboardImageGen so source rebinds after a
+                                        // background decode finishes, picking up the new file.
+                                        source: isImageClip
+                                            ? "file://" + root.clipboardImageDir + "/" + (resultItem.modelData.clip.id ?? "")
+                                                  + "?v=" + root.clipboardImageGen
+                                            : ""
+                                        visible: isImageClip && status === Image.Ready
+                                        fillMode: Image.PreserveAspectCrop
+                                        sourceSize.width: parent.width * 2
+                                        sourceSize.height: parent.height * 2
+                                        smooth: true
+                                        cache: true
+                                        asynchronous: true
                                     }
 
                                     Text {
@@ -2183,7 +3385,7 @@ Scope {
 
                                     // Installed-state overlay: small green dot at bottom-right
                                     Rectangle {
-                                        visible: resultItem.isFlatpak && resultItem.flatpakInstalledState
+                                        visible: false
                                         width: 9; height: 9; radius: 5
                                         color: Config.green
                                         border.color: Theme.launcherBg
@@ -2200,8 +3402,7 @@ Scope {
                                         visible: (resultItem.isFlatpak && !flatpakIcon.visible)
                                             || resultItem.isFlatpakInfo
                                         size: Config.launcherIconSize * 0.78
-                                        color: resultItem.isFlatpakInfo ? Config.overlay0
-                                            : (resultItem.flatpakInstalledState ? Config.green : Config.blue)
+                                        color: Config.overlay1
                                     }
 
                                     // Official repo (core/extra/multilib/...): package box
@@ -2212,8 +3413,7 @@ Scope {
                                         visible: (resultItem.isPacman && !resultItem.isPacmanAur)
                                             || resultItem.isPacmanInfo
                                         size: Config.launcherIconSize * 0.78
-                                        color: resultItem.isPacmanInfo ? Config.overlay0
-                                            : (resultItem.pacmanInstalledState ? Config.green : Config.peach)
+                                        color: Config.overlay1
                                     }
 
                                     // AUR: user-submitted PKGBUILD archive — distinct shape
@@ -2223,137 +3423,171 @@ Scope {
                                         anchors.centerIn: parent
                                         visible: resultItem.isPacmanAur
                                         size: Config.launcherIconSize * 0.78
-                                        color: resultItem.pacmanInstalledState ? Config.green : Config.mauve
+                                        color: Config.overlay1
+                                    }
+
+                                    IconInfo {
+                                        anchors.centerIn: parent
+                                        visible: resultItem.isInfo && resultItem.modelData.tone !== "clipboard"
+                                        size: Config.launcherIconSize * 0.75
+                                        color: Config.overlay1
                                     }
 
                                     Rectangle {
-                                        visible: resultItem.isPacman && resultItem.pacmanInstalledState
-                                        width: 9; height: 9; radius: 5
-                                        color: Config.green
-                                        border.color: Theme.launcherBg
-                                        border.width: 1.5
-                                        anchors.right: parent.right
-                                        anchors.bottom: parent.bottom
-                                        anchors.rightMargin: -2
-                                        anchors.bottomMargin: -2
-                                        z: 2
+                                        visible: false
+                                        width: 0
+                                        height: 0
+                                    }
+
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    spacing: 2
+
+                                    Item {
+                                        Layout.fillWidth: true
+                                        implicitHeight: loadingRow.visible ? loadingRow.implicitHeight : lineLabel.implicitHeight
+
+                                        Text {
+                                            id: lineLabel
+                                            anchors.left: parent.left
+                                            anchors.right: repoBadge.visible ? repoBadge.left : parent.right
+                                            anchors.rightMargin: repoBadge.visible ? 8 : 0
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: !resultItem.loadingState
+                                            text: resultItem.lineText
+                                            textFormat: Text.StyledText
+                                            color: (resultItem.isFlatpakInfo || resultItem.isPacmanInfo || resultItem.isInfo)
+                                                    ? Config.subtext0 : Config.text
+                                            font.pixelSize: 14
+                                            font.family: Config.fontFamily
+                                            font.italic: resultItem.isFlatpakInfo || resultItem.isPacmanInfo || resultItem.isInfo
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                        }
+
+                                        Text {
+                                            id: repoBadge
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: (resultItem.isFlatpak || resultItem.isPacman || resultItem.isSearch || resultItem.isFile)
+                                                && root.resultRepoLabel(resultItem.modelData) !== ""
+                                            text: root.resultRepoLabel(resultItem.modelData)
+                                            color: Config.overlay0
+                                            font.pixelSize: 11
+                                            font.family: Config.fontFamily
+                                        }
+
+                                        RowLayout {
+                                            id: loadingRow
+                                            anchors.fill: parent
+                                            spacing: 6
+                                            visible: resultItem.loadingState
+
+                                            Repeater {
+                                                model: [0.55, 0.35]
+
+                                                Rectangle {
+                                                    required property real modelData
+                                                    Layout.preferredWidth: (resultItem.width - 80) * modelData
+                                                    Layout.preferredHeight: 10
+                                                    radius: 999
+                                                    color: Config.surface1
+                                                    opacity: 0.75
+                                                    SequentialAnimation on opacity {
+                                                        running: resultItem.loadingState
+                                                        loops: Animation.Infinite
+                                                        NumberAnimation { to: 0.35; duration: 520; easing.type: Easing.InOutCubic }
+                                                        NumberAnimation { to: 0.75; duration: 520; easing.type: Easing.InOutCubic }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        visible: (resultItem.isFlatpak || resultItem.isPacman || resultItem.isSearch || resultItem.isFile) && resultItem.subtitleText !== ""
+                                        text: resultItem.subtitleText
+                                        color: Config.subtext0
+                                        font.pixelSize: 11
+                                        font.family: Config.fontFamily
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 1
+                                        Layout.fillWidth: true
                                     }
                                 }
 
-                                Text {
-                                    text: resultItem.isApp
-                                        ? (resultItem.appData.name ?? "")
-                                        : resultItem.isSearch
-                                            ? ("Search " + resultItem.modelData.engine.name + " for \u201C" + resultItem.modelData.query + "\u201D")
-                                            : resultItem.isSystem
-                                                ? resultItem.sysAction.name
-                                                : resultItem.isCommand
-                                                    ? resultItem.modelData.command
-                                                    : (resultItem.isUrl || resultItem.isPath)
-                                                        ? resultItem.modelData.display
-                                                        : resultItem.isClipboard
-                                                            ? (resultItem.modelData.clip.text ?? "")
-                                                            : resultItem.isEmoji
-                                                                ? resultItem.modelData.name
-                                                                : resultItem.isFlatpak
-                                                                    ? (resultItem.flatpakItem.name
-                                                                        + (root.flatpakVerified[resultItem.flatpakItem.appId] ? " \u2713" : "")
-                                                                        + (resultItem.flatpakItem.summary
-                                                                            ? "  \u00B7  " + resultItem.flatpakItem.summary : ""))
-                                                                    : resultItem.isFlatpakInfo
-                                                                        ? resultItem.modelData.message
-                                                                        : resultItem.isPacman
-                                                                            ? (resultItem.pacmanItem.name
-                                                                                + "  \u00B7  " + resultItem.pacmanItem.repo
-                                                                                + (resultItem.pacmanItem.repo === "aur" && resultItem.pacmanItem.votes != null
-                                                                                    ? "  \u00B7  \u2191" + resultItem.pacmanItem.votes : "")
-                                                                                + (resultItem.pacmanItem.outOfDate
-                                                                                    ? "  \u00B7  \u26A0 out-of-date" : "")
-                                                                                + (resultItem.pacmanItem.desc
-                                                                                    ? "  \u00B7  " + resultItem.pacmanItem.desc : ""))
-                                                                            : resultItem.isPacmanInfo
-                                                                                ? resultItem.modelData.message
-                                                                                : ""
-                                    color: resultItem.isSystem ? resultItem.sysAction.color
-                                        : resultItem.isCommand ? Config.green
-                                        : resultItem.isUrl ? Config.blue
-                                        : resultItem.isPath ? Config.peach
-                                        : resultItem.isClipboard ? Config.text
-                                        : resultItem.isFlatpakInfo ? Config.overlay0
-                                        : resultItem.isPacmanInfo ? Config.overlay0
-                                        : Config.text
-                                    font.pixelSize: 14
-                                    font.family: Config.fontFamily
-                                    font.bold: resultItem.isSystem
-                                    font.italic: resultItem.isFlatpakInfo || resultItem.isPacmanInfo
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                }
+                                RowLayout {
+                                    z: 3
+                                    visible: resultItem.isSelected && resultItem.inlineActionData.length > 0
+                                    spacing: 12
+                                    Layout.alignment: Qt.AlignVCenter
 
-                                Text {
-                                    text: resultItem.isApp
-                                        ? (resultItem.appData.genericName ?? "")
-                                        : resultItem.isSearch
-                                            ? resultItem.modelData.engine.keyword
-                                            : resultItem.isSystem
-                                                ? "System"
-                                                : resultItem.isCommand
-                                                    ? ("⏎ run via " + Config.launcherShellRunnerShell)
-                                                    : resultItem.isUrl
-                                                        ? "Open in browser"
-                                                        : resultItem.isPath
-                                                            ? "Open path"
-                                                            : resultItem.isClipboard
-                                                                ? (resultItem.modelData.clip.isImage ? "Image" : "Clipboard")
-                                                                : resultItem.isEmoji
-                                                                    ? "Emoji"
-                                                                    : resultItem.isFlatpak
-                                                                        ? (resultItem.flatpakInstalledState ? "\u23CE Remove" : "\u23CE Install")
-                                                                        : resultItem.isPacman
-                                                                            ? (resultItem.pacmanInstalledState ? "\u23CE Remove" : "\u23CE Install")
-                                                                            : ""
-                                    color: resultItem.isFlatpak
-                                        ? (resultItem.flatpakInstalledState ? Config.red : Config.blue)
-                                        : resultItem.isPacman
-                                            ? (resultItem.pacmanInstalledState ? Config.red
-                                                : (resultItem.isPacmanAur ? Config.mauve : Config.peach))
-                                            : Config.overlay0
-                                    font.pixelSize: 12
-                                    font.family: Config.fontFamily
-                                    font.bold: resultItem.isFlatpak || resultItem.isPacman
-                                    elide: Text.ElideRight
-                                    Layout.maximumWidth: 180
-                                }
+                                    Repeater {
+                                        model: resultItem.inlineActionData
 
-                                // Secondary action hint (flatpak only). Surfaces the
-                                // Ctrl+Enter shortcut to open the Flathub page, but only
-                                // for the currently-selected row — keeps unselected rows
-                                // visually quiet while still making the action discoverable.
-                                Text {
-                                    visible: resultItem.isFlatpak
-                                        && resultsView.currentIndex === resultItem.index
-                                    text: "\u2303\u23CE Flathub"
-                                    color: Config.overlay1
-                                    font.pixelSize: 11
-                                    font.family: Config.fontFamily
-                                }
+                                        Text {
+                                            id: actionLabel
+                                            required property var modelData
+                                            text: modelData.label
+                                            color: modelData.destructive ? Config.red : Config.overlay0
+                                            font.pixelSize: 11
+                                            font.family: Config.fontFamily
 
-                                IconStar {
-                                    visible: resultItem.isApp && root.isPinned(resultItem.appData.id ?? "")
-                                    size: 14
-                                    color: Config.yellow
-                                    Layout.preferredWidth: visible ? 14 : 0
-                                    Layout.preferredHeight: 14
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.runShortcutAction(resultItem.modelData, actionLabel.modelData.action)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                visible: resultItem.isSection
+                                anchors.fill: parent
+                                color: "transparent"
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 2
+                                    anchors.rightMargin: 2
+                                    spacing: 10
+
+                                    Text {
+                                        text: resultItem.modelData.title.toUpperCase()
+                                        color: Config.overlay0
+                                        font.pixelSize: 10
+                                        font.family: Config.fontFamily
+                                        font.letterSpacing: 1.2
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        height: 1
+                                        color: Qt.rgba(Config.surface1.r, Config.surface1.g, Config.surface1.b, 0.8)
+                                    }
                                 }
                             }
 
                             MouseArea {
                                 id: appMouse
+                                z: 0
                                 anchors.fill: parent
-                                hoverEnabled: true
+                                enabled: resultItem.isSelectable
+                                hoverEnabled: resultItem.isSelectable
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: resultItem.isSelectable ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked: (mouse) => {
+                                    resultsView.keyboardNav = false;
+                                    resultsView.followFirstResult = false;
+                                    resultsView.animateHighlight = true;
+                                    resultsView.currentIndex = resultItem.index;
                                     if (mouse.button === Qt.RightButton) {
                                         if (resultItem.isApp)
                                             root.togglePin(resultItem.appData.id ?? "");
@@ -2368,115 +3602,163 @@ Scope {
                                         resultsView.lastMouseX = screenX;
                                         resultsView.lastMouseY = screenY;
                                         resultsView.keyboardNav = false;
+                                        resultsView.followFirstResult = false;
+                                        resultsView.animateHighlight = true;
                                         resultsView.currentIndex = resultItem.index;
                                     }
                                 }
-                                onContainsMouseChanged: {
-                                    if (containsMouse && !resultsView.keyboardNav)
-                                        resultsView.currentIndex = resultItem.index;
-                                }
                             }
 
-                            // Per-row uninstall button. Only shown for app rows
-                            // where we've resolved the owning package (flatpak
-                            // or pacman/AUR). Later sibling than appMouse so
-                            // its own MouseArea captures clicks first — left
-                            // click uninstalls, rest bubbles to appMouse.
-                            // Keyboard equivalent: Ctrl+Shift+Backspace.
-                            Item {
-                                id: uninstallBtn
-                                width: 28
-                                height: 28
-                                readonly property var _own: resultItem.isApp
-                                    ? root.appOwnership[resultItem.appData.id ?? ""]
-                                    : null
-                                visible: resultItem.isApp && _own
-                                    && (appMouse.containsMouse || uninstallMouse.containsMouse)
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                z: 10
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    radius: 6
-                                    color: Config.red
-                                    opacity: uninstallMouse.containsMouse ? 0.18 : 0
-                                    Behavior on opacity { NumberAnimation { duration: 120 } }
-                                }
-
-                                IconTrash {
-                                    anchors.centerIn: parent
-                                    size: 16
-                                    color: uninstallMouse.containsMouse ? Config.red : Config.overlay1
-                                }
-
-                                MouseArea {
-                                    id: uninstallMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (resultItem.isApp)
-                                            root.uninstallApp(resultItem.appData);
-                                    }
-                                }
-                            }
                         }
 
                         Keys.onReturnPressed: (event) => {
-                            if (currentIndex >= 0 && currentIndex < root.filteredResults.length) {
-                                let item = root.filteredResults[currentIndex];
-                                let ctrl = !!(event.modifiers & Qt.ControlModifier);
-                                if (ctrl && item.type === "app")
-                                    root.togglePin(item.app.id ?? "");
-                                else if (ctrl && item.type === "flatpak")
-                                    root.openFlathubPage(item.item.appId);
-                                else
-                                    root.activateResult(item);
-                            }
+                            let idx = root.ensureSelectableResultIndex(currentIndex);
+                            if (idx < 0) return;
+                            let item = root.filteredResults[idx];
+                            let ctrl = !!(event.modifiers & Qt.ControlModifier);
+                            if (ctrl && item.type === "app")
+                                root.togglePin(item.app.id ?? "");
+                            else if (ctrl && item.type === "flatpak")
+                                root.openFlathubPage(item.item.appId);
+                            else if (ctrl && item.type === "file")
+                                root.revealFile(item.path);
+                            else
+                                root.activateResult(item);
                         }
                         Keys.onEscapePressed: root.toggle()
                         Keys.onUpPressed: {
                             keyboardNav = true;
-                            if (currentIndex === 0)
+                            followFirstResult = false;
+                            animateHighlight = true;
+                            let next = root.nextSelectableResultIndex(currentIndex, -1, false);
+                            if (next < 0)
                                 searchBox.inputItem.forceActiveFocus();
                             else
-                                currentIndex--;
+                                currentIndex = next;
                         }
                         Keys.onDownPressed: {
                             keyboardNav = true;
-                            if (currentIndex < count - 1)
-                                currentIndex++;
+                            followFirstResult = false;
+                            animateHighlight = true;
+                            let next = root.nextSelectableResultIndex(currentIndex, 1, false);
+                            if (next >= 0)
+                                currentIndex = next;
                         }
                         Keys.onPressed: (event) => {
                             if (event.key === Qt.Key_Tab) {
-                                let n = resultsView.count;
-                                if (n > 0) {
+                                let next = root.nextSelectableResultIndex(currentIndex, 1, true);
+                                if (next >= 0) {
                                     resultsView.keyboardNav = true;
-                                    resultsView.currentIndex = (resultsView.currentIndex + 1) % n;
+                                    resultsView.followFirstResult = false;
+                                    resultsView.animateHighlight = true;
+                                    resultsView.currentIndex = next;
                                 }
                                 event.accepted = true;
                             } else if (event.key === Qt.Key_Backtab) {
-                                let n = resultsView.count;
-                                if (n > 0) {
+                                let next = root.nextSelectableResultIndex(currentIndex, -1, true);
+                                if (next >= 0) {
                                     resultsView.keyboardNav = true;
-                                    resultsView.currentIndex = (resultsView.currentIndex - 1 + n) % n;
+                                    resultsView.followFirstResult = false;
+                                    resultsView.animateHighlight = true;
+                                    resultsView.currentIndex = next;
                                 }
                                 event.accepted = true;
                             } else if (event.key === Qt.Key_Backspace
                                     && (event.modifiers & Qt.ControlModifier)
                                     && (event.modifiers & Qt.ShiftModifier)) {
-                                if (currentIndex >= 0 && currentIndex < root.filteredResults.length) {
-                                    let item = root.filteredResults[currentIndex];
-                                    if (item.type === "app" && root.uninstallApp(item.app))
+                                let idx = root.ensureSelectableResultIndex(currentIndex);
+                                if (idx >= 0) {
+                                    let item = root.filteredResults[idx];
+                                    if (item.type === "app" && root.requestUninstallApp(item.app))
                                         event.accepted = true;
                                 }
+                            } else if (event.key === Qt.Key_C
+                                    && (event.modifiers & Qt.AltModifier)) {
+                                let idx = root.ensureSelectableResultIndex(currentIndex);
+                                if (idx >= 0) {
+                                    let item = root.filteredResults[idx];
+                                    if (item.type === "file") {
+                                        root.copyFilePath(item.path);
+                                        event.accepted = true;
+                                    }
+                                }
+                            } else if (event.key === Qt.Key_D
+                                    && (event.modifiers & Qt.AltModifier)) {
+                                root.fileFoldersOnly = !root.fileFoldersOnly;
+                                event.accepted = true;
                             } else if (!event.modifiers && event.text && event.text.length > 0) {
                                 searchBox.inputItem.forceActiveFocus();
                                 searchBox.text += event.text;
                                 event.accepted = true;
                             }
+                        }
+                    }
+
+                    Rectangle {
+                        id: footerBar
+                        Layout.fillWidth: true
+                        implicitHeight: footerLayout.implicitHeight + 10
+                        color: "transparent"
+                        readonly property var currentResult: (resultsView.currentIndex >= 0
+                                && resultsView.currentIndex < root.filteredResults.length)
+                            ? root.filteredResults[resultsView.currentIndex]
+                            : null
+                        readonly property var actions: {
+                            let labels = root.shortcutActions(currentResult).map(action => action.label.toLowerCase());
+                            labels.push("esc close");
+                            return labels;
+                        }
+
+                        readonly property var footerEntries: {
+                            let labels = uninstallConfirmId
+                                ? ["remove is armed for the selected app"]
+                                : actions;
+                            let arr = [];
+                            for (let i = 0; i < labels.length; i++) {
+                                if (i > 0) arr.push({ spacer: true, text: "" });
+                                arr.push({ spacer: false, text: labels[i] });
+                            }
+                            return arr;
+                        }
+
+                        RowLayout {
+                            id: footerLayout
+                            anchors.fill: parent
+                            anchors.leftMargin: 2
+                            anchors.rightMargin: 2
+                            anchors.topMargin: 6
+                            anchors.bottomMargin: 4
+                            spacing: 0
+
+                            Repeater {
+                                model: footerBar.footerEntries
+                                delegate: Item {
+                                    required property var modelData
+                                    Layout.fillWidth: modelData.spacer
+                                    Layout.preferredWidth: modelData.spacer ? -1 : lbl.implicitWidth
+                                    Layout.minimumWidth: modelData.spacer ? 8 : lbl.implicitWidth
+                                    implicitHeight: lbl.implicitHeight
+
+                                    Text {
+                                        id: lbl
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: !modelData.spacer
+                                        text: modelData.spacer ? "" : modelData.text
+                                        color: Config.overlay0
+                                        font.pixelSize: 10
+                                        font.family: Config.fontFamily
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            height: 1
+                            color: Config.surface1
                         }
                     }
                 }

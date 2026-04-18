@@ -1,3 +1,4 @@
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import ".."
@@ -5,7 +6,126 @@ import "../icons"
 import "../quill" as Quill
 
 ColumnLayout {
+    id: root
     spacing: 6
+
+    property string pinSearchText: ""
+    property list<DesktopEntry> launcherApps: {
+        let apps = Array.from(DesktopEntries.applications.values);
+        apps.sort((a, b) => {
+            let nameA = (a.name ?? "").toLowerCase();
+            let nameB = (b.name ?? "").toLowerCase();
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+        });
+        return apps;
+    }
+    property var pinSearchResults: {
+        let q = pinSearchText.trim().toLowerCase();
+        let pinned = {};
+        for (let id of Config.launcherPinnedApps)
+            pinned[id] = true;
+        let out = [];
+        for (let app of launcherApps) {
+            let id = app.id ?? "";
+            if (!id || pinned[id]) continue;
+            if (!q) {
+                out.push(app);
+            } else {
+                let name = (app.name ?? "").toLowerCase();
+                let generic = (app.genericName ?? "").toLowerCase();
+                if (name.includes(q) || generic.includes(q) || id.toLowerCase().includes(q))
+                    out.push(app);
+            }
+            if (out.length >= 6) break;
+        }
+        return out;
+    }
+    property var universalTokens: parseUniversalTokens(Config.launcherUniversalSearchOrder)
+
+    function parseUniversalTokens(order) {
+        let out = [];
+        for (let tok of String(order || "").split(",")) {
+            tok = tok.trim();
+            if (tok) out.push(tok);
+        }
+        return out;
+    }
+
+    function saveUniversalTokens(tokens) {
+        Config.set("launcher", "universalSearchOrder", tokens.join(","));
+    }
+
+    function moveUniversalToken(index, dir) {
+        let tokens = universalTokens.slice();
+        let next = index + dir;
+        if (next < 0 || next >= tokens.length) return;
+        let tmp = tokens[index];
+        tokens[index] = tokens[next];
+        tokens[next] = tmp;
+        saveUniversalTokens(tokens);
+    }
+
+    function removeUniversalToken(index) {
+        let tokens = universalTokens.slice();
+        tokens.splice(index, 1);
+        saveUniversalTokens(tokens);
+    }
+
+    function addUniversalToken(token) {
+        token = String(token || "").trim();
+        if (!token) return;
+        let tokens = universalTokens.slice();
+        tokens.push(token);
+        saveUniversalTokens(tokens);
+    }
+
+    function tokenLabel(token) {
+        if (token === "apps") return "Apps";
+        if (token === "systemActions") return "System Actions";
+        if (token.startsWith("apps:")) return "Apps (" + token.split(":")[1] + ")";
+        if (token.startsWith("packages:")) return "Packages (" + token.split(":")[1] + ")";
+        if (token.startsWith("pacman:")) return "Pacman (" + token.split(":")[1] + ")";
+        if (token.startsWith("flatpak:")) return "Flatpak (" + token.split(":")[1] + ")";
+        if (token.startsWith("web:")) return "Web: " + token.split(":")[1];
+        return token;
+    }
+
+    function tokenDescription(token) {
+        if (token === "apps") return "All launcher apps";
+        if (token === "systemActions") return "Power and session actions";
+        if (token.startsWith("apps:")) return "Top matching apps";
+        if (token.startsWith("packages:")) return "Merged pacman + Flatpak results";
+        if (token.startsWith("pacman:")) return "Repo and AUR packages";
+        if (token.startsWith("flatpak:")) return "Flathub app results";
+        if (token.startsWith("web:")) return "One search shortcut row";
+        return "Custom provider token";
+    }
+
+    function tokenColor(token) {
+        if (token.startsWith("web:")) return Config.blue;
+        if (token.startsWith("flatpak:")) return Config.blue;
+        if (token.startsWith("pacman:") || token.startsWith("packages:")) return Config.peach;
+        if (token === "systemActions") return Config.yellow;
+        return Config.green;
+    }
+
+    function addPinnedApp(id) {
+        id = String(id || "").trim();
+        if (!id) return;
+        let apps = Config.launcherPinnedApps.slice();
+        if (apps.indexOf(id) >= 0) return;
+        apps.push(id);
+        Config.set("launcher", "pinnedApps", apps);
+        pinSearchText = "";
+        if (pinSearchInput) pinSearchInput.text = "";
+    }
+
+    function launcherAppById(id) {
+        for (let app of launcherApps) {
+            if ((app.id ?? "") === id) return app;
+        }
+        return null;
+    }
 
     Text { text: "Dimensions"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.bottomMargin: 4 }
 
@@ -19,6 +139,149 @@ ColumnLayout {
     SliderSetting { label: "Icon Size"; section: "launcher"; key: "iconSize"; value: Config.launcherIconSize; from: 16; to: 48 }
     SliderSetting { label: "Backdrop Opacity"; section: "launcher"; key: "backdropOpacity"; value: Config.launcherBackdropOpacity; from: 0; to: 0.25; decimals: 2; stepSize: 0.01 }
     SliderSetting { label: "Transparency"; section: "transparency"; key: "launcher"; value: Config._data?.transparency?.launcher ?? -1; from: -1; to: 1.0; decimals: 2; stepSize: 0.05; visible: Config.transparencyEnabled }
+
+    Rectangle {
+        Layout.fillWidth: true
+        implicitHeight: 170
+        radius: 12
+        color: Config.surface0
+        border.color: Config.surface1
+        border.width: 1
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+
+            Text {
+                text: "Live Preview"
+                color: Config.text
+                font.pixelSize: 12
+                font.family: Config.fontFamily
+                font.bold: true
+            }
+
+            Text {
+                text: "The preview now follows the cleaner Alfred-style layout: stronger search bar, flatter rows, quieter metadata."
+                color: Config.subtext0
+                font.pixelSize: 10
+                font.family: Config.fontFamily
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - 24, Math.max(250, Config.launcherWidth * 0.45))
+                    height: Math.min(parent.height - 6, Math.max(92, Config.launcherMaxHeight * 0.22))
+                    radius: Config.launcherRadius
+                    color: Qt.rgba(Config.mantle.r, Config.mantle.g, Config.mantle.b, 0.92)
+                    border.color: Config.surface1
+                    border.width: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Math.max(26, Config.launcherSearchHeight * 0.6)
+                            radius: Math.max(4, Config.launcherSearchRadius * 0.7)
+                            color: "transparent"
+                            border.color: "transparent"
+                            border.width: 1
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                IconSearch {
+                                    size: 12
+                                    color: Config.overlay1
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: "Search apps, packages, web, math, paths..."
+                                    color: Config.overlay0
+                                    font.pixelSize: 12
+                                    font.family: Config.fontFamily
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: 1
+                                color: Config.surface1
+                            }
+                        }
+
+                        Repeater {
+                            model: [
+                                { title: "Pinned", subtitle: "Browser" },
+                                { title: "Recent", subtitle: "Terminal" },
+                                { title: "Package", subtitle: "AUR · Installed" }
+                            ]
+
+                            Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Math.max(20, Config.launcherItemHeight * 0.5)
+                                radius: 8
+                                color: index === 1
+                                    ? Qt.rgba(Config.surface1.r, Config.surface1.g, Config.surface1.b, 0.72)
+                                    : "transparent"
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 20
+                                        height: 20
+                                        radius: 6
+                                        color: Qt.rgba(Config.surface1.r, Config.surface1.g, Config.surface1.b, 0.5)
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 1
+
+                                        Text {
+                                            text: modelData.title
+                                            color: Config.text
+                                            font.pixelSize: 10
+                                            font.family: Config.fontFamily
+                                        }
+
+                                        Text {
+                                            text: modelData.subtitle
+                                            color: Config.overlay0
+                                            font.pixelSize: 9
+                                            font.family: Config.fontFamily
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     Text { text: "Behavior"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
@@ -99,13 +362,172 @@ ColumnLayout {
     Text { text: "Universal Search"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
     Text {
-        text: "When you type a plain query (no prefix), merge results from multiple providers in a configurable order. Format: comma-separated tokens. Supported: web:&lt;engine-keyword&gt; (one web-search item), pacman:&lt;n&gt;, flatpak:&lt;n&gt;, apps[:&lt;n&gt;] (default all), systemActions. Example: web:g,pacman:3,flatpak:3,web:gpt,web:per,apps puts Google first, then top-3 pacman, top-3 flatpak, ChatGPT, Perplexity, then apps. When disabled, the launcher falls back to apps + web-search-on-empty."
+        text: "When you type a plain query (no prefix), merge results from multiple providers in a configurable order. Apps always stay at the top, while the list below controls the order of the other provider groups."
         color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
         wrapMode: Text.Wrap; Layout.fillWidth: true
     }
 
     ToggleSetting { label: "Enabled"; section: "launcher"; key: "universalSearchEnabled"; value: Config.launcherUniversalSearchEnabled }
-    TextSetting { label: "Order"; section: "launcher"; key: "universalSearchOrder"; value: Config.launcherUniversalSearchOrder }
+
+    Rectangle {
+        Layout.fillWidth: true
+        radius: 12
+        color: Config.surface0
+        border.color: Config.surface1
+        border.width: 1
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+
+            Text {
+                text: "Provider Order"
+                color: Config.text
+                font.pixelSize: 12
+                font.family: Config.fontFamily
+                font.bold: true
+            }
+
+            Text {
+                text: "Apps stay first. Use the arrows to reorder the remaining provider groups."
+                color: Config.subtext0
+                font.pixelSize: 10
+                font.family: Config.fontFamily
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+
+            Repeater {
+                model: root.universalTokens
+
+                RowLayout {
+                    required property string modelData
+                    required property int index
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Rectangle {
+                        Layout.preferredWidth: 96
+                        Layout.preferredHeight: 28
+                        radius: 999
+                        color: Qt.rgba(root.tokenColor(modelData).r, root.tokenColor(modelData).g, root.tokenColor(modelData).b, 0.14)
+                        border.color: root.tokenColor(modelData)
+                        border.width: 1
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.tokenLabel(modelData)
+                            color: root.tokenColor(modelData)
+                            font.pixelSize: 10
+                            font.family: Config.fontFamily
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 28
+                        radius: 6
+                        color: Config.surface1
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 8
+                            anchors.right: parent.right
+                            anchors.rightMargin: 8
+                            text: root.tokenDescription(modelData) + "  -  " + modelData
+                            color: Config.text
+                            font.pixelSize: 11
+                            font.family: Config.fontFamily
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    Rectangle {
+                        width: 26; height: 26; radius: 6
+                        color: orderUpMouse.containsMouse ? Config.blue : Config.surface1
+                        Text {
+                            anchors.centerIn: parent
+                            text: "↑"
+                            color: Config.text
+                            font.pixelSize: 12
+                            font.family: Config.fontFamily
+                            font.bold: true
+                        }
+                        MouseArea {
+                            id: orderUpMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.moveUniversalToken(index, -1)
+                        }
+                    }
+
+                    Rectangle {
+                        width: 26; height: 26; radius: 6
+                        color: orderDownMouse.containsMouse ? Config.blue : Config.surface1
+                        Text {
+                            anchors.centerIn: parent
+                            text: "↓"
+                            color: Config.text
+                            font.pixelSize: 12
+                            font.family: Config.fontFamily
+                            font.bold: true
+                        }
+                        MouseArea {
+                            id: orderDownMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.moveUniversalToken(index, 1)
+                        }
+                    }
+
+                    Rectangle {
+                        width: 26; height: 26; radius: 6
+                        color: orderRemoveMouse.containsMouse ? Config.red : Config.surface1
+                        IconX { anchors.centerIn: parent; size: 10; color: Config.text }
+                        MouseArea {
+                            id: orderRemoveMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.removeUniversalToken(index)
+                        }
+                    }
+                }
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                width: parent.width
+                spacing: 6
+
+                Repeater {
+                    model: [
+                        { label: "Apps", token: "apps:8" },
+                        { label: "Packages", token: "packages:4" },
+                        { label: "Google", token: "web:g" },
+                        { label: "ChatGPT", token: "web:gpt" },
+                        { label: "Perplexity", token: "web:per" },
+                        { label: "System", token: "systemActions" }
+                    ]
+
+                    Quill.Button {
+                        required property var modelData
+                        text: "+ " + modelData.label
+                        variant: "secondary"
+                        size: "small"
+                        onClicked: root.addUniversalToken(modelData.token)
+                    }
+                }
+            }
+        }
+    }
+
+    TextSetting { label: "Raw Order"; section: "launcher"; key: "universalSearchOrder"; value: Config.launcherUniversalSearchOrder }
 
     Text { text: "URL &amp; Path"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
@@ -228,6 +650,7 @@ ColumnLayout {
                 id: kwInput; anchors.fill: parent; anchors.leftMargin: 6; anchors.rightMargin: 6
                 verticalAlignment: TextInput.AlignVCenter; color: Config.text
                 font.pixelSize: 11; font.family: Config.fontFamily; clip: true
+                onAccepted: addEngineBtn.add()
                 Text {
                     anchors.fill: parent; verticalAlignment: Text.AlignVCenter
                     text: "key"; color: Config.overlay0
@@ -243,6 +666,7 @@ ColumnLayout {
                 id: nmInput; anchors.fill: parent; anchors.leftMargin: 6; anchors.rightMargin: 6
                 verticalAlignment: TextInput.AlignVCenter; color: Config.text
                 font.pixelSize: 11; font.family: Config.fontFamily; clip: true
+                onAccepted: addEngineBtn.add()
                 Text {
                     anchors.fill: parent; verticalAlignment: Text.AlignVCenter
                     text: "name"; color: Config.overlay0
@@ -307,6 +731,60 @@ ColumnLayout {
         }
     }
 
+    Rectangle {
+        Layout.fillWidth: true
+        radius: 10
+        color: Config.surface0
+        border.color: Config.surface1
+        border.width: 1
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 6
+
+            Text {
+                text: "Engine Preview"
+                color: Config.text
+                font.pixelSize: 11
+                font.family: Config.fontFamily
+                font.bold: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Rectangle {
+                    Layout.preferredWidth: 54
+                    Layout.preferredHeight: 24
+                    radius: 999
+                    color: Config.surface1
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: kwInput.text.trim() !== "" ? kwInput.text.trim() : "key"
+                        color: Config.blue
+                        font.pixelSize: 11
+                        font.family: Config.fontFamily
+                        font.bold: true
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: (nmInput.text.trim() !== "" ? nmInput.text.trim() : "Engine name")
+                        + "  -  "
+                        + (urlInput.text.trim() !== "" ? urlInput.text.trim() : "https://example.com/?q=%s")
+                    color: Config.text
+                    font.pixelSize: 11
+                    font.family: Config.fontFamily
+                    elide: Text.ElideRight
+                }
+            }
+        }
+    }
+
     Text { text: "Hidden Apps"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
     Text {
@@ -328,7 +806,8 @@ ColumnLayout {
                 color: Config.surface0
                 Text {
                     anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8
-                    text: modelData; color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily
+                    text: modelData
+                    color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily
                 }
             }
 
@@ -409,7 +888,13 @@ ColumnLayout {
                 color: Config.surface0
                 Text {
                     anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8
-                    text: modelData; color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily
+                    anchors.right: parent.right; anchors.rightMargin: 8
+                    text: {
+                        let app = root.launcherAppById(modelData);
+                        return app ? ((app.name ?? modelData) + "  -  " + modelData) : modelData;
+                    }
+                    color: Config.text; font.pixelSize: 11; font.family: Config.fontFamily
+                    elide: Text.ElideRight
                 }
             }
 
@@ -430,6 +915,131 @@ ColumnLayout {
         }
     }
 
+    Rectangle {
+        Layout.fillWidth: true
+        radius: 12
+        color: Config.surface0
+        border.color: Config.surface1
+        border.width: 1
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+
+            Text {
+                text: "Add From Installed Apps"
+                color: Config.text
+                font.pixelSize: 12
+                font.family: Config.fontFamily
+                font.bold: true
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 30
+                radius: 6
+                color: Config.surface1
+                border.color: pinSearchInput.activeFocus ? Config.blue : Config.surface1
+                border.width: 1
+
+                TextInput {
+                    id: pinSearchInput
+                    anchors.fill: parent
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: Config.text
+                    font.pixelSize: 11
+                    font.family: Config.fontFamily
+                    clip: true
+                    onTextChanged: root.pinSearchText = text
+
+                    Text {
+                        anchors.fill: parent
+                        verticalAlignment: Text.AlignVCenter
+                        text: "Search installed apps by name or ID..."
+                        color: Config.overlay0
+                        font: pinSearchInput.font
+                        visible: !pinSearchInput.text
+                    }
+                }
+            }
+
+            Repeater {
+                model: root.pinSearchResults
+
+                RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Item {
+                        Layout.preferredWidth: 22
+                        Layout.preferredHeight: 22
+
+                        Image {
+                            anchors.fill: parent
+                            property string _icon: modelData.icon ?? ""
+                            property string _primary: Quickshell.iconPath(_icon, "application-x-executable")
+                            property string _fallback: Quickshell.iconPath("application-x-executable", "")
+                            source: _primary !== "" ? _primary : _fallback
+                            sourceSize: Qt.size(22, 22)
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 30
+                        radius: 6
+                        color: Config.surface1
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 8
+                            anchors.right: parent.right
+                            anchors.rightMargin: 8
+                            spacing: 1
+
+                            Text {
+                                text: modelData.name ?? modelData.id ?? ""
+                                color: Config.text
+                                font.pixelSize: 11
+                                font.family: Config.fontFamily
+                                font.bold: true
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+
+                            Text {
+                                text: modelData.id ?? ""
+                                color: Config.overlay0
+                                font.pixelSize: 9
+                                font.family: Config.fontFamily
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 30; height: 30; radius: 6
+                        color: pinAddSearchMouse.containsMouse ? Config.green : Config.surface1
+                        IconPlus { anchors.centerIn: parent; size: 12; color: Config.text }
+                        MouseArea {
+                            id: pinAddSearchMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.addPinnedApp(modelData.id ?? "")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     RowLayout {
         Layout.fillWidth: true; spacing: 6
 
@@ -442,16 +1052,14 @@ ColumnLayout {
                 font.pixelSize: 11; font.family: Config.fontFamily; clip: true
                 onAccepted: {
                     if (text.trim() !== "") {
-                        let apps = Config.launcherPinnedApps.slice();
-                        apps.push(text.trim());
-                        Config.set("launcher", "pinnedApps", apps);
+                        root.addPinnedApp(text.trim());
                         text = "";
                     }
                 }
 
                 Text {
                     anchors.fill: parent; verticalAlignment: Text.AlignVCenter
-                    text: "Add app ID..."; color: Config.overlay0
+                    text: "Add app ID (advanced)..."; color: Config.overlay0
                     font: pinAddInput.font; visible: !pinAddInput.text
                 }
             }

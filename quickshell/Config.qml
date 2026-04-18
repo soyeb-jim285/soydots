@@ -233,6 +233,9 @@ QtObject {
                 pacmanEnabled: launcherPacmanEnabled,
                 pacmanPrefix: launcherPacmanPrefix,
                 pacmanMaxResults: launcherPacmanMaxResults,
+                filesEnabled: launcherFilesEnabled,
+                filesPrefix: launcherFilesPrefix,
+                filesMaxResults: launcherFilesMaxResults,
                 universalSearchEnabled: launcherUniversalSearchEnabled,
                 universalSearchOrder: launcherUniversalSearchOrder
             },
@@ -1358,6 +1361,9 @@ unfocusedWidth = 10'
     property bool launcherPacmanEnabled: _data?.launcher?.pacmanEnabled ?? true
     property string launcherPacmanPrefix: _data?.launcher?.pacmanPrefix ?? "p"
     property int launcherPacmanMaxResults: _data?.launcher?.pacmanMaxResults ?? 30
+    property bool launcherFilesEnabled: _data?.launcher?.filesEnabled ?? true
+    property string launcherFilesPrefix: _data?.launcher?.filesPrefix ?? "'"
+    property int launcherFilesMaxResults: _data?.launcher?.filesMaxResults ?? 30
     // Universal search merges results from multiple providers when the user
     // types a plain query (no prefix). Order is a comma-separated list of
     // tokens: "web:<keyword>" (one result via that engine), "pacman:<n>",

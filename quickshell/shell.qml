@@ -43,7 +43,6 @@ ShellRoot {
 
     AppLauncher {}
     StatusBar { notifUnreadCount: notifs.unreadCount; dndEnabled: notifCenter.dndEnabled }
-    ClipboardHistory {}
     OSD {}
     NotificationPopup { id: notifs; dndEnabled: notifCenter.dndEnabled }
     NotificationCenter { id: notifCenter; notifSource: notifs }
