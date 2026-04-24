@@ -1126,7 +1126,8 @@ Scope {
 
     function pasteClipboard(item) {
         if (!item || !item.id) return;
-        Quickshell.execDetached(["bash", "-c", "cliphist decode " + item.id + " | wl-copy"]);
+        // Pass id via argv so unexpected chars can't alter the shell command.
+        Quickshell.execDetached(["bash", "-c", 'cliphist decode "$1" | wl-copy', "_", String(item.id)]);
         root.closing = true;
     }
 
@@ -1176,7 +1177,11 @@ Scope {
     }
 
     onClipboardMatchChanged: {
-        if (clipboardMatch && !clipboardCacheLoaded && !clipboardRefresh.running) {
+        // Reload whenever cb mode (re)activates. Prev cache can be stale —
+        // cliphist gets new entries on every wl-paste, and the launcher may
+        // have been closed and reopened between now and the last load.
+        if (clipboardMatch && !clipboardCacheLoaded) {
+            if (clipboardRefresh.running) clipboardRefresh.running = false;
             clipboardRefresh.running = true;
         }
     }
@@ -2662,7 +2667,6 @@ Scope {
 
     function _resetLauncherState(initialSearchText) {
         root.closing = false;
-        root.searchText = initialSearchText || "";
         root.uninstallConfirmId = "";
         root.flatpakSearchResults = [];
         root.flatpakLastSearched = "";
@@ -2670,6 +2674,16 @@ Scope {
         root.pacmanSearchResults = [];
         root.pacmanLastSearched = "";
         root.pacmanSearching = false;
+        // Invalidate clipboard cache — cliphist may have new entries since
+        // the last open, and paste itself re-stores the selection.
+        root.clipboardCacheLoaded = false;
+        root.searchText = initialSearchText || "";
+        // If the seeded searchText keeps cb mode active (e.g. reopening
+        // with "cb "), onClipboardMatchChanged won't fire since the match
+        // value is unchanged. Kick the refresh directly so the cache is
+        // rebuilt on every open.
+        if (clipboardMatch && !clipboardRefresh.running)
+            clipboardRefresh.running = true;
     }
 
     function toggle() {
@@ -2720,6 +2734,13 @@ Scope {
         if (!launcherLoader.active) return;
         Qt.callLater(() => {
             if (!launcherLoader.active) return;
+            // resultsView is a child id inside LazyLoader — may not be
+            // resolvable yet when the loader just became active.
+            try {
+                resultsView.followFirstResult;
+            } catch (e) {
+                return;
+            }
             let idx = -1;
             if (resultsView.followFirstResult) {
                 idx = firstSelectableResultIndex();
@@ -2749,7 +2770,9 @@ Scope {
                 return;
             }
             if (root.visible && launcherLoader.active && searchBox) {
-                // Already open — rewrite the input directly.
+                // Already open — rewrite the input directly. Force cache
+                // reload so entries copied since the launcher opened show up.
+                root.clipboardCacheLoaded = false;
                 searchBox.text = seed;
                 searchBox.inputItem.forceActiveFocus();
                 return;
@@ -3558,7 +3581,7 @@ Scope {
                                     spacing: 10
 
                                     Text {
-                                        text: resultItem.modelData.title.toUpperCase()
+                                        text: (resultItem.modelData.title ?? "").toUpperCase()
                                         color: Config.overlay0
                                         font.pixelSize: 10
                                         font.family: Config.fontFamily
