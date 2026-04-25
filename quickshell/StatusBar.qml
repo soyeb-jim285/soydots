@@ -526,12 +526,44 @@ Scope {
                     width: parent.width - 24
                     spacing: 6
 
+                    // Connection status line
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: "Network"
+                            color: Theme.text
+                            font.pixelSize: 14; font.family: Theme.fontFamily; font.bold: true
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            width: 8; height: 8; radius: 4
+                            color: networkWidget.status === "disconnected" ? Theme.red : Theme.green
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Text {
+                            text: {
+                                if (networkWidget.status === "disconnected") return "Offline";
+                                let typeLabel = networkWidget.status === "ethernet" ? "Ethernet" : "Wi-Fi";
+                                return typeLabel + (networkWidget.connectionName ? " • " + networkWidget.connectionName : "");
+                            }
+                            color: Theme.subtext0
+                            font.pixelSize: 11
+                            font.family: Theme.fontFamily
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                    }
+
+                    Quill.Separator { Layout.fillWidth: true }
+
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
-                            text: "Wi-Fi"
-                            color: Theme.text
-                            font.pixelSize: 14; font.family: Theme.fontFamily; font.bold: true
+                            text: "Wi-Fi Networks"
+                            color: Theme.subtext0
+                            font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
                             Layout.fillWidth: true
                         }
                         Rectangle {
