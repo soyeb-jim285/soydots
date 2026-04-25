@@ -523,7 +523,7 @@ Scope {
                     anchors.top: parent.top
                     anchors.topMargin: 8
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: parent.width - 24
+                    width: parent.width - 40
                     spacing: 6
 
                     // Connection status line
@@ -615,8 +615,6 @@ Scope {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 60
                         Layout.topMargin: 4
-                        Layout.leftMargin: 8
-                        Layout.rightMargin: 8
                         preferredRendererType: Shape.CurveRenderer
                         clip: true
 
