@@ -388,7 +388,7 @@ Scope {
             y: 0
             z: 10
             width: Config.calendarWidth + Theme.barRadius * 2
-            height: root.clockOpen ? Theme.barHeight + mainWindow.panelAnimHeight : Theme.barHeight
+            height: root.clockOpen ? Theme.barHeight + mainWindow.panelAnimHeight + 4 : Theme.barHeight
             hoverEnabled: true
 
             onMouseXChanged: checkHover()
@@ -502,7 +502,7 @@ Scope {
             y: Theme.barHeight
             z: 10
             width: mainWindow.wifiPanelWidth + Theme.barRadius * 2
-            height: root.wifiOpen ? mainWindow.panelAnimHeight : 0
+            height: root.wifiOpen ? mainWindow.panelAnimHeight + 4 : 0
             hoverEnabled: true
 
             onContainsMouseChanged: {
@@ -616,6 +616,7 @@ Scope {
                         Layout.preferredHeight: 60
                         Layout.topMargin: 4
                         preferredRendererType: Shape.CurveRenderer
+                        clip: true
 
                         property var rxHist: NetSpeedSampler.rxHistory
                         property var txHist: NetSpeedSampler.txHistory
@@ -946,7 +947,7 @@ Scope {
             y: Theme.barHeight
             z: 10
             width: mainWindow.btPanelWidth + Theme.barRadius * 2
-            height: root.btOpen ? mainWindow.panelAnimHeight : 0
+            height: root.btOpen ? mainWindow.panelAnimHeight + 4 : 0
             hoverEnabled: true
 
             onContainsMouseChanged: {
@@ -1224,7 +1225,7 @@ Scope {
             y: Theme.barHeight
             z: 10
             width: mainWindow.trayMenuWidth + Theme.barRadius * 2
-            height: root.trayMenuOpen ? mainWindow.panelAnimHeight : 0
+            height: root.trayMenuOpen ? mainWindow.panelAnimHeight + 4 : 0
             hoverEnabled: true
 
             onContainsMouseChanged: {

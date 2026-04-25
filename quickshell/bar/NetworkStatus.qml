@@ -115,6 +115,7 @@ Item {
             Layout.preferredHeight: Theme.fontSizeIcon
             Layout.alignment: Qt.AlignVCenter
             preferredRendererType: Shape.CurveRenderer
+            clip: true
 
             property var history: NetSpeedSampler.rxHistory
             property real localMax: {
