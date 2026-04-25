@@ -3,12 +3,14 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import QtQuick.Shapes
+import QtQuick.Layouts
 import ".."
 import "../icons"
 
 Item {
     id: root
-    width: Theme.fontSizeIcon + Theme.widgetPadding
+    width: Config.speedWidgetWidth
     height: parent?.height ?? Theme.barHeight
 
     required property string activePopup
@@ -99,31 +101,95 @@ Item {
         Behavior on color { ColorAnimation { duration: Theme.animDurationFast } }
     }
 
-    Item {
-        id: netIcon
-        width: Theme.fontSizeIcon; height: Theme.fontSizeIcon
-        anchors.centerIn: parent
+    RowLayout {
+        id: netRow
+        anchors.fill: parent
+        anchors.leftMargin: 6
+        anchors.rightMargin: 6
+        spacing: 6
 
-        IconWifiSector {
-            visible: root.status === "wifi"
-            size: Theme.fontSizeIcon
-            signal: root.signalStrength
-            color: root.iconColor
-            anchors.centerIn: parent
-            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+        // Sparkline — download history
+        Shape {
+            id: sparkline
+            Layout.preferredWidth: 40
+            Layout.preferredHeight: Theme.fontSizeIcon
+            Layout.alignment: Qt.AlignVCenter
+            preferredRendererType: Shape.CurveRenderer
+
+            property var history: NetSpeedSampler.rxHistory
+            property real localMax: {
+                let m = 1;
+                for (let v of history) if (v > m) m = v;
+                return m;
+            }
+
+            ShapePath {
+                strokeColor: Theme.blue
+                strokeWidth: 1.5
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+
+                PathPolyline {
+                    path: {
+                        let pts = [];
+                        let n = sparkline.history.length;
+                        if (n < 2) return [Qt.point(0, sparkline.height), Qt.point(sparkline.width, sparkline.height)];
+                        for (let i = 0; i < n; i++) {
+                            let x = (i / (n - 1)) * sparkline.width;
+                            let y = sparkline.height - (sparkline.history[i] / sparkline.localMax) * sparkline.height;
+                            pts.push(Qt.point(x, y));
+                        }
+                        return pts;
+                    }
+                }
+            }
         }
-        IconEthernet {
-            visible: root.status === "ethernet"
-            size: Theme.fontSizeIcon
-            color: root.iconColor
-            anchors.centerIn: parent
-            Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+
+        // Existing wifi state icon
+        Item {
+            id: netIcon
+            Layout.preferredWidth: Theme.fontSizeIcon
+            Layout.preferredHeight: Theme.fontSizeIcon
+            Layout.alignment: Qt.AlignVCenter
+
+            IconWifiSector {
+                visible: root.status === "wifi"
+                size: Theme.fontSizeIcon
+                signal: root.signalStrength
+                color: root.iconColor
+                anchors.centerIn: parent
+                Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+            }
+            IconEthernet {
+                visible: root.status === "ethernet"
+                size: Theme.fontSizeIcon
+                color: root.iconColor
+                anchors.centerIn: parent
+                Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+            }
+            IconWifiOff {
+                visible: root.status === "disconnected"
+                size: Theme.fontSizeIcon
+                color: root.iconColor
+                anchors.centerIn: parent
+                Behavior on color { ColorAnimation { duration: Theme.animDuration } }
+            }
         }
-        IconWifiOff {
-            visible: root.status === "disconnected"
-            size: Theme.fontSizeIcon
-            color: root.iconColor
-            anchors.centerIn: parent
+
+        // Rate text — dominant direction
+        Text {
+            id: rateText
+            Layout.alignment: Qt.AlignVCenter
+            property bool rxDominant: NetSpeedSampler.rxRate >= NetSpeedSampler.txRate
+            text: NetSpeedSampler.formatRate(rxDominant ? NetSpeedSampler.rxRate : NetSpeedSampler.txRate)
+            color: {
+                if (!NetSpeedSampler.hasData || (NetSpeedSampler.rxRate < 1024 && NetSpeedSampler.txRate < 1024)) return Theme.overlay0;
+                return rxDominant ? Theme.blue : Theme.green;
+            }
+            font.pixelSize: Theme.fontSizeSmall
+            font.family: Theme.fontFamily
+            font.bold: true
             Behavior on color { ColorAnimation { duration: Theme.animDuration } }
         }
     }
