@@ -181,10 +181,10 @@ Item {
         Text {
             id: rateText
             Layout.alignment: Qt.AlignVCenter
-            property bool rxDominant: NetSpeedSampler.rxRate >= NetSpeedSampler.txRate
-            text: NetSpeedSampler.formatRate(rxDominant ? NetSpeedSampler.rxRate : NetSpeedSampler.txRate)
+            property bool rxDominant: NetSpeedSampler.rxRateAvg >= NetSpeedSampler.txRateAvg
+            text: NetSpeedSampler.formatRate(rxDominant ? NetSpeedSampler.rxRateAvg : NetSpeedSampler.txRateAvg)
             color: {
-                if (!NetSpeedSampler.hasData || (NetSpeedSampler.rxRate < 1024 && NetSpeedSampler.txRate < 1024)) return Theme.overlay0;
+                if (!NetSpeedSampler.hasData || (NetSpeedSampler.rxRateAvg < 1024 && NetSpeedSampler.txRateAvg < 1024)) return Theme.overlay0;
                 return rxDominant ? Theme.blue : Theme.green;
             }
             font.pixelSize: Theme.fontSizeSmall

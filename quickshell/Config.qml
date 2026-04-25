@@ -179,7 +179,8 @@ QtObject {
                 pollInterval: networkPollInterval,
                 speedPollInterval: netSpeedPollInterval,
                 speedHistoryLength: netSpeedHistoryLength,
-                speedWidgetWidth: speedWidgetWidth
+                speedWidgetWidth: speedWidgetWidth,
+                speedAvgWindow: netSpeedAvgWindow
             },
             wifi: {
                 panelWidth: wifiPanelWidth, itemHeight: wifiItemHeight, itemRadius: wifiItemRadius,
@@ -1282,6 +1283,7 @@ unfocusedWidth = 10'
     property int netSpeedPollInterval: _data?.network?.speedPollInterval ?? 1000
     property int netSpeedHistoryLength: _data?.network?.speedHistoryLength ?? 60
     property int speedWidgetWidth: _data?.network?.speedWidgetWidth ?? 100
+    property int netSpeedAvgWindow: _data?.network?.speedAvgWindow ?? 3
 
     // ===== WIFI PANEL =====
 

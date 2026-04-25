@@ -165,6 +165,7 @@ pollInterval = 10000
 speedPollInterval = 1000
 speedHistoryLength = 60
 speedWidgetWidth = 100
+speedAvgWindow = 3
 
 [nightlight]
 temperature = 4000

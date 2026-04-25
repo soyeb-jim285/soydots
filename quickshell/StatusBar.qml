@@ -576,7 +576,7 @@ Scope {
                                 font.bold: true
                             }
                             Text {
-                                text: NetSpeedSampler.formatRateLong(NetSpeedSampler.rxRate)
+                                text: NetSpeedSampler.formatRateLong(NetSpeedSampler.rxRateAvg)
                                 color: Theme.text
                                 font.pixelSize: 18
                                 font.family: Theme.fontFamily
@@ -598,7 +598,7 @@ Scope {
                                 Layout.fillWidth: true
                             }
                             Text {
-                                text: NetSpeedSampler.formatRateLong(NetSpeedSampler.txRate)
+                                text: NetSpeedSampler.formatRateLong(NetSpeedSampler.txRateAvg)
                                 color: Theme.text
                                 font.pixelSize: 18
                                 font.family: Theme.fontFamily

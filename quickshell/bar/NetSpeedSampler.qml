@@ -19,6 +19,24 @@ QtObject {
     property real sessionTx: 0
     property bool hasData: false  // false until first delta computed
 
+    // Smoothed rates (mean of last Config.netSpeedAvgWindow samples)
+    property real rxRateAvg: {
+        let n = root.rxHistory.length;
+        if (n === 0) return 0;
+        let w = Math.min(n, Config.netSpeedAvgWindow);
+        let sum = 0;
+        for (let i = n - w; i < n; i++) sum += root.rxHistory[i];
+        return sum / w;
+    }
+    property real txRateAvg: {
+        let n = root.txHistory.length;
+        if (n === 0) return 0;
+        let w = Math.min(n, Config.netSpeedAvgWindow);
+        let sum = 0;
+        for (let i = n - w; i < n; i++) sum += root.txHistory[i];
+        return sum / w;
+    }
+
     // Internal previous sample
     property real _prevRx: 0
     property real _prevTx: 0
