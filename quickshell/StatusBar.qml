@@ -609,6 +609,72 @@ Scope {
                         }
                     }
 
+                    // Speed graph — overlaid rx filled + tx stroke
+                    Shape {
+                        id: speedGraph
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 60
+                        Layout.topMargin: 4
+                        preferredRendererType: Shape.CurveRenderer
+
+                        property var rxHist: NetSpeedSampler.rxHistory
+                        property var txHist: NetSpeedSampler.txHistory
+                        property real localMax: {
+                            let m = 1;
+                            for (let v of rxHist) if (v > m) m = v;
+                            for (let v of txHist) if (v > m) m = v;
+                            return m;
+                        }
+
+                        function buildPath(hist, closed) {
+                            let pts = [];
+                            let n = hist.length;
+                            if (n < 2) {
+                                pts.push(Qt.point(0, speedGraph.height));
+                                pts.push(Qt.point(speedGraph.width, speedGraph.height));
+                                return pts;
+                            }
+                            for (let i = 0; i < n; i++) {
+                                let x = (i / (n - 1)) * speedGraph.width;
+                                let y = speedGraph.height - (hist[i] / speedGraph.localMax) * speedGraph.height;
+                                pts.push(Qt.point(x, y));
+                            }
+                            if (closed) {
+                                pts.push(Qt.point(speedGraph.width, speedGraph.height));
+                                pts.push(Qt.point(0, speedGraph.height));
+                            }
+                            return pts;
+                        }
+
+                        // RX fill (light blue tint)
+                        ShapePath {
+                            strokeColor: "transparent"
+                            strokeWidth: 0
+                            fillColor: Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.25)
+                            PathPolyline { path: speedGraph.buildPath(speedGraph.rxHist, true) }
+                        }
+
+                        // RX line (solid blue)
+                        ShapePath {
+                            strokeColor: Theme.blue
+                            strokeWidth: 1.5
+                            fillColor: "transparent"
+                            capStyle: ShapePath.RoundCap
+                            joinStyle: ShapePath.RoundJoin
+                            PathPolyline { path: speedGraph.buildPath(speedGraph.rxHist, false) }
+                        }
+
+                        // TX line (solid green, thinner)
+                        ShapePath {
+                            strokeColor: Theme.green
+                            strokeWidth: 1
+                            fillColor: "transparent"
+                            capStyle: ShapePath.RoundCap
+                            joinStyle: ShapePath.RoundJoin
+                            PathPolyline { path: speedGraph.buildPath(speedGraph.txHist, false) }
+                        }
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
