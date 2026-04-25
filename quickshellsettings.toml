@@ -154,7 +154,7 @@ flatpakEnabled = true
 flatpakMaxResults = 20
 flatpakPrefix = "i"
 flatpakScope = "user"
-frecencyData = "{"pcmanfm-qt-desktop-pref":{"score":100,"lastLaunch":1775508814},"helium":{"score":268.9362768371947,"lastLaunch":1776522475},"btop":{"score":133.52202522682074,"lastLaunch":1776462657},"org.gnome.Nautilus":{"score":378.9517532679148,"lastLaunch":1776189476},"hyprfm":{"score":824.7605171370038,"lastLaunch":1775750740},"org.kde.dolphin":{"score":248.17639518374722,"lastLaunch":1775824483},"org.kde.filelight":{"score":478.2250188868813,"lastLaunch":1775742524},"io.github.soyeb_jim285.HyprFM":{"score":1298.551809355127,"lastLaunch":1776522195},"zen":{"score":499.4000164930036,"lastLaunch":1776423984},"uuctl":{"score":100,"lastLaunch":1776421894},"com.valvesoftware.Steam":{"score":100,"lastLaunch":1776429377},"org.qbittorrent.qBittorrent":{"score":376.9582836949651,"lastLaunch":1776518707},"qt6ct":{"score":100,"lastLaunch":1776455571},"org.telegram.desktop":{"score":199.99495738971916,"lastLaunch":1776522469}}"
+frecencyData = "{"pcmanfm-qt-desktop-pref":{"score":100,"lastLaunch":1775508814},"helium":{"score":247.80800040508038,"lastLaunch":1777044744},"btop":{"score":133.52202522682074,"lastLaunch":1776462657},"org.gnome.Nautilus":{"score":378.9517532679148,"lastLaunch":1776189476},"hyprfm":{"score":824.7605171370038,"lastLaunch":1775750740},"org.kde.dolphin":{"score":265.5907161554521,"lastLaunch":1776985136},"org.kde.filelight":{"score":411.0207638384861,"lastLaunch":1776766113},"io.github.soyeb_jim285.HyprFM":{"score":1298.551809355127,"lastLaunch":1776522195},"zen":{"score":499.4000164930036,"lastLaunch":1776423984},"uuctl":{"score":100,"lastLaunch":1776421894},"com.valvesoftware.Steam":{"score":100,"lastLaunch":1776429377},"org.qbittorrent.qBittorrent":{"score":322.3459305113774,"lastLaunch":1776979322},"qt6ct":{"score":100,"lastLaunch":1776455571},"org.telegram.desktop":{"score":199.99495738971916,"lastLaunch":1776522469}}"
 hiddenApps = ["avahi-discover", "bssh", "bvnc", "lstopo", "qv4l2", "qvidcap", "electron", "cmake-gui"]
 iconSize = 28
 itemHeight = 44
@@ -244,9 +244,9 @@ spacing = 4
 clockFormat = "%H:%M"
 pillShape = true
 showClock = false
-showCpu = false
+showCpu = true
 showGpu = false
-showTemp = false
+showTemp = true
 statusBottom = false
 syncColors = true
 
@@ -267,7 +267,7 @@ scrollIncrement = 0.05
 itemHeight = 44
 itemRadius = 10
 maxListHeight = 250
-panelWidth = 300
+panelWidth = 260
 rescanDelay = 3000
 
 [workspaces]
