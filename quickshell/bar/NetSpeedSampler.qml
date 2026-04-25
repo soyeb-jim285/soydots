@@ -65,6 +65,9 @@ QtObject {
     }
 
     function _onSample(text) {
+        if (!text || text.trim().length === 0) {
+            return;
+        }
         let parsed = root._parseProcNetDev(text);
         let now = Date.now();
         if (root._havePrev) {
