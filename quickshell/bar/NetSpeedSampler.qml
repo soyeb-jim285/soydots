@@ -89,6 +89,17 @@ QtObject {
             if (root.rxRate > root.peakRx) root.peakRx = root.rxRate;
             if (root.txRate > root.peakTx) root.peakTx = root.txRate;
             root.hasData = true;
+
+            let maxLen = Config.netSpeedHistoryLength;
+            let newRx = root.rxHistory.slice();
+            newRx.push(root.rxRate);
+            if (newRx.length > maxLen) newRx = newRx.slice(newRx.length - maxLen);
+            root.rxHistory = newRx;
+
+            let newTx = root.txHistory.slice();
+            newTx.push(root.txRate);
+            if (newTx.length > maxLen) newTx = newTx.slice(newTx.length - maxLen);
+            root.txHistory = newTx;
         }
         root._prevRx = parsed.rx;
         root._prevTx = parsed.tx;
