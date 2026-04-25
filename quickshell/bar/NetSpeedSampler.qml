@@ -107,6 +107,46 @@ QtObject {
         root._havePrev = true;
     }
 
+    // Rate formatter: binary units, compact form for bar widget.
+    // < 1 KiB/s  -> "—"
+    // < 1 MiB/s  -> "234K"  (no decimal)
+    // < 1 GiB/s  -> "2.4M"  (one decimal)
+    // >=         -> "1.2G"
+    function formatRate(bytesPerSec) {
+        if (!root.hasData || bytesPerSec < 1024) return "—";
+        const KB = 1024;
+        const MB = 1024 * KB;
+        const GB = 1024 * MB;
+        if (bytesPerSec < MB) return Math.floor(bytesPerSec / KB) + "K";
+        if (bytesPerSec < GB) return (Math.floor(bytesPerSec / MB * 10) / 10).toFixed(1) + "M";
+        return (Math.floor(bytesPerSec / GB * 10) / 10).toFixed(1) + "G";
+    }
+
+    // Byte formatter for session / peak totals. Binary units, more precision.
+    function formatBytes(bytes) {
+        const KB = 1024;
+        const MB = 1024 * KB;
+        const GB = 1024 * MB;
+        const TB = 1024 * GB;
+        if (bytes < KB) return bytes + " B";
+        if (bytes < MB) return (bytes / KB).toFixed(1) + " KB";
+        if (bytes < GB) return (bytes / MB).toFixed(1) + " MB";
+        if (bytes < TB) return (bytes / GB).toFixed(1) + " GB";
+        return (bytes / TB).toFixed(1) + " TB";
+    }
+
+    // Rate formatter for popup (with units, longer form)
+    function formatRateLong(bytesPerSec) {
+        if (!root.hasData) return "—";
+        const KB = 1024;
+        const MB = 1024 * KB;
+        const GB = 1024 * MB;
+        if (bytesPerSec < KB) return "0 KB/s";
+        if (bytesPerSec < MB) return (bytesPerSec / KB).toFixed(1) + " KB/s";
+        if (bytesPerSec < GB) return (bytesPerSec / MB).toFixed(1) + " MB/s";
+        return (bytesPerSec / GB).toFixed(1) + " GB/s";
+    }
+
     property var _procFile: FileView {
         path: "/proc/net/dev"
         onTextChanged: root._onSample(text())
