@@ -130,18 +130,8 @@ Item {
                 capStyle: ShapePath.RoundCap
                 joinStyle: ShapePath.RoundJoin
 
-                PathPolyline {
-                    path: {
-                        let pts = [];
-                        let n = sparkline.history.length;
-                        if (n < 2) return [Qt.point(0, sparkline.height), Qt.point(sparkline.width, sparkline.height)];
-                        for (let i = 0; i < n; i++) {
-                            let x = (i / (n - 1)) * sparkline.width;
-                            let y = sparkline.height - (sparkline.history[i] / sparkline.localMax) * sparkline.height;
-                            pts.push(Qt.point(x, y));
-                        }
-                        return pts;
-                    }
+                PathSvg {
+                    path: NetSpeedSampler.buildSmoothSvgPath(sparkline.history, sparkline.width, sparkline.height, sparkline.localMax, false)
                 }
             }
         }

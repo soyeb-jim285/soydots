@@ -165,6 +165,44 @@ QtObject {
         return (bytesPerSec / GB).toFixed(1) + " GB/s";
     }
 
+    // Build a smooth SVG path string from a history array using Catmull-Rom-to-cubic-Bezier conversion.
+    // hist: array of numeric values (newest last)
+    // w, h: pixel dimensions of the rendering area
+    // localMax: scaling factor (so y = h - val/localMax * h)
+    // closed: if true, path closes back to baseline (for filled areas)
+    function buildSmoothSvgPath(hist, w, h, localMax, closed) {
+        let n = hist.length;
+        if (n < 2 || localMax <= 0) {
+            // baseline flat line
+            let s = "M 0 " + h + " L " + w + " " + h;
+            return closed ? s + " Z" : s;
+        }
+        // Project history values to (x, y) points
+        let pts = [];
+        for (let i = 0; i < n; i++) {
+            let x = (i / (n - 1)) * w;
+            let y = h - (hist[i] / localMax) * h;
+            pts.push({ x: x, y: y });
+        }
+        // Catmull-Rom-to-Bezier with tension 0.5 (uniform)
+        let path = "M " + pts[0].x + " " + pts[0].y;
+        for (let i = 0; i < n - 1; i++) {
+            let p0 = pts[i > 0 ? i - 1 : i];
+            let p1 = pts[i];
+            let p2 = pts[i + 1];
+            let p3 = pts[i + 2 < n ? i + 2 : n - 1];
+            let cp1x = p1.x + (p2.x - p0.x) / 6;
+            let cp1y = p1.y + (p2.y - p0.y) / 6;
+            let cp2x = p2.x - (p3.x - p1.x) / 6;
+            let cp2y = p2.y - (p3.y - p1.y) / 6;
+            path += " C " + cp1x + " " + cp1y + " " + cp2x + " " + cp2y + " " + p2.x + " " + p2.y;
+        }
+        if (closed) {
+            path += " L " + w + " " + h + " L 0 " + h + " Z";
+        }
+        return path;
+    }
+
     property var _procFile: FileView {
         path: "/proc/net/dev"
         onTextChanged: root._onSample(text())

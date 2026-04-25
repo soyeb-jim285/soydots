@@ -626,32 +626,12 @@ Scope {
                             return m;
                         }
 
-                        function buildPath(hist, closed) {
-                            let pts = [];
-                            let n = hist.length;
-                            if (n < 2) {
-                                pts.push(Qt.point(0, speedGraph.height));
-                                pts.push(Qt.point(speedGraph.width, speedGraph.height));
-                                return pts;
-                            }
-                            for (let i = 0; i < n; i++) {
-                                let x = (i / (n - 1)) * speedGraph.width;
-                                let y = speedGraph.height - (hist[i] / speedGraph.localMax) * speedGraph.height;
-                                pts.push(Qt.point(x, y));
-                            }
-                            if (closed) {
-                                pts.push(Qt.point(speedGraph.width, speedGraph.height));
-                                pts.push(Qt.point(0, speedGraph.height));
-                            }
-                            return pts;
-                        }
-
                         // RX fill (light blue tint)
                         ShapePath {
                             strokeColor: "transparent"
                             strokeWidth: 0
                             fillColor: Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.25)
-                            PathPolyline { path: speedGraph.buildPath(speedGraph.rxHist, true) }
+                            PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.rxHist, speedGraph.width, speedGraph.height, speedGraph.localMax, true) }
                         }
 
                         // RX line (solid blue)
@@ -661,7 +641,7 @@ Scope {
                             fillColor: "transparent"
                             capStyle: ShapePath.RoundCap
                             joinStyle: ShapePath.RoundJoin
-                            PathPolyline { path: speedGraph.buildPath(speedGraph.rxHist, false) }
+                            PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.rxHist, speedGraph.width, speedGraph.height, speedGraph.localMax, false) }
                         }
 
                         // TX line (solid green, thinner)
@@ -671,7 +651,7 @@ Scope {
                             fillColor: "transparent"
                             capStyle: ShapePath.RoundCap
                             joinStyle: ShapePath.RoundJoin
-                            PathPolyline { path: speedGraph.buildPath(speedGraph.txHist, false) }
+                            PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.txHist, speedGraph.width, speedGraph.height, speedGraph.localMax, false) }
                         }
                     }
 
