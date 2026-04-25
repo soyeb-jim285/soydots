@@ -28,7 +28,7 @@ QtObject {
     // Interface exclude prefixes (virtual / loopback / container / vpn)
     readonly property var _excludePrefixes: [
         "lo", "br-", "br0", "bridge", "docker", "veth",
-        "virbr", "tun", "tap", "wg"
+        "virbr", "tun", "tap", "wg", "bond", "dummy", "sit"
     ]
 
     function _shouldIncludeIface(name) {
