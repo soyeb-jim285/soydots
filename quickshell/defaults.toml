@@ -162,6 +162,9 @@ width = 300
 
 [network]
 pollInterval = 10000
+speedPollInterval = 1000
+speedHistoryLength = 60
+speedWidgetWidth = 100
 
 [nightlight]
 temperature = 4000

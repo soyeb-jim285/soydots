@@ -175,7 +175,12 @@ QtObject {
             battery: { greenThreshold: batteryGreenThreshold, yellowThreshold: batteryYellowThreshold },
             media: { maxWidth: mediaMaxWidth },
             systray: { iconSize: sysTrayIconSize, spacing: sysTraySpacing, opacity: sysTrayOpacity },
-            network: { pollInterval: networkPollInterval },
+            network: {
+                pollInterval: networkPollInterval,
+                speedPollInterval: netSpeedPollInterval,
+                speedHistoryLength: netSpeedHistoryLength,
+                speedWidgetWidth: speedWidgetWidth
+            },
             wifi: {
                 panelWidth: wifiPanelWidth, itemHeight: wifiItemHeight, itemRadius: wifiItemRadius,
                 maxListHeight: wifiMaxListHeight, rescanDelay: wifiRescanDelay
@@ -1274,6 +1279,9 @@ unfocusedWidth = 10'
     // ===== NETWORK =====
 
     property int networkPollInterval: _data?.network?.pollInterval ?? 10000
+    property int netSpeedPollInterval: _data?.network?.speedPollInterval ?? 1000
+    property int netSpeedHistoryLength: _data?.network?.speedHistoryLength ?? 60
+    property int speedWidgetWidth: _data?.network?.speedWidgetWidth ?? 100
 
     // ===== WIFI PANEL =====
 
