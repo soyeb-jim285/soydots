@@ -26,23 +26,38 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 let lines = this.text.trim().split("\n");
-                let found = false;
+                let ethernet = null;
+                let wifi = null;
+                let other = null;
                 for (let line of lines) {
                     let parts = line.split(":");
-                    if (parts.length >= 3 && parts[1] === "activated") {
-                        let type = parts[0].toLowerCase();
-                        if (type.includes("wireless") || type.includes("wifi") || type === "802-11-wireless") {
-                            root.status = "wifi";
-                            signalProc.running = true;
-                        } else if (type.includes("ethernet") || type === "802-3-ethernet") {
-                            root.status = "ethernet";
-                        }
-                        root.connectionName = parts[2];
-                        found = true;
-                        break;
+                    if (parts.length < 3 || parts[1] !== "activated") continue;
+                    let type = parts[0].toLowerCase();
+                    let name = parts[2];
+                    if (type.includes("ethernet") || type === "802-3-ethernet") {
+                        if (!ethernet) ethernet = name;
+                    } else if (type.includes("wireless") || type.includes("wifi") || type === "802-11-wireless") {
+                        if (!wifi) wifi = name;
+                    } else if (type === "loopback" || type === "bridge" || type === "tun") {
+                        // ignore virtual/local interfaces
+                    } else {
+                        // vpn, wireguard, gsm, etc.
+                        if (!other) other = name;
                     }
                 }
-                if (!found) {
+                if (ethernet) {
+                    root.status = "ethernet";
+                    root.connectionName = ethernet;
+                    root.signalStrength = 0;
+                } else if (wifi) {
+                    root.status = "wifi";
+                    root.connectionName = wifi;
+                    signalProc.running = true;
+                } else if (other) {
+                    root.status = "ethernet";
+                    root.connectionName = other;
+                    root.signalStrength = 0;
+                } else {
                     root.status = "disconnected";
                     root.connectionName = "";
                     root.signalStrength = 0;
