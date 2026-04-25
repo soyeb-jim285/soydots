@@ -675,6 +675,45 @@ Scope {
                         }
                     }
 
+                    // Stats row — peak + session totals
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        spacing: 10
+
+                        Text {
+                            text: "peak ↓ " + NetSpeedSampler.formatRateLong(NetSpeedSampler.peakRx)
+                            color: Theme.overlay0
+                            font.pixelSize: 10
+                            font.family: Theme.fontFamily
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Text {
+                            text: "↑ " + NetSpeedSampler.formatRateLong(NetSpeedSampler.peakTx)
+                            color: Theme.overlay0
+                            font.pixelSize: 10
+                            font.family: Theme.fontFamily
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: "session ↓ " + NetSpeedSampler.formatBytes(NetSpeedSampler.sessionRx)
+                            color: Theme.overlay0
+                            font.pixelSize: 10
+                            font.family: Theme.fontFamily
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Text {
+                            text: "↑ " + NetSpeedSampler.formatBytes(NetSpeedSampler.sessionTx)
+                            color: Theme.overlay0
+                            font.pixelSize: 10
+                            font.family: Theme.fontFamily
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                    }
+
+                    Quill.Separator { Layout.fillWidth: true; Layout.topMargin: 6 }
+
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
