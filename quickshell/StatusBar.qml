@@ -558,6 +558,57 @@ Scope {
 
                     Quill.Separator { Layout.fillWidth: true }
 
+                    // Speed section — big numbers
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 2
+                        spacing: 12
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            Text {
+                                text: "↓ Download"
+                                color: Theme.blue
+                                font.pixelSize: 10
+                                font.family: Theme.fontFamily
+                                font.bold: true
+                            }
+                            Text {
+                                text: NetSpeedSampler.formatRateLong(NetSpeedSampler.rxRate)
+                                color: Theme.text
+                                font.pixelSize: 18
+                                font.family: Theme.fontFamily
+                                font.bold: true
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            Text {
+                                text: "↑ Upload"
+                                color: Theme.green
+                                font.pixelSize: 10
+                                font.family: Theme.fontFamily
+                                font.bold: true
+                                horizontalAlignment: Text.AlignRight
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                text: NetSpeedSampler.formatRateLong(NetSpeedSampler.txRate)
+                                color: Theme.text
+                                font.pixelSize: 18
+                                font.family: Theme.fontFamily
+                                font.bold: true
+                                horizontalAlignment: Text.AlignRight
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
