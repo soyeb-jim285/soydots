@@ -19,5 +19,6 @@ fi
 
 while IFS=$'\t' read -r name width height refresh x y scale transform brightness; do
   [ -n "$name" ] || continue
-  hyprctl keyword monitor "$name,${width}x${height}@${refresh},${x}x${y},${scale},transform,${transform},sdrbrightness,1" >/dev/null
+  [ -n "$brightness" ] || brightness=1
+  hyprctl keyword monitor "$name,${width}x${height}@${refresh},${x}x${y},${scale},transform,${transform},sdrbrightness,${brightness}" >/dev/null
 done < "$state_file"
