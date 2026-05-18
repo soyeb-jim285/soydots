@@ -1,0 +1,15 @@
+{
+  "policies": {
+    "DisableAppUpdate": true,
+    "Preferences": {
+      "layout.css.prefers-color-scheme.content-override": {
+        "Value": 3,
+        "Status": "default"
+      },
+      "widget.use-xdg-desktop-portal.settings": {
+        "Value": 1,
+        "Status": "default"
+      }
+    }
+  }
+}

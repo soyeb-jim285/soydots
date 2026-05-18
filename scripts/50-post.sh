@@ -57,14 +57,6 @@ run python3 "$JIMDOTS_REPO/tmux/write-quickshell-conf.py" \
     '{"statusBottom":false,"pill":true,"modules_right":"directory","clockFormat":""}' \
     || warn "quickshell-tmux.conf seed returned non-zero"
 
-info "browser theme-sync bootstraps"
-if [[ -x "$JIMDOTS_REPO/zen/setup-live-theme-sync.sh" ]]; then
-    run "$JIMDOTS_REPO/zen/setup-live-theme-sync.sh" || warn "zen setup returned non-zero"
-fi
-if command -v firefox >/dev/null 2>&1 && [[ -x "$JIMDOTS_REPO/firefox/setup-live-theme-sync.sh" ]]; then
-    run "$JIMDOTS_REPO/firefox/setup-live-theme-sync.sh" || warn "firefox setup returned non-zero"
-fi
-
 info "flatpak: flathub remote"
 if command -v flatpak >/dev/null 2>&1; then
     # User-scope remote matches the launcher's default (--user install scope),
@@ -102,6 +94,33 @@ if command -v xdg-mime >/dev/null 2>&1 && [[ -f "$kitty_nvim_desktop" ]]; then
     ok "kitty-nvim.desktop registered for ${#_mimes[@]} MIME types"
 else
     warn "xdg-mime or kitty-nvim.desktop missing — skipping file-manager handler setup"
+fi
+
+info "xdg-mime: zen-browser as default web browser"
+if command -v xdg-mime >/dev/null 2>&1 && [[ -f /usr/share/applications/zen.desktop ]]; then
+    for m in x-scheme-handler/http x-scheme-handler/https x-scheme-handler/about \
+             x-scheme-handler/unknown text/html application/xhtml+xml; do
+        run xdg-mime default zen.desktop "$m"
+    done
+    if command -v xdg-settings >/dev/null 2>&1; then
+        run xdg-settings set default-web-browser zen.desktop || warn "xdg-settings default-web-browser failed"
+    fi
+    ok "zen.desktop registered as default browser"
+else
+    warn "xdg-mime or zen.desktop missing — skipping default browser setup"
+fi
+
+info "zen: enforce system color-scheme follow via policies"
+zen_policy_src="$JIMDOTS_REPO/zen/policies.json"
+if [[ -d /opt/zen-browser-bin && -f "$zen_policy_src" ]]; then
+    # /opt path is read by Zen unconditionally; AUR updates may reset it,
+    # so re-running setup re-applies. Also drop a copy under /etc for users
+    # whose Zen build prefers that path.
+    sudo_run install -Dm644 "$zen_policy_src" /opt/zen-browser-bin/distribution/policies.json
+    sudo_run install -Dm644 "$zen_policy_src" /etc/zen/policies/policies.json
+    ok "zen policies installed (system color-scheme follow enabled)"
+else
+    warn "zen install or policy source missing — skipping zen policy install"
 fi
 
 info "plocate database (initial seed)"
