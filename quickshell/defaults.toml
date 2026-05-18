@@ -128,7 +128,7 @@ calculatorEnabled = true
 calculatorCopyOnEnter = true
 calculatorDecimals = 10
 webSearchEnabled = true
-webSearchBrowserClass = ""
+webSearchBrowserClass = "zen"
 systemActionsEnabled = true
 shellRunnerEnabled = true
 shellRunnerPrefix = ">"
@@ -162,7 +162,7 @@ width = 300
 
 [network]
 pollInterval = 10000
-speedPollInterval = 1000
+speedPollInterval = 2000
 speedHistoryLength = 60
 speedWidgetWidth = 100
 speedAvgWindow = 3
@@ -208,6 +208,9 @@ opacity = 0.7
 spacing = 4
 
 [volume]
+appRowHeight = 52
+maxListHeight = 240
+panelWidth = 320
 scrollIncrement = 0.05
 
 [wifi]
@@ -223,5 +226,8 @@ dotHeight = 10
 dotRadius = 5
 focusedWidth = 28
 overshoot = 1.5
+scrollEnabled = true
+scrollInvert = false
 spacing = 6
 unfocusedWidth = 10
+variant = "pill"

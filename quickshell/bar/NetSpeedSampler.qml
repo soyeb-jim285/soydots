@@ -18,6 +18,7 @@ QtObject {
     property real sessionRx: 0  // cumulative bytes since shell start
     property real sessionTx: 0
     property bool hasData: false  // false until first delta computed
+    property var _activeIfaces: []
 
     // Smoothed rates (mean of last Config.netSpeedAvgWindow samples)
     property real rxRateAvg: {
@@ -49,7 +50,41 @@ QtObject {
         "virbr", "tun", "tap", "wg", "bond", "dummy", "sit"
     ]
 
+    function _sameStringList(a, b) {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) return false;
+        }
+        return true;
+    }
+
+    function _setActiveIfaces(ifaces) {
+        if (root._sameStringList(root._activeIfaces, ifaces)) return;
+        root._activeIfaces = ifaces;
+        root.rxRate = 0;
+        root.txRate = 0;
+        root.rxHistory = [];
+        root.txHistory = [];
+        root._havePrev = false;
+        root.hasData = false;
+    }
+
+    function _updateActiveIfaces(text) {
+        let found = [];
+        let lines = text.trim().split("\n");
+        for (let line of lines) {
+            if (!line.startsWith("default")) continue;
+            let parts = line.trim().split(/\s+/);
+            let devIdx = parts.indexOf("dev");
+            if (devIdx >= 0 && devIdx + 1 < parts.length && found.indexOf(parts[devIdx + 1]) < 0) {
+                found.push(parts[devIdx + 1]);
+            }
+        }
+        root._setActiveIfaces(found);
+    }
+
     function _shouldIncludeIface(name) {
+        if (root._activeIfaces.length > 0) return root._activeIfaces.indexOf(name) >= 0;
         for (let p of root._excludePrefixes) {
             if (name === p || name.startsWith(p)) return false;
         }
@@ -155,7 +190,7 @@ QtObject {
 
     // Rate formatter for popup (with units, longer form)
     function formatRateLong(bytesPerSec) {
-        if (!root.hasData) return "—";
+        if (!root.hasData) return "0 KB/s";
         const KB = 1024;
         const MB = 1024 * KB;
         const GB = 1024 * MB;
@@ -165,22 +200,26 @@ QtObject {
         return (bytesPerSec / GB).toFixed(1) + " GB/s";
     }
 
+    function recentHistory(hist, maxPoints) {
+        if (hist.length <= maxPoints) return hist;
+        return hist.slice(hist.length - maxPoints);
+    }
+
     // Build a smooth SVG path string from a history array using Catmull-Rom-to-cubic-Bezier conversion.
     // hist: array of numeric values (newest last)
     // w, h: pixel dimensions of the rendering area
     // localMax: scaling factor (so y = h - val/localMax * h)
     // closed: if true, path closes back to baseline (for filled areas)
-    function buildSmoothSvgPath(hist, w, h, localMax, closed) {
+    // maxPoints: chart capacity; partial histories are right-aligned instead of stretched
+    function buildSmoothSvgPath(hist, w, h, localMax, closed, maxPoints) {
         let n = hist.length;
-        if (n < 2 || localMax <= 0) {
-            // baseline flat line
-            let s = "M 0 " + h + " L " + w + " " + h;
-            return closed ? s + " Z" : s;
-        }
+        let capacity = Math.max(2, maxPoints || Config.netSpeedHistoryLength || n);
+        if (n < 2 || localMax <= 0 || w <= 0 || h <= 0) return "";
         // Project history values to (x, y) points
         let pts = [];
+        let startSlot = Math.max(0, capacity - n);
         for (let i = 0; i < n; i++) {
-            let x = (i / (n - 1)) * w;
+            let x = ((startSlot + i) / (capacity - 1)) * w;
             let y = h - (hist[i] / localMax) * h;
             pts.push({ x: x, y: y });
         }
@@ -198,7 +237,7 @@ QtObject {
             path += " C " + cp1x + " " + cp1y + " " + cp2x + " " + cp2y + " " + p2.x + " " + p2.y;
         }
         if (closed) {
-            path += " L " + w + " " + h + " L 0 " + h + " Z";
+            path += " L " + pts[n - 1].x + " " + h + " L " + pts[0].x + " " + h + " Z";
         }
         return path;
     }
@@ -206,6 +245,23 @@ QtObject {
     property var _procFile: FileView {
         path: "/proc/net/dev"
         onTextChanged: root._onSample(text())
+    }
+
+    property var _routeProc: Process {
+        command: ["ip", "route", "show", "default"]
+        stdout: StdioCollector {
+            onStreamFinished: root._updateActiveIfaces(this.text)
+        }
+    }
+
+    property var _routeTimer: Timer {
+        interval: Config.networkPollInterval
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            if (!root._routeProc.running) root._routeProc.running = true;
+        }
     }
 
     property var _pollTimer: Timer {

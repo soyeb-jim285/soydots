@@ -20,12 +20,25 @@ ColumnLayout {
 
     Text { text: "Workspaces"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 
+    DropdownSetting { label: "Variant"; section: "workspaces"; key: "variant"; value: Config.workspaceVariant; model: ["pill", "capsule", "rail", "dot"] }
     SliderSetting { label: "Workspace Count"; section: "workspaces"; key: "count"; value: Config.workspaceCount; from: 1; to: 20 }
     SliderSetting { label: "Focused Width"; section: "workspaces"; key: "focusedWidth"; value: Config.workspaceFocusedWidth; from: 10; to: 60 }
     SliderSetting { label: "Unfocused Width"; section: "workspaces"; key: "unfocusedWidth"; value: Config.workspaceUnfocusedWidth; from: 4; to: 30 }
     SliderSetting { label: "Dot Height"; section: "workspaces"; key: "dotHeight"; value: Config.workspaceDotHeight; from: 4; to: 20 }
     SliderSetting { label: "Dot Radius"; section: "workspaces"; key: "dotRadius"; value: Config.workspaceDotRadius; from: 0; to: 10 }
     SliderSetting { label: "Dot Spacing"; section: "workspaces"; key: "spacing"; value: Config.workspaceSpacing; from: 1; to: 16 }
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: 12
+        Text { text: "Scroll to Switch"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.fillWidth: true }
+        ToggleSetting { section: "workspaces"; key: "scrollEnabled"; value: Config.workspaceScrollEnabled; Layout.preferredWidth: 40 }
+    }
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: 12
+        Text { text: "Invert Scroll"; color: Config.text; font.pixelSize: 12; font.family: Config.fontFamily; Layout.fillWidth: true }
+        ToggleSetting { section: "workspaces"; key: "scrollInvert"; value: Config.workspaceScrollInvert; Layout.preferredWidth: 40 }
+    }
 
     Text { text: "Clock"; color: Config.blue; font.pixelSize: 12; font.family: Config.fontFamily; font.bold: true; Layout.topMargin: 12; Layout.bottomMargin: 4 }
 

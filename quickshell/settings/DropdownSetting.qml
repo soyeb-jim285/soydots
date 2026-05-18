@@ -11,7 +11,17 @@ Quill.Dropdown {
     property string key: ""
     property string value: ""
 
-    currentIndex: Math.max(0, model.indexOf(value))
+    function syncFromValue() {
+        let index = model.indexOf(value);
+        currentIndex = Math.max(0, index);
+    }
 
-    onSelected: (index, val) => Config.set(root.section, root.key, val)
+    Component.onCompleted: syncFromValue()
+    onValueChanged: syncFromValue()
+    onModelChanged: syncFromValue()
+
+    onSelected: (index, val) => {
+        currentIndex = index;
+        Config.set(root.section, root.key, val);
+    }
 }

@@ -5,6 +5,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Bluetooth
 import Quickshell.Io
+import Quickshell.Services.Pipewire
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
@@ -19,12 +20,14 @@ Scope {
     property bool clockOpen: activePopup === "clock"
     property bool wifiOpen: activePopup === "wifi"
     property bool btOpen: activePopup === "bluetooth"
+    property bool volOpen: activePopup === "volume"
     property bool trayMenuOpen: activePopup === "traymenu"
     property var activeTrayMenu: null
     property real trayMenuCenterX: 0
     property int notifUnreadCount: 0
     property bool dndEnabled: false
     property string lastPopup: ""
+    signal notificationsRequested(var screen)
 
     onActivePopupChanged: {
         if (activePopup !== "") lastPopup = activePopup;
@@ -84,6 +87,9 @@ Scope {
     property bool btScanning: btAdapter?.discovering ?? false
     property bool btJustClosed: false
 
+    // Volume state
+    property bool volJustClosed: false
+
     // Auto-stop BT scanning after 60 seconds
     Timer {
         id: btScanTimeout
@@ -115,10 +121,15 @@ Scope {
                 if (root.btAdapter && root.btAdapter.discovering)
                     root.btAdapter.discovering = false;
             }
+            if (name === "volume") {
+                root.volJustClosed = true;
+                volJustClosedTimer.restart();
+            }
         } else {
             root.activePopup = name;
             root.wifiJustClosed = false;
             root.btJustClosed = false;
+            root.volJustClosed = false;
             if (name === "clock") {
                 viewMonth = currentMonth;
                 viewYear = currentYear;
@@ -135,6 +146,9 @@ Scope {
                 // Start scanning when panel opens
                 if (root.btAdapter && root.btPowered && !root.btScanning)
                     root.btAdapter.discovering = true;
+            }
+            if (name === "volume") {
+                root.volJustClosed = false;
             }
         }
     }
@@ -157,6 +171,11 @@ Scope {
         id: btJustClosedTimer
         interval: 300
         onTriggered: root.btJustClosed = false
+    }
+    Timer {
+        id: volJustClosedTimer
+        interval: 300
+        onTriggered: root.volJustClosed = false
     }
 
     onWifiPasswordSSIDChanged: {
@@ -330,7 +349,7 @@ Scope {
             right: true
         }
 
-        implicitHeight: 500
+        implicitHeight: Theme.barHeight + 800
         exclusiveZone: Theme.barHeight
         color: "transparent"
 
@@ -352,6 +371,15 @@ Scope {
                             Math.min(left, width - btPanelWidth - Theme.barMargin - 2 * Theme.barRadius));
         }
 
+        // Volume panel positioning
+        property real volPanelWidth: Config.volumePanelWidth
+        property real volIconWindowX: barContent.x + rightSection.x + volWidget.x + volWidget.width / 2
+        property real volPanelLeft: {
+            let left = volIconWindowX - volPanelWidth / 2;
+            return Math.max(Theme.barMargin + 2 * Theme.barRadius,
+                            Math.min(left, width - volPanelWidth - Theme.barMargin - 2 * Theme.barRadius));
+        }
+
         // Tray menu panel positioning
         property real trayMenuWidth: 220
         property real trayMenuLeft: {
@@ -369,12 +397,14 @@ Scope {
             Region { item: panelHover; intersection: Intersection.Combine }
             Region { item: wifiPanelHover; intersection: Intersection.Combine }
             Region { item: btPanelHover; intersection: Intersection.Combine }
+            Region { item: volPanelHover; intersection: Intersection.Combine }
             Region { item: trayMenuHover; intersection: Intersection.Combine }
         }
 
         property real panelAnimHeight: root.clockOpen ? calendarContent.implicitHeight + 28
             : root.wifiOpen ? wifiContent.implicitHeight + 28
             : root.btOpen ? btContent.implicitHeight + 28
+            : root.volOpen ? volContent.implicitHeight + 28
             : root.trayMenuOpen ? trayMenuContent.implicitHeight + 28
             : 0
         Behavior on panelAnimHeight {
@@ -523,7 +553,7 @@ Scope {
                     anchors.top: parent.top
                     anchors.topMargin: 8
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: parent.width - 40
+                    width: parent.width - 24
                     spacing: 6
 
                     // Connection status line
@@ -610,16 +640,16 @@ Scope {
                     }
 
                     // Speed graph — overlaid rx filled + tx stroke
-                    Shape {
+                    Item {
                         id: speedGraph
                         Layout.fillWidth: true
                         Layout.preferredHeight: 60
                         Layout.topMargin: 4
-                        preferredRendererType: Shape.CurveRenderer
                         clip: true
 
                         property var rxHist: NetSpeedSampler.rxHistory
                         property var txHist: NetSpeedSampler.txHistory
+                        property int maxPoints: Config.netSpeedHistoryLength
                         property real localMax: {
                             let m = 1;
                             for (let v of rxHist) if (v > m) m = v;
@@ -627,69 +657,81 @@ Scope {
                             return m;
                         }
 
-                        // RX fill (light blue tint)
-                        ShapePath {
-                            strokeColor: "transparent"
-                            strokeWidth: 0
-                            fillColor: Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.25)
-                            PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.rxHist, speedGraph.width, speedGraph.height, speedGraph.localMax, true) }
-                        }
+                        Shape {
+                            anchors.fill: parent
+                            preferredRendererType: Shape.CurveRenderer
 
-                        // RX line (solid blue)
-                        ShapePath {
-                            strokeColor: Theme.blue
-                            strokeWidth: 1.5
-                            fillColor: "transparent"
-                            capStyle: ShapePath.RoundCap
-                            joinStyle: ShapePath.RoundJoin
-                            PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.rxHist, speedGraph.width, speedGraph.height, speedGraph.localMax, false) }
-                        }
+                            // RX fill (light blue tint)
+                            ShapePath {
+                                strokeColor: "transparent"
+                                strokeWidth: 0
+                                fillColor: Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.25)
+                                PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.rxHist, speedGraph.width, speedGraph.height, speedGraph.localMax, true, speedGraph.maxPoints) }
+                            }
 
-                        // TX line (solid green, thinner)
-                        ShapePath {
-                            strokeColor: Theme.green
-                            strokeWidth: 1
-                            fillColor: "transparent"
-                            capStyle: ShapePath.RoundCap
-                            joinStyle: ShapePath.RoundJoin
-                            PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.txHist, speedGraph.width, speedGraph.height, speedGraph.localMax, false) }
+                            // RX line (solid blue)
+                            ShapePath {
+                                strokeColor: Theme.blue
+                                strokeWidth: 1.5
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+                                PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.rxHist, speedGraph.width, speedGraph.height, speedGraph.localMax, false, speedGraph.maxPoints) }
+                            }
+
+                            // TX line (solid green, thinner)
+                            ShapePath {
+                                strokeColor: Theme.green
+                                strokeWidth: 1
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+                                PathSvg { path: NetSpeedSampler.buildSmoothSvgPath(speedGraph.txHist, speedGraph.width, speedGraph.height, speedGraph.localMax, false, speedGraph.maxPoints) }
+                            }
                         }
                     }
 
                     // Stats row — peak + session totals
-                    RowLayout {
+                    GridLayout {
                         Layout.fillWidth: true
                         Layout.topMargin: 4
-                        spacing: 10
+                        columns: 2
+                        columnSpacing: 10
+                        rowSpacing: 2
 
                         Text {
                             text: "peak ↓ " + NetSpeedSampler.formatRateLong(NetSpeedSampler.peakRx)
                             color: Theme.overlay0
                             font.pixelSize: 10
                             font.family: Theme.fontFamily
-                            Layout.alignment: Qt.AlignVCenter
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                         Text {
                             text: "↑ " + NetSpeedSampler.formatRateLong(NetSpeedSampler.peakTx)
                             color: Theme.overlay0
                             font.pixelSize: 10
                             font.family: Theme.fontFamily
-                            Layout.alignment: Qt.AlignVCenter
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
-                        Item { Layout.fillWidth: true }
                         Text {
                             text: "session ↓ " + NetSpeedSampler.formatBytes(NetSpeedSampler.sessionRx)
                             color: Theme.overlay0
                             font.pixelSize: 10
                             font.family: Theme.fontFamily
-                            Layout.alignment: Qt.AlignVCenter
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                         Text {
                             text: "↑ " + NetSpeedSampler.formatBytes(NetSpeedSampler.sessionTx)
                             color: Theme.overlay0
                             font.pixelSize: 10
                             font.family: Theme.fontFamily
-                            Layout.alignment: Qt.AlignVCenter
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                     }
 
@@ -1218,6 +1260,492 @@ Scope {
             }
         }
 
+        // ===== VOLUME PANEL HOVER ZONE =====
+        MouseArea {
+            id: volPanelHover
+            x: mainWindow.volPanelLeft - Theme.barRadius
+            y: Theme.barHeight
+            z: 10
+            width: mainWindow.volPanelWidth + Theme.barRadius * 2
+            height: root.volOpen ? mainWindow.panelAnimHeight + 4 : 0
+            hoverEnabled: true
+
+            onContainsMouseChanged: {
+                if (containsMouse) closeTimer.stop();
+                else if (root.volOpen) closeTimer.restart();
+            }
+
+            // Track all Pipewire nodes for live audio data
+            PwObjectTracker {
+                objects: root.volOpen ? Pipewire.nodes.values : []
+            }
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 0
+                width: mainWindow.volPanelWidth
+                height: Math.max(0, mainWindow.panelAnimHeight)
+                clip: true
+                visible: root.volOpen || (root.activePopup === "" && root.lastPopup === "volume")
+
+                ColumnLayout {
+                    id: volContent
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 24
+                    spacing: 8
+
+                    property var defSink: Pipewire.defaultAudioSink
+                    property real masterVol: defSink?.audio?.volume ?? 0
+                    property bool masterMuted: defSink?.audio?.muted ?? false
+
+                    property var defSource: Pipewire.defaultAudioSource
+                    property real micVol: defSource?.audio?.volume ?? 0
+                    property bool micMuted: defSource?.audio?.muted ?? false
+
+                    // Header
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: "Volume"
+                            color: Theme.text
+                            font.pixelSize: 14; font.family: Theme.fontFamily; font.bold: true
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            text: Math.round(volContent.masterVol * 100) + "%"
+                            color: volContent.masterMuted ? Theme.red : Theme.subtext0
+                            font.pixelSize: 11; font.family: Theme.fontFamily
+                        }
+                    }
+
+                    Quill.Separator { Layout.fillWidth: true }
+
+                    // Master sink row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Rectangle {
+                            width: 36; height: 36; radius: 18
+                            color: volContent.masterMuted ? Theme.surface0 : Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.18)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                            IconVolumeX {
+                                visible: volContent.masterMuted
+                                anchors.centerIn: parent; size: 16
+                                color: Theme.red
+                            }
+                            IconVolume2 {
+                                visible: !volContent.masterMuted && volContent.masterVol > 0.66
+                                anchors.centerIn: parent; size: 16
+                                color: Theme.blue
+                            }
+                            IconVolume1 {
+                                visible: !volContent.masterMuted && volContent.masterVol > 0.33 && volContent.masterVol <= 0.66
+                                anchors.centerIn: parent; size: 16
+                                color: Theme.blue
+                            }
+                            IconVolume {
+                                visible: !volContent.masterMuted && volContent.masterVol <= 0.33
+                                anchors.centerIn: parent; size: 16
+                                color: Theme.blue
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (volContent.defSink?.audio)
+                                        volContent.defSink.audio.muted = !volContent.defSink.audio.muted;
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Text {
+                                text: volContent.defSink?.description ?? volContent.defSink?.name ?? "Output"
+                                color: Theme.text
+                                font.pixelSize: 12; font.family: Theme.fontFamily; font.bold: true
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            Quill.Slider {
+                                Layout.fillWidth: true
+                                from: 0; to: 100; stepSize: 1
+                                value: Math.round(volContent.masterVol * 100)
+                                trackColor: volContent.masterMuted ? Theme.overlay0 : Theme.blue
+                                onMoved: (v) => {
+                                    if (volContent.defSink?.audio)
+                                        volContent.defSink.audio.volume = v / 100;
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: Math.round(volContent.masterVol * 100) + "%"
+                            color: volContent.masterMuted ? Theme.red : Theme.overlay0
+                            font.pixelSize: 10; font.family: Theme.fontFamily
+                            Layout.preferredWidth: 32
+                            horizontalAlignment: Text.AlignRight
+                        }
+                    }
+
+                    // Master mic row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        visible: !!volContent.defSource
+
+                        Rectangle {
+                            width: 36; height: 36; radius: 18
+                            color: volContent.micMuted ? Theme.surface0 : Qt.rgba(Theme.green.r, Theme.green.g, Theme.green.b, 0.18)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                            IconMicOff {
+                                visible: volContent.micMuted
+                                anchors.centerIn: parent; size: 16
+                                color: Theme.red
+                            }
+                            IconMic {
+                                visible: !volContent.micMuted
+                                anchors.centerIn: parent; size: 16
+                                color: Theme.green
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (volContent.defSource?.audio)
+                                        volContent.defSource.audio.muted = !volContent.defSource.audio.muted;
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Text {
+                                text: volContent.defSource?.description ?? volContent.defSource?.name ?? "Input"
+                                color: Theme.text
+                                font.pixelSize: 12; font.family: Theme.fontFamily; font.bold: true
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            Quill.Slider {
+                                Layout.fillWidth: true
+                                from: 0; to: 100; stepSize: 1
+                                value: Math.round(volContent.micVol * 100)
+                                trackColor: volContent.micMuted ? Theme.overlay0 : Theme.green
+                                onMoved: (v) => {
+                                    if (volContent.defSource?.audio)
+                                        volContent.defSource.audio.volume = v / 100;
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: Math.round(volContent.micVol * 100) + "%"
+                            color: volContent.micMuted ? Theme.red : Theme.overlay0
+                            font.pixelSize: 10; font.family: Theme.fontFamily
+                            Layout.preferredWidth: 32
+                            horizontalAlignment: Text.AlignRight
+                        }
+                    }
+
+                    Quill.Separator { Layout.fillWidth: true; Layout.topMargin: 4; visible: volContent.streamNodes.length > 0 }
+
+                    Text {
+                        visible: volContent.streamNodes.length > 0
+                        text: "Playback"
+                        color: Theme.subtext0
+                        font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
+                        Layout.fillWidth: true
+                    }
+
+                    // Playback streams (Stream/Output/Audio: apps feeding audio TO sinks)
+                    property var streamNodes: {
+                        let out = [];
+                        let nodes = Pipewire.nodes.values;
+                        for (let i = 0; i < nodes.length; i++) {
+                            let n = nodes[i];
+                            if (n && n.isStream && n.isSink && n.audio)
+                                out.push(n);
+                        }
+                        return out;
+                    }
+
+                    // Capture streams (Stream/Input/Audio: apps reading FROM sources)
+                    property var recordNodes: {
+                        let out = [];
+                        let nodes = Pipewire.nodes.values;
+                        for (let i = 0; i < nodes.length; i++) {
+                            let n = nodes[i];
+                            if (n && n.isStream && !n.isSink && n.audio)
+                                out.push(n);
+                        }
+                        return out;
+                    }
+
+                    Flickable {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.min(contentHeight, Config.volumeMaxListHeight)
+                        contentHeight: appCol.implicitHeight
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+                        visible: volContent.streamNodes.length > 0
+
+                        ColumnLayout {
+                            id: appCol
+                            width: parent.width
+                            spacing: 4
+
+                            Repeater {
+                                model: volContent.streamNodes
+
+                                Rectangle {
+                                    id: appRow
+                                    required property var modelData
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    height: Config.volumeAppRowHeight
+                                    radius: 10
+                                    color: appMouse.containsMouse ? Theme.surface0 : "transparent"
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+
+                                    property real appVol: modelData?.audio?.volume ?? 0
+                                    property bool appMuted: modelData?.audio?.muted ?? false
+                                    property string appLabel: {
+                                        if (!modelData) return "Unknown";
+                                        let p = modelData.properties;
+                                        if (p) {
+                                            let n = p["application.name"] || p["application.process.binary"] || p["node.name"];
+                                            if (n) return n;
+                                        }
+                                        return modelData.description || modelData.name || "Unknown";
+                                    }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        spacing: 10
+
+                                        Rectangle {
+                                            width: 28; height: 28; radius: 14
+                                            color: appRow.appMuted ? Theme.surface0 : Qt.rgba(Theme.mauve.r, Theme.mauve.g, Theme.mauve.b, 0.18)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                                            IconVolumeX {
+                                                visible: appRow.appMuted
+                                                anchors.centerIn: parent; size: 12
+                                                color: Theme.red
+                                            }
+                                            IconVolume2 {
+                                                visible: !appRow.appMuted && appRow.appVol > 0.66
+                                                anchors.centerIn: parent; size: 12
+                                                color: Theme.mauve
+                                            }
+                                            IconVolume1 {
+                                                visible: !appRow.appMuted && appRow.appVol > 0.33 && appRow.appVol <= 0.66
+                                                anchors.centerIn: parent; size: 12
+                                                color: Theme.mauve
+                                            }
+                                            IconVolume {
+                                                visible: !appRow.appMuted && appRow.appVol <= 0.33
+                                                anchors.centerIn: parent; size: 12
+                                                color: Theme.mauve
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    let a = appRow.modelData?.audio;
+                                                    if (a) a.muted = !a.muted;
+                                                }
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 1
+
+                                            Text {
+                                                text: appRow.appLabel
+                                                color: Theme.text
+                                                font.pixelSize: 11; font.family: Theme.fontFamily
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Quill.Slider {
+                                                Layout.fillWidth: true
+                                                from: 0; to: 100; stepSize: 1
+                                                value: Math.round(appRow.appVol * 100)
+                                                trackColor: appRow.appMuted ? Theme.overlay0 : Theme.mauve
+                                                onMoved: (v) => {
+                                                    let a = appRow.modelData?.audio;
+                                                    if (a) a.volume = v / 100;
+                                                }
+                                            }
+                                        }
+
+                                        Text {
+                                            text: Math.round(appRow.appVol * 100) + "%"
+                                            color: appRow.appMuted ? Theme.red : Theme.overlay0
+                                            font.pixelSize: 10; font.family: Theme.fontFamily
+                                            Layout.preferredWidth: 32
+                                            horizontalAlignment: Text.AlignRight
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: appMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        z: -1
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Quill.Separator { Layout.fillWidth: true; Layout.topMargin: 4; visible: volContent.recordNodes.length > 0 }
+
+                    Text {
+                        visible: volContent.recordNodes.length > 0
+                        text: "Recording"
+                        color: Theme.subtext0
+                        font.pixelSize: 11; font.family: Theme.fontFamily; font.bold: true
+                        Layout.fillWidth: true
+                    }
+
+                    Flickable {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.min(contentHeight, Config.volumeMaxListHeight)
+                        contentHeight: recCol.implicitHeight
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+                        visible: volContent.recordNodes.length > 0
+
+                        ColumnLayout {
+                            id: recCol
+                            width: parent.width
+                            spacing: 4
+
+                            Repeater {
+                                model: volContent.recordNodes
+
+                                Rectangle {
+                                    id: recRow
+                                    required property var modelData
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    height: Config.volumeAppRowHeight
+                                    radius: 10
+                                    color: recMouse.containsMouse ? Theme.surface0 : "transparent"
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+
+                                    property real recVol: modelData?.audio?.volume ?? 0
+                                    property bool recMuted: modelData?.audio?.muted ?? false
+                                    property string recLabel: {
+                                        if (!modelData) return "Unknown";
+                                        let p = modelData.properties;
+                                        if (p) {
+                                            let n = p["application.name"] || p["application.process.binary"] || p["node.name"];
+                                            if (n) return n;
+                                        }
+                                        return modelData.description || modelData.name || "Unknown";
+                                    }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        spacing: 10
+
+                                        Rectangle {
+                                            width: 28; height: 28; radius: 14
+                                            color: recRow.recMuted ? Theme.surface0 : Qt.rgba(Theme.green.r, Theme.green.g, Theme.green.b, 0.18)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                                            IconMicOff {
+                                                visible: recRow.recMuted
+                                                anchors.centerIn: parent; size: 12
+                                                color: Theme.red
+                                            }
+                                            IconMic {
+                                                visible: !recRow.recMuted
+                                                anchors.centerIn: parent; size: 12
+                                                color: Theme.green
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    let a = recRow.modelData?.audio;
+                                                    if (a) a.muted = !a.muted;
+                                                }
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 1
+
+                                            Text {
+                                                text: recRow.recLabel
+                                                color: Theme.text
+                                                font.pixelSize: 11; font.family: Theme.fontFamily
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Quill.Slider {
+                                                Layout.fillWidth: true
+                                                from: 0; to: 100; stepSize: 1
+                                                value: Math.round(recRow.recVol * 100)
+                                                trackColor: recRow.recMuted ? Theme.overlay0 : Theme.green
+                                                onMoved: (v) => {
+                                                    let a = recRow.modelData?.audio;
+                                                    if (a) a.volume = v / 100;
+                                                }
+                                            }
+                                        }
+
+                                        Text {
+                                            text: Math.round(recRow.recVol * 100) + "%"
+                                            color: recRow.recMuted ? Theme.red : Theme.overlay0
+                                            font.pixelSize: 10; font.family: Theme.fontFamily
+                                            Layout.preferredWidth: 32
+                                            horizontalAlignment: Text.AlignRight
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: recMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        z: -1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // ===== TRAY MENU HOVER ZONE =====
         MouseArea {
             id: trayMenuHover
@@ -1364,6 +1892,22 @@ Scope {
             }
         }
 
+        // Hover-to-open for Volume icon
+        Connections {
+            target: volWidget
+            function onHoveredChanged() {
+                if (volWidget.hovered) {
+                    if (root.activePopup !== "volume" && !root.volJustClosed) {
+                        root.togglePopup("volume");
+                    } else if (root.volOpen) {
+                        closeTimer.stop();
+                    }
+                } else if (root.volOpen && !volPanelHover.containsMouse) {
+                    closeTimer.restart();
+                }
+            }
+        }
+
         // Hover-to-close for SysTray
         Connections {
             target: sysTrayWidget
@@ -1386,6 +1930,8 @@ Scope {
                     root.activePopup = "";
                 else if (root.btOpen && !btPanelHover.containsMouse && !btWidget.hovered)
                     root.activePopup = "";
+                else if (root.volOpen && !volPanelHover.containsMouse && !volWidget.hovered)
+                    root.activePopup = "";
                 else if (root.trayMenuOpen && !trayMenuHover.containsMouse)
                     root.activePopup = "";
             }
@@ -1402,9 +1948,10 @@ Scope {
             property real barB: Theme.barHeight
             property bool showWifiShape: root.wifiOpen || (root.activePopup === "" && root.lastPopup === "wifi" && mainWindow.panelAnimHeight > 1)
             property bool showBtShape: root.btOpen || (root.activePopup === "" && root.lastPopup === "bluetooth" && mainWindow.panelAnimHeight > 1)
+            property bool showVolShape: root.volOpen || (root.activePopup === "" && root.lastPopup === "volume" && mainWindow.panelAnimHeight > 1)
             property bool showTrayShape: root.trayMenuOpen || (root.activePopup === "" && root.lastPopup === "traymenu" && mainWindow.panelAnimHeight > 1)
-            property real pw: showWifiShape ? mainWindow.wifiPanelWidth : showBtShape ? mainWindow.btPanelWidth : showTrayShape ? mainWindow.trayMenuWidth : 280
-            property real pL: showWifiShape ? mainWindow.wifiPanelLeft : showBtShape ? mainWindow.btPanelLeft : showTrayShape ? mainWindow.trayMenuLeft : (width - pw) / 2
+            property real pw: showWifiShape ? mainWindow.wifiPanelWidth : showBtShape ? mainWindow.btPanelWidth : showVolShape ? mainWindow.volPanelWidth : showTrayShape ? mainWindow.trayMenuWidth : 280
+            property real pL: showWifiShape ? mainWindow.wifiPanelLeft : showBtShape ? mainWindow.btPanelLeft : showVolShape ? mainWindow.volPanelLeft : showTrayShape ? mainWindow.trayMenuLeft : (width - pw) / 2
             property real pR: pL + pw
             property real pB: barB + mainWindow.panelAnimHeight
             property real w: width
@@ -1506,7 +2053,12 @@ Scope {
                         }
                     }
                 }
-                Volume { barWindow: mainWindow }
+                Volume {
+                    id: volWidget
+                    barWindow: mainWindow
+                    activePopup: root.activePopup
+                    onTogglePopup: root.togglePopup("volume")
+                }
                 Battery {}
                 Bluetooth {
                     id: btWidget
@@ -1518,7 +2070,11 @@ Scope {
                     activePopup: root.activePopup
                     onTogglePopup: root.togglePopup("wifi")
                 }
-                NotificationBell { unreadCount: root.notifUnreadCount; dndEnabled: root.dndEnabled }
+                NotificationBell {
+                    unreadCount: root.notifUnreadCount
+                    dndEnabled: root.dndEnabled
+                    onToggleRequested: root.notificationsRequested(mainWindow.screen)
+                }
             }
         }
     }

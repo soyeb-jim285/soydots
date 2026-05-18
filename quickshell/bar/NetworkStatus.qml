@@ -108,7 +108,7 @@ Item {
         anchors.rightMargin: 6
         spacing: 6
 
-        // Sparkline — download history
+        // Sparkline — rx (filled blue) + tx (green stroke)
         Shape {
             id: sparkline
             Layout.preferredWidth: 40
@@ -117,22 +117,47 @@ Item {
             preferredRendererType: Shape.CurveRenderer
             clip: true
 
-            property var history: NetSpeedSampler.rxHistory
+            property int maxPoints: 18
+            property var rxHist: NetSpeedSampler.recentHistory(NetSpeedSampler.rxHistory, maxPoints)
+            property var txHist: NetSpeedSampler.recentHistory(NetSpeedSampler.txHistory, maxPoints)
             property real localMax: {
                 let m = 1;
-                for (let v of history) if (v > m) m = v;
+                for (let v of rxHist) if (v > m) m = v;
+                for (let v of txHist) if (v > m) m = v;
                 return m;
             }
 
+            // RX fill
+            ShapePath {
+                strokeColor: "transparent"
+                strokeWidth: 0
+                fillColor: Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, 0.25)
+                PathSvg {
+                    path: NetSpeedSampler.buildSmoothSvgPath(sparkline.rxHist, sparkline.width, sparkline.height, sparkline.localMax, true, sparkline.maxPoints)
+                }
+            }
+
+            // RX line
             ShapePath {
                 strokeColor: Theme.blue
                 strokeWidth: 1.5
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
                 joinStyle: ShapePath.RoundJoin
-
                 PathSvg {
-                    path: NetSpeedSampler.buildSmoothSvgPath(sparkline.history, sparkline.width, sparkline.height, sparkline.localMax, false)
+                    path: NetSpeedSampler.buildSmoothSvgPath(sparkline.rxHist, sparkline.width, sparkline.height, sparkline.localMax, false, sparkline.maxPoints)
+                }
+            }
+
+            // TX line
+            ShapePath {
+                strokeColor: Theme.green
+                strokeWidth: 1
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                PathSvg {
+                    path: NetSpeedSampler.buildSmoothSvgPath(sparkline.txHist, sparkline.width, sparkline.height, sparkline.localMax, false, sparkline.maxPoints)
                 }
             }
         }

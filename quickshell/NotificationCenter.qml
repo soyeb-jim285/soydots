@@ -15,6 +15,7 @@ Scope {
 
     property bool visible: false
     required property var notifSource
+    property var targetScreen: null
 
     property bool clearingAll: false
 
@@ -33,6 +34,11 @@ Scope {
 
     property real brightness: 0.5
 
+    function toggleOn(screen) {
+        if (screen) root.targetScreen = screen;
+        root.toggle();
+    }
+
     function toggle() {
         root.visible = !root.visible;
         if (root.visible) {
@@ -40,9 +46,6 @@ Scope {
             wifiProc.running = true;
             btProc.running = true;
             brightnessReadProc.running = true;
-        } else {
-            panelHovered = false;
-            closeTimer.stop();
         }
     }
 
@@ -60,19 +63,8 @@ Scope {
         }
     }
 
-    property bool panelHovered: false
-
     function show() {
         if (!root.visible) root.toggle();
-    }
-
-    Timer {
-        id: closeTimer
-        interval: 300
-        onTriggered: {
-            if (!root.panelHovered && root.visible)
-                root.toggle();
-        }
     }
 
     IpcHandler {
@@ -169,8 +161,9 @@ Scope {
         PanelWindow {
             id: window
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             WlrLayershell.namespace: "quickshell-notifcenter"
+            screen: root.targetScreen
 
             anchors { top: true; left: true; right: true; bottom: true }
             color: "transparent"
@@ -211,15 +204,6 @@ Scope {
                 NumberAnimation on opacity {
                     from: 0; to: 1; duration: 200
                     easing.type: Easing.OutCubic; running: true
-                }
-
-                HoverHandler {
-                    id: panelHover
-                    onHoveredChanged: {
-                        root.panelHovered = hovered;
-                        if (!hovered) closeTimer.restart();
-                        else closeTimer.stop();
-                    }
                 }
 
                 MouseArea {

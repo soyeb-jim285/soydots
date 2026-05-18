@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import Quickshell
-import Quickshell.Io
 import QtQuick
 import ".."
 import "../icons"
@@ -13,6 +12,7 @@ Item {
 
     required property int unreadCount
     property bool dndEnabled: false
+    signal toggleRequested()
 
     Rectangle {
         anchors.fill: parent
@@ -70,11 +70,6 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onEntered: notifShow.running = true
-    }
-
-    Process {
-        id: notifShow
-        command: ["quickshell", "msg", "notifications", "show"]
+        onClicked: root.toggleRequested()
     }
 }

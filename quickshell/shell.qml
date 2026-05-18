@@ -42,7 +42,11 @@ ShellRoot {
     }
 
     AppLauncher {}
-    StatusBar { notifUnreadCount: notifs.unreadCount; dndEnabled: notifCenter.dndEnabled }
+    StatusBar {
+        notifUnreadCount: notifs.unreadCount
+        dndEnabled: notifCenter.dndEnabled
+        onNotificationsRequested: (screen) => notifCenter.toggleOn(screen)
+    }
     OSD {}
     NotificationPopup { id: notifs; dndEnabled: notifCenter.dndEnabled }
     NotificationCenter { id: notifCenter; notifSource: notifs }

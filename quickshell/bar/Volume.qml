@@ -12,6 +12,9 @@ Item {
     height: parent?.height ?? Theme.barHeight
 
     required property var barWindow
+    required property string activePopup
+    signal togglePopup()
+    property bool hovered: volMouse.containsMouse
 
     property var sink: Pipewire.defaultAudioSink
 
@@ -73,10 +76,14 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
         onClicked: (event) => {
-            if (root.sink?.audio) root.sink.audio.muted = !root.sink.audio.muted;
+            if (event.button === Qt.MiddleButton) {
+                if (root.sink?.audio) root.sink.audio.muted = !root.sink.audio.muted;
+                return;
+            }
+            root.togglePopup();
         }
 
         onWheel: (event) => {
