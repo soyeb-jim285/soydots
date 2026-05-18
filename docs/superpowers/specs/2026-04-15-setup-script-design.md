@@ -18,13 +18,12 @@ re-run on any machine to reconcile state.
 - systemd service enables (system + user)
 - Git submodule init (`quill-polkit`)
 - TPM clone + plugin install
-- Browser theme-sync bootstraps (Zen, Firefox)
 - Optional NVIDIA driver setup (detect + prompt)
 - Git identity prompt (skippable)
 - Default shell switch to zsh
 
 **Out of scope**
-- Personal data: Zen/Firefox profiles, SSH keys, GPG keys
+- Personal data: browser profiles, SSH keys, GPG keys
 - Secrets: `.env`, API tokens, `~/.claude.json` credentials
 - User-specific Claude data: `~/.claude/projects/`, memory
 - Bootloader cmdline edits (GRUB / systemd-boot): printed instructions, never auto-edited
@@ -144,8 +143,6 @@ Native-idempotent tools where available; explicit guards where not.
 - `git submodule update --init --recursive`
 - Apply `git config --global user.name/user.email` if set
 - TPM: clone to `~/.tmux/plugins/tpm` if absent; run `bin/install_plugins`
-- Run `zen/setup-live-theme-sync.sh`
-- If Firefox installed: run `firefox/setup-live-theme-sync.sh`
 - Build/install `quill-polkit` from submodule if it has a `Makefile` or
   `install.sh`
 - `chsh -s $(command -v zsh)` if current login shell isn't zsh

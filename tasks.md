@@ -11,7 +11,6 @@ and `docs/superpowers/plans/2026-04-15-setup-script.md` for the implementation p
 - quillpolkit (custom polkit agent, fork of hyprpolkitagent with Catppuccin Mocha UI)
 - git
 - base-devel
-- zen-browser-bin
 - wl-clipboard
 - zip, unzip
 - maple mono fonts (Nerd Font)
@@ -210,10 +209,6 @@ and `docs/superpowers/plans/2026-04-15-setup-script.md` for the implementation p
 - Claude Code — theme sync:
   - Config.qml writes theme to ~/.claude.json on darkModeChanged
   - Takes effect on next Claude Code launch (no hot-reload support)
-- Zen Browser — live theme sync from Quickshell appearance:
-  - Switches between Catppuccin Latte and Mocha when theme is toggled from `Meta+Shift+T` or Quickshell settings
-  - Syncs Zen light/dark mode, built-in light/dark theme selection, accent color, and browser/sidebar colors
-  - Hot-reloads from `~/.config/zen-live-theme.json` after the one-time autoconfig setup
 - greetd + tuigreet login — minimal clean greeter on tty1:
   - `/etc/greetd/config.toml` runs tuigreet as unprivileged `greeter` user with `--time --remember --remember-session --asterisks --sessions /usr/share/wayland-sessions` (F2 to switch session, selection remembered)
   - `/etc/vconsole.conf` sets `FONT=ter-v20n` (Terminus 20px) for a crisp modern console
@@ -262,16 +257,6 @@ These commands must be run manually for full functionality (not managed by dotfi
 - `~/.zshrc` → `~/jimdots/zsh/.zshrc`
 - `~/.zshenv` → `~/jimdots/zsh/.zshenv`
 - `~/.config/starship.toml` → `~/jimdots/zsh/starship.toml`
-
-### Zen Browser Theme Sync
-- Run `~/jimdots/zen/setup-live-theme-sync.sh`
-- Restart Zen once after installing the autoconfig bootstrap
-- Re-run the setup script if `~/jimdots` moves to a different path
-
-### Firefox Browser Theme Sync
-- If Firefox is installed, run `~/jimdots/firefox/setup-live-theme-sync.sh`
-- Restart Firefox once after installing the autoconfig bootstrap
-- Firefox reads the shared Quickshell theme payload from `~/.config/zen-live-theme.json`
 
 ## Dotfiles Structure
 All configs live in `~/jimdots/` and are symlinked to `~/.config/`:

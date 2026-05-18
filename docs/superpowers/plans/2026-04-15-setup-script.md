@@ -564,7 +564,6 @@ linux-headers
 # AUR packages (installed via yay)
 yay
 dracula-cursors-git
-zen-browser-bin
 kvantum-theme-catppuccin
 awww
 hyprpolkitagent
@@ -956,14 +955,6 @@ if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
 fi
 if [[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]]; then
     run "$HOME/.tmux/plugins/tpm/bin/install_plugins" || warn "TPM install_plugins returned non-zero (safe to retry)"
-fi
-
-info "browser theme-sync bootstraps"
-if [[ -x "$JIMDOTS_REPO/zen/setup-live-theme-sync.sh" ]]; then
-    run "$JIMDOTS_REPO/zen/setup-live-theme-sync.sh" || warn "zen setup returned non-zero"
-fi
-if command -v firefox >/dev/null 2>&1 && [[ -x "$JIMDOTS_REPO/firefox/setup-live-theme-sync.sh" ]]; then
-    run "$JIMDOTS_REPO/firefox/setup-live-theme-sync.sh" || warn "firefox setup returned non-zero"
 fi
 
 info "quill-polkit build"

@@ -18,7 +18,6 @@ claude/               ~/.claude settings + statusline script
 etc/                  System files copied into /etc (greetd, vconsole,
                       tty-colors service, sleep.conf)
 fonts/ wallpapers/    Assets
-firefox/ zen/         Browser tweaks
 quill/ quickshell/icons/ quickshell/quill-polkit/
                       Git submodules (theme + polkit agent)
 

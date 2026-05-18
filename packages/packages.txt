@@ -104,6 +104,5 @@ xdg-desktop-portal-gtk
 
 # --- AUR ---
 dracula-cursors-git
-zen-browser-bin
 kvantum-theme-catppuccin
 awww
