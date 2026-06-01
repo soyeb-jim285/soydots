@@ -34,6 +34,13 @@ fg_gray="\033[90m"
 # Directory segment
 dir_segment="${fg_yellow}${dir}${reset}"
 
+# Git branch segment
+branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+branch_segment=""
+if [ -n "$branch" ]; then
+  branch_segment="  ${fg_gray}⎇${reset} ${fg_blue}${branch}${reset}"
+fi
+
 # Model segment
 model_segment="${fg_magenta}${model}${reset}"
 
@@ -95,6 +102,7 @@ fi
 # Format: [user@host] [dir]  model  ctx-bar xx%  [vim] [session]
 
 printf "${fg_gray}~/${reset}%b" "$dir_segment"
+printf "%b" "$branch_segment"
 printf "  ${fg_gray}⬡${reset} %b" "$model_segment"
 printf "  ${fg_gray}ctx:${reset} %b" "$ctx_segment"
 printf "  %b" "$lines_segment"
