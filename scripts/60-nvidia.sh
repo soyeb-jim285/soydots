@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 60 — optional NVIDIA setup (detect + prompt).
+# Phase 60 — optional NVIDIA driver setup (detect + prompt).
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 

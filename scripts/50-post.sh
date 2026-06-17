@@ -41,6 +41,20 @@ else
     warn "no fonts/ directory in repo — skipping font install"
 fi
 
+info "gtk theme (gsettings for GTK4/libadwaita apps)"
+# GTK3 apps read ~/.config/gtk-3.0/settings.ini (symlinked from repo), but
+# GTK4/libadwaita apps ignore gtk-theme-name and read gsettings instead.
+# Set both the theme and a dark color-scheme so file-chooser portals and
+# other GTK apps render dark catppuccin to match the Qt/kvantum side.
+if command -v gsettings >/dev/null 2>&1; then
+    run gsettings set org.gnome.desktop.interface gtk-theme 'catppuccin-mocha-lavender-standard+default' || warn "gsettings gtk-theme failed"
+    run gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' || true
+    run gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' || true
+    ok "gtk gsettings applied"
+else
+    warn "gsettings missing — GTK4/libadwaita apps will not pick up the theme"
+fi
+
 info "TPM (tmux plugin manager)"
 tpm_dir="$HOME/.config/tmux/plugins/tpm"  # radley layout: TMUX_PLUGIN_MANAGER_PATH=~/.config/tmux/plugins
 if [[ ! -d "$tpm_dir" ]]; then

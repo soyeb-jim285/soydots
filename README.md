@@ -25,7 +25,7 @@ packages/packages.txt List of every package installed by phase 10
 symlinks.txt          src|dest manifest consumed by phase 20
 scripts/              Phase scripts (00-preflight … 60-nvidia) + lib.sh
 setup.sh              Orchestrator — runs the phase scripts in order
-setup-nvidia.sh       NVIDIA power-management udev rules (opt-in)
+setup-nvidia.sh       NVIDIA DKMS driver setup + module/power config (opt-in)
 setup-stuff-mount.sh  Interactive fstab helper for extra partitions
 machine.local.conf    Per-machine config (gitignored, created by preflight)
 ```
@@ -65,7 +65,7 @@ Phases run in this order; `--only` accepts any subset.
 | 30 | `system`    | `30-system.sh`      | Installs files under `etc/` into `/etc/` (greetd, vconsole, tty-colors), adds the `i2c` group + module for DDC brightness, and wires up the `resume` hook in `mkinitcpio` if hibernate is enabled. |
 | 40 | `services`  | `40-services.sh`    | Enables systemd units. System: `tty-colors`, `bluetooth` (started now), `greetd` (enabled only — starting it mid-setup would hijack the TTY). User: `hypridle`, `pipewire`, `pipewire-pulse`, `wireplumber` — `--now` only inside a live graphical session, otherwise enable-only. |
 | 50 | `post`      | `50-post.sh`        | `git submodule update --init --recursive`, sets git identity from `machine.local.conf`, bootstraps tmux TPM, seeds `~/.config/tmux/quickshell-tmux.conf`, and `chsh`es to `zsh`. |
-| 60 | `nvidia`    | `60-nvidia.sh`      | If an NVIDIA GPU is detected, offers to run `setup-nvidia.sh` (installs the power-management udev rules). Skipped otherwise. |
+| 60 | `nvidia`    | `60-nvidia.sh`      | If an NVIDIA GPU is detected, offers to run `setup-nvidia.sh` (installs the DKMS driver stack, module config, initramfs hook, and power-management udev rules). Skipped otherwise. |
 
 At the very end of a full run (no `--only`), setup offers a single
 reboot so greetd, group membership, and kernel params take effect.
@@ -87,8 +87,9 @@ Later phases `source` this file. Re-run `--only preflight` to regenerate it.
 
 ## Extras
 
-- **`setup-nvidia.sh`** — installs udev rules for NVIDIA runtime power
-  management. Run directly or via phase 60.
+- **`setup-nvidia.sh`** — installs the NVIDIA open DKMS driver stack,
+  module config, initramfs hook, and runtime power-management udev rules.
+  Run directly or via phase 60.
 - **`setup-stuff-mount.sh`** — interactive helper to add extra
   partitions to `/etc/fstab` with sane mount options. Independent of
   the main setup.

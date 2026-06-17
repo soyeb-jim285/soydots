@@ -23,5 +23,6 @@
         "repo": "JuliusBrussee/caveman"
       }
     }
-  }
+  },
+  "skipWorkflowUsageWarning": true
 }

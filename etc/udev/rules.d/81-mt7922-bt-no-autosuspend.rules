@@ -1,0 +1,8 @@
+# MediaTek MT7922 Bluetooth (USB 0489:e0cd) — disable USB autosuspend.
+#
+# With autosuspend enabled, a system suspend/resume (s2idle) wedges the
+# controller firmware: btusb logs "Failed to send wmt func ctrl (-22)" and
+# BlueZ loses the adapter ("No default controller available"). Neither a
+# btusb reload nor a USB-level reset clears it — only a full cold power-off.
+# Pinning power/control=on keeps the radio out of the bad state across resume.
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0489", ATTR{idProduct}=="e0cd", TEST=="power/control", ATTR{power/control}="on"

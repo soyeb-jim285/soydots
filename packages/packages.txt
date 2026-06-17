@@ -77,11 +77,29 @@ plocate
 # --- theming (qt/gtk) ---
 qt6ct
 kvantum
+# Papirus icons so GTK apps and file-chooser portals match catppuccin.
+# (The filechooser portal interface is served by xdg-desktop-portal-gtk for
+# ALL apps, Qt included — so Qt file dialogs are GTK and need icons too.)
+# The GTK theme itself is catppuccin-gtk-theme-mocha in the AUR section below.
+papirus-icon-theme
+
+# --- graphics (AMD iGPU acceleration; keeps load off the flaky NVIDIA dGPU) ---
+# vulkan-radeon gives the AMD iGPU a Vulkan device — without it the ONLY Vulkan
+# device is the dGPU, so any gpu-api=vulkan app (e.g. mpv) lands on the dGPU.
+vulkan-radeon
+libva-utils
+
+# --- media ---
+# mpv config + plugins (uosc/thumbfast/autoload/sponsorblock) vendored in repo
+# under mpv/, symlinked to ~/.config/mpv. yt-dlp powers streaming + sponsorblock.
+mpv
+yt-dlp
 
 # --- monitoring ---
 btop
 
-# --- nvidia (installed only if nvidia machine; harmless on others) ---
+# --- nvidia support ---
+# Driver packages are installed by setup-nvidia.sh only on NVIDIA machines.
 linux-headers
 
 # --- hyprfm (file manager) + optional runtime deps ---
@@ -103,5 +121,8 @@ xdg-desktop-portal-gtk
 
 # --- AUR ---
 dracula-cursors-git
-kvantum-theme-catppuccin
+# GTK theme for GTK apps + file-chooser portals (lavender variant selected in
+# gtk settings.ini / gsettings). kvantum (Qt) theme is instead vendored in repo
+# under Kvantum/ — works offline via the symlink, no AUR package needed for it.
+catppuccin-gtk-theme-mocha
 awww

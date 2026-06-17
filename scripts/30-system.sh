@@ -10,6 +10,7 @@ copy_etc etc/greetd/config.toml /etc/greetd/config.toml 644
 copy_etc etc/vconsole.conf /etc/vconsole.conf 644
 copy_etc etc/tty-colors.pal /etc/tty-colors.pal 644
 copy_etc etc/systemd/system/tty-colors.service /etc/systemd/system/tty-colors.service 644
+copy_etc etc/udev/rules.d/81-mt7922-bt-no-autosuspend.rules /etc/udev/rules.d/81-mt7922-bt-no-autosuspend.rules 644
 
 if [[ "${ENABLE_HIBERNATE:-0}" == "1" ]]; then
     copy_etc etc/systemd/sleep.conf.d/hibernate.conf /etc/systemd/sleep.conf.d/hibernate.conf 644

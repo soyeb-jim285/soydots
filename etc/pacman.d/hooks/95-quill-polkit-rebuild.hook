@@ -1,0 +1,26 @@
+# Auto-rebuild quill-polkit-agent whenever its volatile dynamic deps upgrade.
+#
+# quill-polkit-agent is a hand-built binary in /usr/local/bin that links the
+# versioned hyprutils soname (libhyprutils.so.N). hyprutils is 0.x and bumps
+# its soname often; without this hook every upgrade leaves the agent unable to
+# load (status=127, "libhyprutils.so.N: cannot open shared object file") and
+# the polkit auth agent silently dies — GUI privilege prompts stop appearing.
+#
+# Deployed to /etc/pacman.d/hooks/ by install.sh. Rebuilds from the root-owned
+# source copy at /usr/local/src/quill-polkit (install.sh syncs it there).
+
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Type = Package
+Target = hyprutils
+Target = qt6-base
+Target = qt6-declarative
+
+[Action]
+Description = Rebuilding quill-polkit-agent against upgraded hyprutils/Qt...
+When = PostTransaction
+Exec = /usr/bin/env PACMAN_HOOK=1 /usr/local/src/quill-polkit/rebuild.sh
+Depends = cmake
+Depends = ninja
+Depends = hyprutils
