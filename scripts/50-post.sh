@@ -42,11 +42,12 @@ else
 fi
 
 info "TPM (tmux plugin manager)"
-if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
-    run git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+tpm_dir="$HOME/.config/tmux/plugins/tpm"  # radley layout: TMUX_PLUGIN_MANAGER_PATH=~/.config/tmux/plugins
+if [[ ! -d "$tpm_dir" ]]; then
+    run git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
 fi
-if [[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]]; then
-    run "$HOME/.tmux/plugins/tpm/bin/install_plugins" || warn "TPM install_plugins returned non-zero (safe to retry)"
+if [[ -x "$tpm_dir/bin/install_plugins" ]]; then
+    run "$tpm_dir/bin/install_plugins" || warn "TPM install_plugins returned non-zero (safe to retry)"
 fi
 
 # Seed quickshell-tmux.conf so first-launch tmux has pills + top status,
