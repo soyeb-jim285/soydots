@@ -248,6 +248,8 @@ QtObject {
                 filesEnabled: launcherFilesEnabled,
                 filesPrefix: launcherFilesPrefix,
                 filesMaxResults: launcherFilesMaxResults,
+                keybindsEnabled: launcherKeybindsEnabled,
+                keybindsPrefix: launcherKeybindsPrefix,
                 universalSearchEnabled: launcherUniversalSearchEnabled,
                 universalSearchOrder: launcherUniversalSearchOrder
             },
@@ -529,7 +531,7 @@ QtObject {
 
     // ===== Starship Sync =====
 
-    property string _starshipPath: _homeDir + "/.config/starship.toml"
+    property string _starshipPath: _homeDir + "/.config/zsh/starship.toml"
 
     property var _starshipSyncTimer: Timer {
         interval: 300
@@ -1314,6 +1316,8 @@ variant = "pill"'
     property bool launcherFilesEnabled: _data?.launcher?.filesEnabled ?? true
     property string launcherFilesPrefix: _data?.launcher?.filesPrefix ?? "'"
     property int launcherFilesMaxResults: _data?.launcher?.filesMaxResults ?? 30
+    property bool launcherKeybindsEnabled: _data?.launcher?.keybindsEnabled ?? true
+    property string launcherKeybindsPrefix: _data?.launcher?.keybindsPrefix ?? "k"
     // Universal search merges results from multiple providers when the user
     // types a plain query (no prefix). Order is a comma-separated list of
     // tokens: "web:<keyword>" (one result via that engine), "pacman:<n>",

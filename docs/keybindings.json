@@ -1,0 +1,210 @@
+{
+  "_comment": "Single source of truth for the combined keybinding cheatsheet. Edit here, then run scripts/gen-keybindings.py to regenerate docs/KEYBINDINGS.md and hypr/keybinds.list. To re-extract from configs after big changes, re-run the extract-keybindings workflow.",
+  "sections": [
+    {
+      "domain": "Hyprland",
+      "label": "Hyprland — Desktop / WM",
+      "note": "$mainMod = SUPER (Windows key). Quickshell panels are toggled through these binds (quickshell msg …).",
+      "groups": {
+        "Apps": [
+          ["Super+Return", "Terminal (kitty)"],
+          ["Super+W", "Zen browser"],
+          ["Super+E", "File manager (hyprfm)"],
+          ["Super+Space", "App launcher (toggle)"],
+          ["Super+V", "Clipboard history (launcher)"],
+          ["Super+Comma", "Quickshell settings panel"],
+          ["Super+U", "Quill showcase panel"],
+          ["Super+Shift+B", "Animation picker"]
+        ],
+        "Windows": [
+          ["Super+Q", "Close active window"],
+          ["Super+Alt+V", "Toggle floating"],
+          ["Super+Left/Right/Up/Down", "Move focus"],
+          ["Super+J", "Toggle split direction (dwindle)"],
+          ["Super+LeftClick drag", "Move window"],
+          ["Super+RightClick drag", "Resize window"]
+        ],
+        "Workspaces": [
+          ["Super+1..0", "Switch to workspace 1–10"],
+          ["Super+Shift+1..0", "Move window to workspace 1–10"],
+          ["Super+S", "Toggle special 'magic' scratchpad"],
+          ["Super+Shift+S", "Move window to special 'magic'"],
+          ["Super+ScrollUp/Down", "Prev / next workspace"]
+        ],
+        "Screenshot": [
+          ["Super+Shift+P", "Screenshot region"],
+          ["Super+Shift+F", "Screenshot full output"],
+          ["Super+Shift+W", "Screenshot active window"]
+        ],
+        "Media": [
+          ["XF86Audio Raise/Lower/Mute", "Output volume up / down / mute"],
+          ["XF86AudioMicMute", "Toggle mic mute"],
+          ["XF86Audio Play/Next/Prev", "Media play-pause / next / prev"],
+          ["Super+F6 / F5", "Brightness up / down"]
+        ],
+        "System": [
+          ["Super+M", "Power menu"],
+          ["Super+L", "Lock screen"],
+          ["Super+Shift+I", "Toggle sleep/idle inhibitors"],
+          ["Super+Shift+R", "Toggle HDMI rotation"],
+          ["Super+Shift+T", "Toggle light/dark theme"],
+          ["Super+Alt+W", "Regenerate wallpaper"],
+          ["Super+Slash", "Search keybindings in the launcher (k mode)"]
+        ]
+      }
+    },
+    {
+      "domain": "Quickshell",
+      "label": "Quickshell — IPC actions with no default keybind",
+      "note": "Exposed via 'quickshell msg …' but not bound to a key. Bind in hypr/hyprland.conf if wanted.",
+      "groups": {
+        "Unbound": [
+          ["(unbound)", "notifications toggle / show — notification center"],
+          ["(unbound)", "lockscreen refocus — refocus password input"],
+          ["(unbound)", "GlobalShortcut launcher/settings/powermenu/quill-showcase toggle"]
+        ]
+      }
+    },
+    {
+      "domain": "Launcher",
+      "label": "App Launcher — prefix modes (Super+Space)",
+      "note": "Type a prefix then a space to switch modes. Shown as chips in the launcher; the empty launcher also suggests them.",
+      "groups": {
+        "Prefixes": [
+          ["(type)", "Apps + universal search — default, no prefix"],
+          ["k <query>", "Keybindings search (Enter copies the chord)"],
+          ["/ <expr>", "Calculator"],
+          [": <query>", "Emoji picker"],
+          ["cb <query>", "Clipboard history"],
+          ["p <query>", "Packages — pacman / AUR"],
+          ["i <query>", "Flatpak — flathub"],
+          ["' <query>", "File search"],
+          ["> <cmd>", "Shell runner"],
+          ["g <query>", "Web search — engine keyword (g, gh, aw…)"]
+        ]
+      }
+    },
+    {
+      "domain": "zsh",
+      "label": "zsh — shell (vi-mode)",
+      "note": "vi-mode active (zsh-vi-mode): beam cursor = insert, block = normal. Standard vi motions apply.",
+      "groups": {
+        "fzf": [
+          ["Ctrl+R", "Fuzzy history search"],
+          ["Ctrl+T", "Fuzzy file picker (insert path)"],
+          ["Alt+C", "Fuzzy cd into subdirectory"],
+          ["Ctrl+F", "fzf file picker, excludes hidden"]
+        ],
+        "Line editing": [
+          ["Ctrl+A / Ctrl+E", "Start / end of line"],
+          ["Ctrl+Left / Ctrl+Right", "Word back / forward"],
+          ["Ctrl+W", "Delete word before cursor"],
+          ["Ctrl+U / Ctrl+K", "Delete to line start / end"],
+          ["Ctrl+Y", "Paste last killed text"],
+          ["Ctrl+Backspace", "Delete word before cursor"]
+        ],
+        "Autosuggest / history": [
+          ["Right / End", "Accept autosuggestion"],
+          ["Ctrl+O", "Accept autosuggestion (tmux-safe)"],
+          ["Ctrl+\\", "Toggle autosuggestions"],
+          ["Up / Down", "History substring search"]
+        ]
+      }
+    },
+    {
+      "domain": "tmux",
+      "label": "tmux — prefix is Ctrl+Space",
+      "note": "'prefix X' = press Ctrl+Space then X. Capital resize binds are repeatable. Copy mode uses vi keys.",
+      "groups": {
+        "Panes": [
+          ["prefix | / -", "Split horizontal / vertical (cwd)"],
+          ["prefix h/j/k/l", "Select pane left/down/up/right"],
+          ["Alt+Left/Right/Up/Down", "Select pane (no prefix)"],
+          ["prefix H/J/K/L", "Resize pane (repeatable)"],
+          ["prefix m", "Toggle pane zoom"],
+          ["prefix > / <", "Swap pane next / prev"],
+          ["prefix b", "Break pane to own window"],
+          ["prefix x", "Kill pane"]
+        ],
+        "Windows": [
+          ["prefix c", "New window (cwd)"],
+          ["prefix X", "Kill window"],
+          ["prefix Space", "Last window"],
+          ["Alt+h / Alt+l", "Prev / next window (no prefix)"],
+          ["Alt+1..9", "Jump to window 1–9 (no prefix)"]
+        ],
+        "Copy mode": [
+          ["prefix v", "Enter copy mode"],
+          ["v", "Begin selection"],
+          ["y", "Copy to Wayland clipboard + exit"],
+          ["Ctrl+v", "Toggle block selection"],
+          ["Escape", "Cancel copy mode"],
+          ["prefix p / P", "Paste / choose buffer"]
+        ],
+        "Popups": [
+          ["prefix w", "Session list"],
+          ["prefix T", "Scratch pad"],
+          ["prefix g", "LazyGit (cwd)"],
+          ["prefix S", "SSH menu"]
+        ],
+        "Misc": [
+          ["prefix r", "Reload config"]
+        ]
+      }
+    },
+    {
+      "domain": "Neovim",
+      "label": "Neovim — LazyVim (leader = Space)",
+      "note": "Stock LazyVim defaults (no custom user keymaps). <leader> = Space. See :help LazyVim or <leader>sk to search keymaps live.",
+      "groups": {
+        "Windows / Buffers": [
+          ["Ctrl+h/j/k/l", "Move to window left/down/up/right"],
+          ["Ctrl+arrows", "Resize window"],
+          ["Shift+H / Shift+L", "Prev / next buffer"],
+          ["<leader>bd", "Delete buffer"],
+          ["<leader>-  /  <leader>|", "Split below / right"],
+          ["<leader>wd", "Close window"]
+        ],
+        "Find / Picker": [
+          ["<leader><space>", "Find files (root)"],
+          ["<leader>ff / fF", "Find files root / cwd"],
+          ["<leader>fr", "Recent files"],
+          ["<leader>fb", "Open buffers"],
+          ["<leader>/", "Live grep project"],
+          ["<leader>sw", "Grep word under cursor"],
+          ["<leader>sk", "Search keymaps"],
+          ["<leader>sh", "Search help"]
+        ],
+        "LSP": [
+          ["gd / gr", "Go to definition / references"],
+          ["gD / gI / gy", "Declaration / implementation / type def"],
+          ["K", "Hover docs"],
+          ["<leader>ca", "Code action"],
+          ["<leader>cr", "Rename symbol"],
+          ["<leader>cR", "Rename file (LSP-aware)"],
+          ["<leader>cf", "Format document"]
+        ],
+        "Diagnostics": [
+          ["]d / [d", "Next / prev diagnostic"],
+          ["]e / [e", "Next / prev error"],
+          ["<leader>cd", "Line diagnostics"],
+          ["<leader>xx", "Trouble diagnostics list"]
+        ],
+        "Git": [
+          ["<leader>gg", "LazyGit"],
+          ["<leader>gb", "Blame line"],
+          ["]h / [h", "Next / prev hunk"],
+          ["<leader>ghs / ghr", "Stage / reset hunk"]
+        ],
+        "Explorer / Terminal / UI": [
+          ["<leader>e", "File explorer"],
+          ["Ctrl+/", "Toggle terminal"],
+          ["<leader>uf", "Toggle auto-format"],
+          ["<leader> ul / uw / us", "Toggle relnum / wrap / spell"],
+          ["<leader>L  /  <leader>l", "Changelog / Lazy plugin manager"],
+          ["<leader>qq", "Quit all"]
+        ]
+      }
+    }
+  ]
+}
