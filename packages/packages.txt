@@ -11,9 +11,8 @@ gum
 
 # --- shell + prompt ---
 zsh
-zsh-autosuggestions
-zsh-syntax-highlighting
-zsh-completions
+# zsh plugins are git-cloned by ~/.config/zsh/plugins.zsh (radley-style):
+# zsh-autosuggestions, zsh-history-substring-search, zsh-vi-mode, fast-syntax-highlighting
 starship
 zoxide
 eza

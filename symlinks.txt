@@ -3,19 +3,28 @@ hypr|.config/hypr
 kitty|.config/kitty
 quickshell|.config/quickshell
 nvim|.config/nvim
+mpv|.config/mpv
 # tmux/btop/gtk dirs hold per-machine state alongside repo configs,
 # so we link specific files rather than whole directories.
 tmux/tmux.conf|.config/tmux/tmux.conf
 tmux/write-quickshell-conf.py|.config/tmux/write-quickshell-conf.py
 tmux/wl-copy-skip-empty.sh|.config/tmux/wl-copy-skip-empty.sh
+tmux/scripts/tmux-menu.sh|.config/tmux/scripts/tmux-menu.sh
+tmux/scripts/tmux-scratch.sh|.config/tmux/scripts/tmux-scratch.sh
+tmux/scripts/tmux-ssh.sh|.config/tmux/scripts/tmux-ssh.sh
 qt6ct|.config/qt6ct
 Kvantum|.config/Kvantum
 gtk-3.0/settings.ini|.config/gtk-3.0/settings.ini
 gtk-4.0/settings.ini|.config/gtk-4.0/settings.ini
 btop/themes|.config/btop/themes
-zsh/.zshrc|.zshrc
 zsh/.zshenv|.zshenv
-zsh/starship.toml|.config/starship.toml
+zsh/.zshrc|.config/zsh/.zshrc
+zsh/aliases.zsh|.config/zsh/aliases.zsh
+zsh/bindings.zsh|.config/zsh/bindings.zsh
+zsh/fzf.zsh|.config/zsh/fzf.zsh
+zsh/plugins.zsh|.config/zsh/plugins.zsh
+zsh/prompt.zsh|.config/zsh/prompt.zsh
+zsh/starship.toml|.config/zsh/starship.toml
 claude/settings.json|.claude/settings.json
 claude/statusline-command.sh|.claude/statusline-command.sh
 applications/kitty-nvim.desktop|.local/share/applications/kitty-nvim.desktop

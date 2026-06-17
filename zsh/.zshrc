@@ -1,106 +1,122 @@
-# ~/.zshrc - interactive shell config
+# Powerful but minimal zsh configuration — radley-style base (radleylewis/zsh)
+# with local customizations. See ~/.config/zsh/{aliases,bindings,fzf,plugins,prompt}.zsh
+#
+# Uses:
+#   Plugins:      fast-syntax-highlighting, zsh-autosuggestions,
+#                 zsh-history-substring-search, zsh-vi-mode
+#   Prompt:       starship
+#   Navigation:   zoxide, fzf, fd
+#   CLI tools:    eza, bat, nvim, ripgrep
 
-# ── History ──────────────────────────────────────────────
-HISTFILE=~/.zsh_history
-HISTSIZE=50000
-SAVEHIST=50000
-setopt SHARE_HISTORY          # share across sessions
-setopt HIST_IGNORE_ALL_DUPS   # deduplicate
-setopt HIST_IGNORE_SPACE      # prefix with space to skip history
-setopt HIST_REDUCE_BLANKS     # trim whitespace
-setopt INC_APPEND_HISTORY     # write immediately, not on exit
+# =========================================================
+# Required runtime directories (self-heal so a fresh box just works)
+# =========================================================
 
-# ── General Options ──────────────────────────────────────
-setopt INTERACTIVE_COMMENTS   # allow # comments in interactive shell
-setopt NO_BEEP
-setopt GLOB_DOTS              # include dotfiles in globbing
+[[ -d "$XDG_STATE_HOME/zsh" ]] || mkdir -p "$XDG_STATE_HOME/zsh"
+[[ -d "$XDG_CACHE_HOME/zsh" ]] || mkdir -p "$XDG_CACHE_HOME/zsh"
 
-# ── Vi Mode ──────────────────────────────────────────────
-bindkey -v
-export KEYTIMEOUT=1
+# =========================================================
+# History
+# =========================================================
 
-# restore useful emacs bindings in vi insert mode
-bindkey '^A' beginning-of-line
-bindkey '^E' end-of-line
-bindkey '^W' backward-kill-word
-bindkey '^U' backward-kill-line
-bindkey '^K' kill-line
-bindkey '^Y' yank
-bindkey '^?' backward-delete-char   # backspace
-bindkey '^H' backward-delete-char
-bindkey '\e\x7f' backward-kill-word  # ctrl+backspace (via kitty remap)
+HISTFILE="$XDG_STATE_HOME/zsh/history"
+HISTSIZE=100000
+SAVEHIST=100000
 
-# ── Completion ───────────────────────────────────────────
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_FIND_NO_DUPS
+setopt HIST_REDUCE_BLANKS
+
+# =========================================================
+# Shell behaviour
+# =========================================================
+
+setopt AUTOCD
+setopt NOBEEP
+setopt NUMERIC_GLOB_SORT       # sort file10 after file9, not after file1
+setopt INTERACTIVE_COMMENTS    # allow # comments at the interactive prompt
+setopt GLOB_DOTS               # include dotfiles in globbing
+
+# =========================================================
+# lf icons (guarded — lf is optional)
+# =========================================================
+
+[[ -f ~/.config/lf/icons ]] && export LF_ICONS=$(tr '\n' ':' < ~/.config/lf/icons)
+
+# =========================================================
+# Completion
+# =========================================================
+
+# Load completion system
 autoload -Uz compinit
-compinit -d ~/.cache/zsh/zcompdump-$ZSH_VERSION
-mkdir -p ~/.cache/zsh
 
-zstyle ':completion:*' menu select                   # arrow key menu
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # case-insensitive
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}" # colored completions
-zstyle ':completion:*' group-name ''                  # group by type
+# Initialize completion with cached metadata file
+compinit -d "$XDG_CACHE_HOME/zsh/zcompdump"
+
+# Enable interactive completion menu selection
+zstyle ':completion:*' menu select
+
+# Make completion case-insensitive ("doc" -> "Documents")
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# Local extras: colored, grouped, labelled completion lists
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' group-name ''
 zstyle ':completion:*:descriptions' format '%F{blue}── %d ──%f'
 zstyle ':completion:*:warnings' format '%F{red}no matches%f'
 
-# ── Plugins (Arch packages) ─────────────────────────────
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# =========================================================
+# Fuzzy finder (system key-bindings; re-bound after zsh-vi-mode in bindings.zsh)
+# =========================================================
 
-# autosuggestion style
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-bindkey '^F' autosuggest-accept  # Ctrl+F to accept suggestion
+# macOS / Homebrew (Apple Silicon)
+if [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
+  source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+  source /opt/homebrew/opt/fzf/shell/completion.zsh
+fi
 
-# ── Syntax Highlighting (uses ANSI colors so it follows kitty theme) ──
-typeset -A ZSH_HIGHLIGHT_STYLES
-ZSH_HIGHLIGHT_STYLES[command]='fg=blue'
-ZSH_HIGHLIGHT_STYLES[builtin]='fg=blue'
-ZSH_HIGHLIGHT_STYLES[alias]='fg=blue'
-ZSH_HIGHLIGHT_STYLES[function]='fg=blue'
-ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=red'
-ZSH_HIGHLIGHT_STYLES[path]='fg=yellow,underline'
-ZSH_HIGHLIGHT_STYLES[globbing]='fg=magenta'
-ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=green'
-ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=green'
-ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=green'
-ZSH_HIGHLIGHT_STYLES[comment]='fg=8'
-ZSH_HIGHLIGHT_STYLES[arg0]='fg=blue'
-ZSH_HIGHLIGHT_STYLES[redirection]='fg=magenta'
-ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=magenta'
-ZSH_HIGHLIGHT_STYLES[precommand]='fg=green'
-ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=green'
+# macOS / Homebrew (Intel)
+if [[ -f /usr/local/opt/fzf/shell/key-bindings.zsh ]]; then
+  source /usr/local/opt/fzf/shell/key-bindings.zsh
+  source /usr/local/opt/fzf/shell/completion.zsh
+fi
 
-# ── fzf ──────────────────────────────────────────────────
-source <(fzf --zsh)
+# Arch
+if [[ -f /usr/share/fzf/key-bindings.zsh ]]; then
+  source /usr/share/fzf/key-bindings.zsh
+  source /usr/share/fzf/completion.zsh
+fi
 
-# Catppuccin Mocha fzf colors
-export FZF_DEFAULT_OPTS=" \
-  --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
-  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
-  --color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8 \
-  --color=selected-bg:#45475a \
-  --border=rounded --margin=0,1 --padding=0,1"
+# Ubuntu
+if [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]]; then
+  source /usr/share/doc/fzf/examples/key-bindings.zsh
+  source /usr/share/doc/fzf/examples/completion.zsh
+fi
 
-export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null || eza --icons --color=always {}'"
-export FZF_ALT_C_OPTS="--preview 'eza --icons --color=always --tree --level=2 {}'"
+# =========================================================
+# Modular Config Files
+# =========================================================
 
-# ── zoxide ───────────────────────────────────────────────
+source "$ZDOTDIR/fzf.zsh"       # fzf configuration
+source "$ZDOTDIR/aliases.zsh"   # aliases
+source "$ZDOTDIR/bindings.zsh"  # custom keybindings (+ zvm_after_init hook)
+source "$ZDOTDIR/plugins.zsh"   # plugins and plugin manager
+source "$ZDOTDIR/prompt.zsh"    # prompt/theme
+
+# =========================================================
+# zoxide (init LAST per zoxide doctor; --cmd cd so `cd` is smart navigation)
+# =========================================================
+
 eval "$(zoxide init zsh --cmd cd)"
 
-# ── Aliases ──────────────────────────────────────────────
-alias ls='eza --icons --color=always'
-alias ll='eza --icons --color=always -la'
-alias lt='eza --icons --color=always --tree --level=2'
-alias la='eza --icons --color=always -a'
-alias cat='bat --style=plain'
-alias grep='grep --color=auto'
+# =========================================================
+# Node / NVM
+# =========================================================
 
-# git shortcuts
-alias gs='git status'
-alias gd='git diff'
-alias gl='git log --oneline -20'
-alias gp='git push'
-alias pushfm='git push && ~/hyprfm/scripts/sync-aur.sh'
-
-# ── Starship Prompt ──────────────────────────────────────
-eval "$(starship init zsh)"
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
