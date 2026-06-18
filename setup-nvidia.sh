@@ -22,7 +22,10 @@ done < <(pacman -Qq)
 
 if (( has_nvidia_open )); then
     echo "Replacing kernel-versioned nvidia-open with nvidia-open-dkms"
-    sudo pacman -Rns --noconfirm nvidia-open
+    # Plain -R: remove only nvidia-open (a leaf driver package), no -s dep
+    # cascade and no -n config wipe. nvidia-open-dkms is reinstalled below via
+    # the packages[] list, which also pulls back any shared deps it needs.
+    sudo pacman -R --noconfirm nvidia-open
 fi
 
 echo "Installing NVIDIA DKMS driver stack"
