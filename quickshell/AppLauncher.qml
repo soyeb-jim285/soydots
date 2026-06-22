@@ -2400,7 +2400,19 @@ Scope {
         uninstallConfirmId = "";
     }
 
+    // DesktopEntries.applications is marked CONSTANT, so bindings on it never
+    // re-evaluate when apps are installed/removed at runtime — entries only
+    // refreshed on restart. Quickshell DOES watch the XDG application dirs and
+    // emits applicationsChanged; subscribe explicitly and bump a counter the
+    // allApps binding depends on, forcing a live rebuild.
+    property int _appsRevision: 0
+    Connections {
+        target: DesktopEntries
+        function onApplicationsChanged() { root._appsRevision++; }
+    }
+
     property list<DesktopEntry> allApps: {
+        _appsRevision; // dependency: rebuild when apps are installed/removed
         let apps = Array.from(DesktopEntries.applications.values);
         let filtered = apps.filter(app => {
             let id = (app.id ?? "").toLowerCase();
