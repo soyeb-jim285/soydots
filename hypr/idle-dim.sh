@@ -10,7 +10,7 @@ external_state_file="$state_dir/idle-external-brightness"
 
 mkdir -p "$state_dir"
 
-brightnessctl -s set 10 >/dev/null 2>&1 || true
+brightnessctl -s set 10% >/dev/null 2>&1 || true
 external_brightness="$("$SCRIPT_DIR/external-brightness.sh" get 2>/dev/null || true)"
 [ -n "$external_brightness" ] && printf '%s\n' "$external_brightness" > "$external_state_file"
 "$SCRIPT_DIR/external-brightness.sh" set 10 >/dev/null 2>&1 || true
