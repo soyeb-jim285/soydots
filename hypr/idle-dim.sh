@@ -12,7 +12,14 @@ mkdir -p "$state_dir"
 
 brightnessctl -s set 10% >/dev/null 2>&1 || true
 external_brightness="$("$SCRIPT_DIR/external-brightness.sh" get 2>/dev/null || true)"
-[ -n "$external_brightness" ] && printf '%s\n' "$external_brightness" > "$external_state_file"
+if [ -n "$external_brightness" ]; then
+  saved_external_brightness=""
+  [ ! -f "$external_state_file" ] || saved_external_brightness="$(<"$external_state_file")"
+  # A retained value of 10 means the previous wake failed before DDC was ready.
+  if [ -z "$saved_external_brightness" ] || { [ "$saved_external_brightness" = 10 ] && [ "$external_brightness" != 10 ]; }; then
+    printf '%s\n' "$external_brightness" > "$external_state_file"
+  fi
+fi
 "$SCRIPT_DIR/external-brightness.sh" set 10 >/dev/null 2>&1 || true
 
 hyprctl -j monitors | jq -r '

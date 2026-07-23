@@ -119,6 +119,14 @@ case "${1:-}" in
     printf '%s\n' "$value" > "$target_file"
     schedule_apply
     ;;
+  set-sync)
+    value="$(clamp_value "$2")"
+    exec 9>"$lock_file"
+    flock 9
+    rm -f "$target_file"
+    set_value "$bus" "$value"
+    printf '%s\n' "$value" > "$state_file"
+    ;;
   inc)
     current="$(get_cached_or_current)"
     [ -n "$current" ] || exit 0

@@ -992,7 +992,7 @@ hibernateDelay = 7200
 hibernateEnabled = true
 lockEnabled = true
 lockTimeout = 300
-suspendEnabled = true
+suspendEnabled = false
 suspendTimeout = 1200
 
 [launcher]
@@ -1430,7 +1430,7 @@ variant = "pill"'
     property int idleLockTimeout: _data?.idle?.lockTimeout ?? 300
     property bool idleDpmsEnabled: _data?.idle?.dpmsEnabled ?? true
     property int idleDpmsTimeout: _data?.idle?.dpmsTimeout ?? 330
-    property bool idleSuspendEnabled: _data?.idle?.suspendEnabled ?? true
+    property bool idleSuspendEnabled: _data?.idle?.suspendEnabled ?? false
     property int idleSuspendTimeout: _data?.idle?.suspendTimeout ?? 1200
     property bool idleHibernateEnabled: _data?.idle?.hibernateEnabled ?? true
     property int idleHibernateDelay: _data?.idle?.hibernateDelay ?? 7200

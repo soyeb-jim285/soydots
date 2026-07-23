@@ -10,7 +10,9 @@ external_state_file="${XDG_CACHE_HOME:-$HOME/.cache}/hypr/idle-external-brightne
 brightnessctl -r >/dev/null 2>&1 || true
 if [ -f "$external_state_file" ]; then
   external_brightness="$(<"$external_state_file")"
-  [ -n "$external_brightness" ] && "$SCRIPT_DIR/external-brightness.sh" set "$external_brightness" >/dev/null 2>&1 || true
+  if [ -n "$external_brightness" ] && "$SCRIPT_DIR/external-brightness.sh" set-sync "$external_brightness" >/dev/null 2>&1; then
+    rm -f "$external_state_file"
+  fi
 fi
 
 if [ ! -f "$state_file" ]; then

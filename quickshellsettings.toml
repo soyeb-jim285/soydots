@@ -130,7 +130,7 @@ hibernateDelay = 7200
 hibernateEnabled = false
 lockEnabled = true
 lockTimeout = 300
-suspendEnabled = true
+suspendEnabled = false
 suspendTimeout = 1200
 
 [kitty]
