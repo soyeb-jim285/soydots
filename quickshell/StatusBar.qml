@@ -90,18 +90,12 @@ Scope {
     // Volume state
     property bool volJustClosed: false
 
-    // Auto-stop BT scanning after 60 seconds
-    Timer {
-        id: btScanTimeout
-        interval: Config.btScanTimeout
-        onTriggered: {
-            if (root.btAdapter && root.btScanning)
-                root.btAdapter.discovering = false;
-        }
-    }
-    onBtScanningChanged: {
-        if (btScanning) btScanTimeout.restart();
-        else btScanTimeout.stop();
+    // LE-transport scan via bluetoothctl: finds BLE-only devices (keyboards/mice)
+    // that the default dual scan often misses. --timeout auto-stops it, and
+    // Adapter.Discovering mirrors the session so btScanning stays accurate.
+    Process {
+        id: btScanProc
+        command: ["bluetoothctl", "--timeout", String(Math.round(Config.btScanTimeout / 1000)), "scan", "le"]
     }
 
     function togglePopup(name: string) {
@@ -118,8 +112,7 @@ Scope {
                 root.btJustClosed = true;
                 btJustClosedTimer.restart();
                 // Stop scanning when panel closes
-                if (root.btAdapter && root.btAdapter.discovering)
-                    root.btAdapter.discovering = false;
+                btScanProc.running = false;
             }
             if (name === "volume") {
                 root.volJustClosed = true;
@@ -144,8 +137,8 @@ Scope {
             }
             if (name === "bluetooth") {
                 // Start scanning when panel opens
-                if (root.btAdapter && root.btPowered && !root.btScanning)
-                    root.btAdapter.discovering = true;
+                if (root.btPowered && !root.btScanning)
+                    btScanProc.running = true;
             }
             if (name === "volume") {
                 root.volJustClosed = false;
@@ -1045,10 +1038,8 @@ Scope {
                                 id: btRescanMouse; anchors.fill: parent
                                 hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    if (root.btAdapter) {
-                                        if (root.btScanning) root.btAdapter.discovering = false;
-                                        else { root.btAdapter.discovering = true; }
-                                    }
+                                    if (root.btScanning) btScanProc.running = false;
+                                    else btScanProc.running = true;
                                 }
                             }
                         }
