@@ -23,9 +23,9 @@ while IFS='|' read -r src dest; do
     safe_link "$abs_src" "$abs_dest"
 done < "$manifest"
 
-# Hyprland hard-sources these gitignored machine-local files; stub them if
+# Hyprland requires these gitignored machine-local Lua modules; stub them if
 # absent so a fresh clone doesn't error with "file not present".
-for stub in hypr/local.conf hypr/quickshell-theme.conf; do
+for stub in hypr/local.lua hypr/quickshell-theme.lua; do
     abs_stub="$JIMDOTS_REPO/$stub"
     if [[ ! -e "$abs_stub" ]]; then
         run touch "$abs_stub"

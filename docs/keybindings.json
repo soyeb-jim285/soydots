@@ -56,7 +56,7 @@
     {
       "domain": "Quickshell",
       "label": "Quickshell — IPC actions with no default keybind",
-      "note": "Exposed via 'quickshell msg …' but not bound to a key. Bind in hypr/hyprland.conf if wanted.",
+      "note": "Exposed via 'quickshell msg …' but not bound to a key. Bind in hypr/hyprland.lua if wanted.",
       "groups": {
         "Unbound": [
           ["(unbound)", "notifications toggle / show — notification center"],

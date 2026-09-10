@@ -22,5 +22,5 @@ fi
 while IFS=$'\t' read -r name width height refresh x y scale transform brightness; do
   [ -n "$name" ] || continue
   [ -n "$brightness" ] || brightness=1
-  hyprctl keyword monitor "$name,${width}x${height}@${refresh},${x}x${y},${scale},transform,${transform},sdrbrightness,${brightness}" >/dev/null
+  hyprctl eval "hl.monitor({ output = \"$name\", mode = \"${width}x${height}@${refresh}\", position = \"${x}x${y}\", scale = ${scale}, transform = ${transform}, sdrbrightness = ${brightness} })" >/dev/null
 done < "$state_file"

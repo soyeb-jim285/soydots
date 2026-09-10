@@ -326,7 +326,7 @@ ColumnLayout {
     }
 
     Text {
-        text: "Applies live to Hyprland, GTK and Qt apps. Also updates hyprland.conf env vars so it persists across reboots."
+        text: "Applies live to Hyprland, GTK and Qt apps. Also updates hyprland.lua env vars so it persists across reboots."
         color: Config.subtext0; font.pixelSize: 10; font.family: Config.fontFamily
         wrapMode: Text.Wrap; Layout.fillWidth: true
     }

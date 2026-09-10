@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 "$SCRIPT_DIR/external-brightness.sh" power-on >/dev/null 2>&1 || true
-hyprctl dispatch dpms on >/dev/null 2>&1 || true
+hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })' >/dev/null 2>&1 || true
 
 # DDC can accept the power-on command before the monitor is ready for
 # brightness commands. Keep retrying the saved pre-dim value during startup.

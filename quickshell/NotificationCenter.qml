@@ -143,7 +143,7 @@ Scope {
     Process { id: caffeineOffProc; command: ["bash", "-c", "systemctl --user start hypridle; notify-send 'Caffeine' 'Screen sleep restored'"] }
     Process { id: lockProc; command: ["quickshell", "msg", "lockscreen", "lock"] }
     Process { id: ssProc; command: ["bash", "-c", "sleep 0.3 && ~/.config/hypr/screenshot.sh region"] }
-    Process { id: reloadProc; command: ["hyprctl", "dispatch", "exec", "bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; systemctl --user restart hypridle quill-polkit-agent; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"'"] }
+    Process { id: reloadProc; command: ["hyprctl", "dispatch", "hl.dsp.exec_cmd([[bash -c 'START=$(date +%s%N); hyprctl reload; killall quickshell; sleep 0.3; quickshell & sleep 0.5; systemctl --user restart hypridle quill-polkit-agent; END=$(date +%s%N); MS=$(( (END - START) / 1000000 )); notify-send Reload \"Reloaded in ${MS}ms\"']])"] }
     Process { id: settingsOpenProc; command: ["quickshell", "msg", "settings", "toggle"] }
     Process { id: powerMenuProc; command: ["quickshell", "msg", "powermenu", "toggle"] }
 

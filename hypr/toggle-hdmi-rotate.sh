@@ -16,25 +16,25 @@ else
     label="Landscape"
 fi
 
-line="monitor=$mon,preferred,$pos,1,transform,$new"
+line="hl.monitor({ output = \"$mon\", mode = \"preferred\", position = \"$pos\", scale = 1, transform = $new })"
 
 # Apply live now.
-hyprctl keyword monitor "$mon,preferred,$pos,1,transform,$new"
+hyprctl eval "$line" >/dev/null
 
-# Persist to local.conf (sourced last, survives reload/theme toggle).
+# Persist to local.lua (required last, survives reload/theme toggle).
 # Replace any existing marked line; append if absent.
-local_conf="$HOME/.config/hypr/local.conf"
-marker="# HDMI rotate state (auto)"
-touch "$local_conf"
-if grep -qF "$marker" "$local_conf"; then
+local_lua="$HOME/.config/hypr/local.lua"
+marker="-- HDMI rotate state (auto)"
+touch "$local_lua"
+if grep -qF "$marker" "$local_lua"; then
     # Marker line followed by the monitor line; rewrite the monitor line under it.
     awk -v m="$marker" -v l="$line" '
         prev==1 { print l; prev=0; next }
         $0==m   { print; prev=1; next }
         { print }
-    ' "$local_conf" > "$local_conf.tmp" && mv "$local_conf.tmp" "$local_conf"
+    ' "$local_lua" > "$local_lua.tmp" && mv "$local_lua.tmp" "$local_lua"
 else
-    printf '\n%s\n%s\n' "$marker" "$line" >> "$local_conf"
+    printf '\n%s\n%s\n' "$marker" "$line" >> "$local_lua"
 fi
 
 notify-send -t 2000 "🖥️ HDMI rotated" "$label (transform $new)"

@@ -82,7 +82,7 @@ _$mainMod = SUPER (Windows key). Quickshell panels are toggled through these bin
 
 ## Quickshell — IPC actions with no default keybind
 
-_Exposed via 'quickshell msg …' but not bound to a key. Bind in hypr/hyprland.conf if wanted._
+_Exposed via 'quickshell msg …' but not bound to a key. Bind in hypr/hyprland.lua if wanted._
 
 ### Unbound
 
