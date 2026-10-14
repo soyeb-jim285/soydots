@@ -160,9 +160,14 @@ Scope {
             }
 
             color: "transparent"
+            mask: Region {
+                item: osdPill.opacity > 0 ? osdPill : null
+                radius: Config.osdRadius
+            }
 
             // Compact OSD pill
             Item {
+                id: osdPill
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Config.osdBottomMargin

@@ -382,16 +382,24 @@ Scope {
         }
 
         mask: Region {
-            // Bar area — full width
-            x: 0; y: 0
-            width: mainWindow.width
-            height: Theme.barHeight
+            x: Theme.barMargin
+            y: Theme.barMargin
+            width: mainWindow.width - 2 * Theme.barMargin
+            height: Theme.barHeight - Theme.barMargin
+            radius: Theme.barRadius
 
-            Region { item: panelHover; intersection: Intersection.Combine }
-            Region { item: wifiPanelHover; intersection: Intersection.Combine }
-            Region { item: btPanelHover; intersection: Intersection.Combine }
-            Region { item: volPanelHover; intersection: Intersection.Combine }
-            Region { item: trayMenuHover; intersection: Intersection.Combine }
+            // Follow the drawn popup, not its larger invisible hover zone.
+            Region {
+                x: bgShape.pL
+                y: Theme.barHeight - Theme.barRadius
+                width: mainWindow.panelAnimHeight > 1 ? bgShape.pw : 0
+                height: mainWindow.panelAnimHeight > 1 ? mainWindow.panelAnimHeight + Theme.barRadius : 0
+                topLeftRadius: 0
+                topRightRadius: 0
+                bottomLeftRadius: Theme.barRadius
+                bottomRightRadius: Theme.barRadius
+                intersection: Intersection.Combine
+            }
         }
 
         property real panelAnimHeight: root.clockOpen ? calendarContent.implicitHeight + 28

@@ -68,9 +68,14 @@ Scope {
             }
 
             color: "transparent"
+            mask: Region {
+                item: backdrop.color.a > 0 ? backdrop : settingsPanel.opacity > 0 ? settingsPanel : null
+                radius: backdrop.color.a > 0 ? 0 : settingsPanel.radius
+            }
 
             // Backdrop — color alpha so blur ignore_alpha works
             Rectangle {
+                id: backdrop
                 anchors.fill: parent
                 property real fadeIn: 0
                 color: Qt.rgba(0, 0, 0, fadeIn * 0.25)

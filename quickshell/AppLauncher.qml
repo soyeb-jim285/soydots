@@ -2953,6 +2953,11 @@ Scope {
 
             color: "transparent"
 
+            mask: Region {
+                item: backdrop.color.a > 0 ? backdrop : container.opacity > 0 ? container : null
+                radius: backdrop.color.a > 0 ? 0 : container.radius
+            }
+
             // Background overlay fade — use color alpha (not element opacity)
             // so Hyprland ignore_alpha can distinguish backdrop from panel
             Rectangle {

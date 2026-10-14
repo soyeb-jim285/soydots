@@ -297,6 +297,7 @@ Scope {
         implicitHeight: 250
         exclusiveZone: 0
         color: "transparent"
+        mask: Region { id: popupMask }
 
         margins.top: 0
         margins.right: 8
@@ -341,6 +342,15 @@ Scope {
                     color: Theme.notifPopupBg
                     border.color: urgency === NotificationUrgency.Critical ? Theme.red : Theme.surface1
                     border.width: 1
+                    Region {
+                        item: toast.opacity > 0 ? toast : null
+                        radius: toast.radius
+                        Component.onCompleted: popupMask.regions.push(this)
+                        Component.onDestruction: {
+                            const index = popupMask.regions.indexOf(this);
+                            if (index !== -1) popupMask.regions.splice(index, 1);
+                        }
+                    }
                     // Progress bar
                     Rectangle {
                         z: 10

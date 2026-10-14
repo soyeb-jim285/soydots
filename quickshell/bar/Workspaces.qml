@@ -20,7 +20,23 @@ Item {
         let count = Math.max(1, Config.workspaceCount);
         if (current < 1 || current > count) current = 1;
         let next = ((current - 1 + step + count) % count) + 1;
-        Hyprland.dispatch("workspace " + next);
+        Hyprland.dispatch("hl.dsp.focus({ workspace = " + next + " })");
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        onWheel: (event) => {
+            const delta = event.angleDelta.y || event.angleDelta.x;
+            if (!Config.workspaceScrollEnabled || delta === 0) {
+                event.accepted = false;
+                return;
+            }
+            let direction = delta > 0 ? -1 : 1;
+            if (Config.workspaceScrollInvert) direction *= -1;
+            root.switchRelative(direction);
+            event.accepted = true;
+        }
     }
 
     Row {
@@ -126,14 +142,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Hyprland.dispatch("workspace " + wsButton.wsId)
-                    onWheel: (event) => {
-                        if (!Config.workspaceScrollEnabled) return;
-                        let direction = event.angleDelta.y > 0 ? -1 : 1;
-                        if (Config.workspaceScrollInvert) direction *= -1;
-                        root.switchRelative(direction);
-                        event.accepted = true;
-                    }
+                    onClicked: Hyprland.dispatch("hl.dsp.focus({ workspace = " + wsButton.wsId + " })")
                 }
             }
         }

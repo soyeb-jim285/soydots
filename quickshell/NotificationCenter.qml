@@ -167,8 +167,13 @@ Scope {
 
             anchors { top: true; left: true; right: true; bottom: true }
             color: "transparent"
+            mask: Region {
+                item: backdrop.color.a > 0 ? backdrop : panel.opacity > 0 ? panel : null
+                radius: backdrop.color.a > 0 ? 0 : panel.radius
+            }
 
             Rectangle {
+                id: backdrop
                 anchors.fill: parent
                 property real fadeIn: 0
                 color: Qt.rgba(0, 0, 0, fadeIn * 0.25)
