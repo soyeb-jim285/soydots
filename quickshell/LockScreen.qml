@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Pam
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
@@ -19,6 +20,8 @@ Scope {
     property bool showPassword: false
 
     function lock() {
+        if (root.locked) return;
+        errorResetTimer.stop();
         root.locked = true;
         root.password = "";
         root.status = "idle";
@@ -36,15 +39,17 @@ Scope {
         refocusTimer.restart();
     }
 
-    property string _user: Quickshell.env("USER") || "jim"
     property int refocusAttempts: 0
 
     function tryUnlock() {
-        if (password.length === 0) return;
+        if (!root.locked || root.status !== "idle" || auth.active || root.password.length === 0) return;
         root.status = "verifying";
-        // Use sudo -S -k to validate password (-k clears cached creds, -S reads from stdin)
-        authProc.command = ["bash", "-c", "echo '" + password.replace(/'/g, "'\\''") + "' | sudo -S -k true 2>/dev/null"];
-        authProc.running = true;
+        if (!auth.start()) {
+            root.status = "error";
+            root.errorMsg = "Authentication unavailable";
+            root.password = "";
+            errorResetTimer.restart();
+        }
     }
 
     IpcHandler {
@@ -80,30 +85,26 @@ Scope {
         }
     }
 
-    // Auth process
-    Process {
-        id: authProc
-        command: ["true"]
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode === 0) {
+    PamContext {
+        id: auth
+        // Use the system login policy, including failed-attempt protections.
+        config: "login"
+        onPamMessage: {
+            if (auth.responseRequired)
+                auth.respond(root.password);
+        }
+        onCompleted: (result) => {
+            root.password = "";
+            if (result === PamResult.Success) {
                 root.status = "success";
-                unlockTimer.restart();
+                root.locked = false;
             } else {
                 root.status = "error";
-                root.errorMsg = "Wrong password";
-                root.password = "";
+                root.errorMsg = result === PamResult.Error ? "Authentication unavailable"
+                    : result === PamResult.MaxTries ? "Too many attempts. Try again later."
+                    : "Wrong password";
                 errorResetTimer.restart();
             }
-        }
-    }
-
-    Timer {
-        id: unlockTimer
-        interval: 400
-        onTriggered: {
-            root.locked = false;
-            root.password = "";
-            root.status = "idle";
         }
     }
 
