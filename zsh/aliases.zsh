@@ -65,3 +65,9 @@ alias pushfm='git push && ~/hyprfm/scripts/sync-aur.sh'
 # =========================================================
 
 alias stream='mpv av://v4l2:/dev/video4 --fullscreen --demuxer-lavf-o=input_format=mjpeg,framerate=30 --profile=low-latency --untimed'
+
+# bangla-term: Bengali widths in opencode / Claude Code
+export OPENTUI_FORCE_WCWIDTH=1
+export KITTY_BENGALI=glibc  # patched nvim inside tmux (server env may predate it)
+[[ -n $KITTY_WINDOW_ID && -z $TMUX ]] &&
+  alias claude="bun ~/src/bangla-term/claude/osc66-proxy.js ~/.local/bin/claude"

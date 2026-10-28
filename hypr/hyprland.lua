@@ -28,7 +28,7 @@ hl.monitor({ output = "HDMI-A-1",  mode = "preferred", position = "1600x0", scal
 -- MY PROGRAMS --
 -----------------
 
-local terminal    = "kitty"
+local terminal    = os.getenv("HOME") .. "/.local/bin/kitty"  -- patched (bangla-term)
 local fileManager = "hyprfm"
 local menu        = "hyprlauncher"
 
@@ -63,7 +63,7 @@ hl.env("XMODIFIERS", "@im=fcitx")
 hl.env("QT_IM_MODULE", "fcitx")
 hl.env("SDL_IM_MODULE", "fcitx")
 hl.env("GLFW_IM_MODULE", "ibus")
-hl.env("TERMINAL", "kitty")
+hl.env("TERMINAL", os.getenv("HOME") .. "/.local/bin/kitty")
 
 
 -----------------
